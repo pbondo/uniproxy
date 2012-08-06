@@ -1,0 +1,439 @@
+<% c++ #include "webserver/content.h" %>
+<% skin view %>
+<% view status uses content::content_status extends master %>
+
+
+<% template css() %>
+<style type="text/css">
+div.connection_ok{ background-color: green; }
+div.connection_warning{ background-color: yellow; }
+div.connection_error{ background-color: red; }
+</style>
+<% end template %>
+
+
+
+
+<% template javascript() %>
+<script type="text/javascript">
+
+<!-- Start of status -->
+
+//
+// To be incorporated into the executable file.
+//
+// Test file for the status view
+var status1 = null;
+
+
+function timestamp_to_string( ts2 )
+{
+	var ts = new Date();
+	ts = ts2;
+	var sz = " " + ts.getUTCFullYear() + "-" + (ts.getUTCMonth() + 1) + "-" + ts.getUTCDate() + " " + ts.getUTCHours() + ":" + ts.getUTCMinutes() + ":" + ts.getUTCSeconds();
+	return sz
+}
+
+
+// Constructor
+var Status = function()
+{
+	this.timer1 = setTimeout(on_status_timer, 1000);
+	this.cache_count = 1; // Used for fooling IE cache.
+	this.line_count = 1;
+	this.erase_count = 0;
+}
+
+
+Status.prototype.do_add_lines = function( text )
+{
+
+	var something_was_added = 0;
+	var testdiv_outer = jQuery("#testdiv_outer");
+	var testdiv = jQuery("#testdiv_outer > .testdiv_inner");
+	var at_bottom = 0;
+	var myoffset1 = Math.abs( (testdiv.offset().top - (testdiv_outer.offset().top ) ) );
+	var myoffset = myoffset / 20;
+	var myheight1 = testdiv.outerHeight() - testdiv_outer.height();
+	var myheight = myheight1 / 20;
+	if ( myoffset1 + 5 >= myheight1 )
+	{
+		// We're at the bottom!
+		at_bottom = 1;
+	}
+
+	var lines = text.split( "\n" );
+	for ( var index in lines )
+	{
+		var line = lines[index];
+		var mydiv = '<div id="a' + this.line_count + '" ';
+
+		// The GH memory log may contain \1 group
+		while ( line.length > 0 && line[0] < ' ' )
+		{
+			if ( line.charCodeAt(0) == 1 )
+			{
+				line = line.substring(1, line.length-1);
+				var group = parseInt( line );
+				var sp_index = line.indexOf( ' ' );
+				line = line.substring( sp_index+1, line.length-sp_index-1);
+				if ( group == 1 )
+				{
+					mydiv += ' class="note"';
+				}
+			}
+			else
+			{
+				// We just remove the first char.
+				line = line.substring(1, line.length-1);
+			}
+		}
+		if ( line.length > 0 )
+		{
+			something_was_added = 1;
+			if ( line.search("error") > -1 )
+			{
+				mydiv += ' class="error"';
+			}
+			else if ( line.search("warning") > -1 )
+			{
+				mydiv += ' class="warning"';
+			}
+			mydiv += ' >';
+			testdiv.append( mydiv + line + '</div>');
+			this.line_count++;
+		}
+	}
+	if ( at_bottom == 1 )
+	{
+		if (this.line_count > 30)
+		{
+			for( ; this.line_count - this.erase_count > 900; this.erase_count++)
+			{
+				// Dont use this one. It takes a long time. jQuery('div').remove('#a' + erase_count);
+				jQuery('div.#a' + this.erase_count ).remove();
+			}			
+		}
+		testdiv_outer.animate({scrollTop: testdiv.outerHeight()});
+	}	
+	return something_was_added;
+}
+
+
+
+Status.prototype.do_get_log = function( )
+{
+	var myurl = '/json/logger/update/dummy=' +  this.cache_count++;
+	var that = this;
+	jQuery.ajax({ url: myurl, success: function(data) { status1.do_add_lines( data ); } });
+}
+
+
+Status.prototype.connection_string = function(active, condition, _value )
+{
+	var result = "";
+	var value = "&nbsp;";
+	if ( _value )
+	{
+		value = _value;
+	}
+	if ( active )
+	{
+		if ( condition )
+		{
+			result = "<td><div class='connection_ok'>"+ value +"</div></td>";
+		}
+		else
+		{
+			result = "<td><div class='connection_error'>"+ value +"</div></td>";
+		}
+	}
+	else
+	{
+		result = "<td><div>"+ value +"</div></td>";
+	}
+	return result;
+}
+
+
+Status.prototype.reload = function( timeout )
+{
+	clearTimeout( this.timer1 );
+	this.timer1 = setTimeout(on_status_timer, timeout);
+}
+
+
+Status.prototype.show_flow = function( input )
+{
+	if ( input ) //&& input > 0)
+	{
+		return (input >= 1024) ? (parseInt(input / 1024) + 'K') : input;
+	}
+	return "&nbsp;";
+}
+
+
+Status.prototype.on_status_update1 = function( data )
+{
+	console.log("status: " + data );
+	var sz_html = "";
+	var json_data = JSON.parse( data );
+	var that = this;
+	sz_html = "<table border='1'><tr><th>Name</th><th>Local</th><th>Remote</th><th>Data in [B/min]</th><th>Data out [B/min]</th><th>Status</th><th>Certificate</th><th>Activate</th><th>Delete</th></tr>";
+	if ( json_data.clients )
+	{
+		json_data.clients.forEach( function(client_data) 
+		{
+			var linest = "<tr><td>" + client_data.name + "</td>";
+			var localhosts = '';
+			if ( client_data.local_hostname )
+			{
+				localhosts = ': ';
+				var index;
+				for ( index = 0; index < client_data.local_hostname.length; index++ )
+				{
+					localhosts = localhosts + client_data.local_hostname[index] + ", ";
+				}
+			}
+			linest += that.connection_string( client_data.active, client_data.connected_local, client_data.local_port + localhosts );
+			linest += that.connection_string( client_data.active, client_data.connected_remote, client_data.remote_hostname + ":" + client_data.remote_port );
+			linest += "<td>" + that.show_flow( client_data.count_in ) + "</td>";
+			linest += "<td>" + that.show_flow( client_data.count_out ) + "</td>";
+			//linest += "<td>" + ( ( client_data.count_out  >= 1024) ? ( parseInt(client_data.count_out / 1024) + 'K'): client_data.count_out )+ "</td>";
+			linest += "<td>" + (( client_data.log ) ? client_data.log : "&nbsp;" ) + "</td>";
+			linest += "<td>" + ( ( client_data.cert ) ? "Yes" : "&nbsp;" ) + "</td>";
+			linest += "<td>";
+			if ( client_data.activate )
+			{
+				linest += client_data.activate;
+			}
+			else if ( client_data.name )
+			{
+				linest += "<input type=\"button\" value=\"Activate\" onclick=\"status1.on_client_activate('" + client_data.name + "')\" />";
+				//linest += "<input type=\"button\" value=\"Delete\" onclick=\"on_client_delete('" + client_data.name + "')\" />";
+			}
+			linest += "<td>" + ( ( client_data.cert ) ? "<input type=\"button\" value=\"Delete\" onclick=\"status1.on_client_delete('" + client_data.name + "')\" />" : "&nbsp;" ) + "</td>";
+			linest += "</td></tr>";
+			sz_html += linest;
+		} );
+	}
+	sz_html += "</table>";
+	$("#clients").html( sz_html );
+
+	sz_html = "<table border='1'><tr><th>Port</th><th>Name</th><th>Remote</th><th>Local</th><th>Data in [B/min]</th><th>Data out [B/min]</th><th>Status</th><th>Certificate</th><th>Activate</th><th>Delete</th></tr>";
+	if ( json_data.hosts )
+	{
+		json_data.hosts.forEach( function(host_data)
+		{
+			var linest = "<tr><td>" + host_data.port + "</td>";
+			//<td>" + host_data.type + "</td><td></td><td></td><td></td><td></td>";
+			//if ( host_data.log )
+			{
+//				linest += "<td>" + host_data.log + "</td>";
+			}
+			linest += "</tr>";
+			host_data.remotes.forEach( function(remote_data) 
+			{
+				linest += "<tr><td></td><td>" + remote_data.name + "</td>";
+				linest += that.connection_string( remote_data.active, remote_data.connected_remote, remote_data.remote_hostname );
+				var sz = "&nbsp;";
+				//if ( remote_data.local_host )
+				{
+				//	sz = remote_data.local_host;
+				}
+				linest += that.connection_string( remote_data.active, remote_data.connected_local, remote_data.local_hostname );
+				linest += "<td>" + that.show_flow( remote_data.count_in ) + "</td>";
+				linest += "<td>" + that.show_flow( remote_data.count_out ) + "</td>";
+				linest += "<td>" + ( ( remote_data.log ) ? remote_data.log : "&nbsp;" ) + "</td>";
+				linest += "<td>" + ( ( remote_data.cert ) ? "Yes" : "&nbsp;" ) + "</td>";
+				linest += "";
+				if ( remote_data.activate )
+				{
+					linest += "<td>" + remote_data.activate + "</td>";
+				}
+				else if ( remote_data.name )
+				{
+					linest += "<td><input type=\"button\" value=\"Activate\" onclick=\"status1.on_host_activate('" + remote_data.name + "')\" /></td>";
+				}
+				linest += "<td>" + ( ( remote_data.cert ) ? "<input type=\"button\" value=\"Delete\" onclick=\"status1.on_host_delete('" + remote_data.name + "')\" />" : "&nbsp;" ) + "</td>";
+				linest += "</tr>";
+
+			} );
+			sz_html += linest;
+		} );
+	}
+	sz_html += "</table>";
+	$("#hosts").html( sz_html );
+
+	$("#own_name").html( (json_data.global.name) ? (json_data.global.name) : "&nbsp;" );
+}
+
+
+Status.prototype.do_get_update = function( )
+{
+	// Make sure we keep running, even if there are problems.
+	this.reload(5000);
+	try
+	{
+		var that = this;
+		jQuery.ajax(
+		{
+			url: '/json/status/dummy=' + this.cache_count++,
+			success: function(data)
+			{
+				
+				$("#status").html("Running" + timestamp_to_string( new Date() ) + " UTC" );
+				$("#status").removeClass();
+				that.on_status_update1( data );
+				that.do_get_log();
+				//do_something();
+			},
+			error: function()
+			{
+				$("#status").html("No connection to proxy" + timestamp_to_string( new Date() ) + " UTC" );
+				$("#status").removeClass().addClass('connection_error');
+				$("#clients").html("");
+				$("#hosts").html("");
+			}
+		});
+	}
+	catch(err)
+	{
+		console.log("Exception: " + err );
+	}
+}
+
+
+Status.prototype.on_client_activate = function( name )
+{
+	console.log( "on_client_activate: " + name );
+	if (confirm("Activate certificate for: " + name + " ?. Please notice the host at the other end must be activated first" ))
+	{
+		jQuery.ajax({ url: '/json/command/client/activate/name=' + name + '&dummy=' + this.cache_count++ });
+		this.reload(200);
+	}
+}
+///
+
+Status.prototype.on_client_delete = function( name )
+{
+	console.log( "on_client_delete: " + name );
+	if (confirm("Delete certificate for: " + name + " ?" ))
+	{
+		jQuery.ajax({ url: '/json/command/client/delete/name=' + name + '&dummy=' + this.cache_count++ });
+		this.reload(200);
+	}
+}
+
+
+Status.prototype.on_host_activate = function( name )
+{
+	console.log( "on_host_activate: " + name );
+	if (confirm("Activate certificate for: " + name + " ?. Please notice the client at the other end must be activated last" ))
+	{
+		jQuery.ajax({ url: '/json/command/host/activate/name=' + name + '&dummy=' + this.cache_count++ });
+	}
+	this.reload(100);
+}
+
+
+Status.prototype.on_host_delete = function( name )
+{
+	console.log( "on_host_delete: " + name );
+	if (confirm("Delete certificate for: " + name + " ?" ))
+	{
+		jQuery.ajax({ url: '/json/command/host/delete/name=' + name + '&dummy=' + this.cache_count++ });
+	}
+	this.reload(100);
+}
+
+
+Status.prototype.on_stop = function( )
+{
+	if (confirm("Are you sure you want to stop the proxy application service ?" ))
+	{
+		jQuery.ajax({ url: '/json/command/stop/dummy=' + this.cache_count++ });
+	}
+}
+
+Status.prototype.on_configure = function( )
+{
+	console.log( "on_configure: " + name );
+	if (confirm("Are you sure you want to reload the configuration for the proxy application service ?" ))
+	{
+		jQuery.ajax({ url: '/json/command/config/reload/dummy=' + this.cache_count++ });
+	}
+	this.reload(100);
+}
+
+// Generic functions below.
+
+function on_status_timer()
+{
+	//console.log("on_status_timer");
+	//console.dir(status1);
+	status1.do_get_update();
+}
+
+
+$(document).ready(function()
+{
+	status1 = new Status();
+	
+	console.log("Ready");
+	console.dir(status1);
+
+	//setTimeout(do_something, 1000);
+	//do_resize();
+});
+
+
+
+
+
+<!-- End of status -->
+
+<!-- Start of logger -->
+
+<!-- End of logger -->
+
+</script>
+<% end template %>
+
+
+<% template mainview() %>
+<table>
+<tr><td><h2>UniProxy(</h2></td><td><h2> <div id="own_name"></div> </h2></td><td><h2>)</h2></td></tr>
+</table>
+<h3>Clients</h3>
+<div id="clients" data-role="collapsible" data-collapsed="false" ></div>
+<h3>Hosts</h3>
+<div id="hosts"></div>
+<p></p>
+<table>
+<tr><td>Status:</td><td><div id="status">status</div></td></tr>
+</table>
+
+<p></p>
+<div class="testdiv" id="testdiv_outer" style="height:200px;overflow:auto;border: 1px black solid">
+	<div class="testdiv_inner" id="testdiv_inner">
+	</div>
+</div>
+<p></p>
+
+<table>
+<tr>
+<td><form action="/json/command/config/upload/" method="post" enctype="multipart/form-data" accept-charset="utf-8"><input type="file" name="upload.json" ></input>
+	<input type="submit" value="Upload configuration"  />
+</form>
+</td>
+<td> <input type="button" value="Stop Application" onclick="status1.on_stop()" /> </td>
+<td> <input type="button" value="Reload configuration" onclick="status1.on_configure()" /> </td>
+</tr>
+</table>
+
+<% end template %>
+
+<% end view %>
+<% end skin %>
+

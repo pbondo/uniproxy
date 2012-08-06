@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# Stop all the services
+service uniproxy stop
+
+echo "service uniproxy stop: $?" 1>> /tmp/uniproxy.log 2>> /tmp/uniproxy.log
+
+
+exit 0

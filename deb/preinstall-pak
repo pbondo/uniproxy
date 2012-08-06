@@ -1,0 +1,6 @@
+#!/bin/bash
+
+service uniproxy status
+[ $? -eq 0 ] && service uniproxy stop
+
+exit 0
