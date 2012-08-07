@@ -1,17 +1,21 @@
-//======================================================
-//                  TclAISMessageBase
+//====================================================================
 //
-//                     GH\AIS
-//  $Revision: 1.2 $
-//  $Author: vft $
-//  $Date: 2006/08/23 10:16:13 $
-//======================================================
-// Copyright © 2004 by GateHouse A/S Denmark
-// All Rights Reserved.          
+// Universal Proxy
+//
+// GateHouse Library for handling PGHP NMEA messages
+//--------------------------------------------------------------------
+//
+// This version is released as part of the European Union sponsored
+// project Mona Lisa work package 4 for the Universal Proxy Application
+//
+// This version is released under the GPL version 3 open source License:
+// http://www.gnu.org/copyleft/gpl.html
+//
+// Copyright (C) 2004-2012 by GateHouse A/S
+// All Rights Reserved.
 // http://www.gatehouse.dk
-//======================================================
-
-//#include "stdafx.h"
+// mailto:gh@gatehouse.dk
+//====================================================================
 #include "pghpbase.h"
 
 /**

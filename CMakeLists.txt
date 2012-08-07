@@ -1,13 +1,13 @@
 #
 # cmake configuration file
 #
-# c:\lang\cmake\bin\cmake -G "Visual Studio 10" .
+# c:\lang\cmake\bin\cmake -G "Visual Studio 10" ..
 #
 cmake_minimum_required(VERSION 2.4)
 
 project(uniproxy)
 
-include_directories(. ../libs/ ../src/ src/ libs/)
+include_directories(. src/ libs/)
 
 # This command assemble the cppcms templates
 add_custom_command(
@@ -18,8 +18,6 @@ add_custom_command(
   COMMENT "Precompiling views"
   VERBATIM
   )
-
-#  COMMAND cppcms_tmpl_cc.py webserver/master.tmpl webserver/view_config.tmpl webserver/view_status.tmpl -o views.cpp
 
 
 set( uniproxy_cpp_SOURCES
@@ -93,14 +91,12 @@ IF (WIN32)
 ELSE (WIN32)
 
 	target_link_libraries(uniproxy cppcms.a booster.a boost_filesystem-mt.a boost_system-mt.a boost_regex-mt.a pthread pcre icuuc icui18n icudata gcrypt dl z ssl.a crypto.a)
-	##target_link_libraries(uniproxy cppcms.a booster.a boost_filesystem-mt.a boost_system-mt.a boost_regex-mt.a pthread.a pcre.a icuuc.a icui18n.a icudata.a gcrypt.a dl z.a ssl.a crypto.a libc.a)
 
 	INSTALL(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/)
 	INSTALL(DIRECTORY DESTINATION /var/lib/uniproxy)
 	INSTALL(DIRECTORY DESTINATION /var/lib/uniproxy/script)
 	INSTALL(FILES script/jquery.js DESTINATION /var/lib/uniproxy/script/)
 	INSTALL(FILES deb/uniproxy.conf DESTINATION /etc/init/ )
-
 
 ENDIF (WIN32)
 

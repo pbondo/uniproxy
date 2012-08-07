@@ -22,9 +22,7 @@
     <File Name="../src/proxy_global.h"/>
     <File Name="../src/proxy_global.cpp"/>
   </VirtualDirectory>
-  <VirtualDirectory Name="other">
-    <File Name="../CMakeLists.txt"/>
-    <File Name="../README.md"/>
+  <VirtualDirectory Name="deb">
     <File Name="../deb/postinstall-pak"/>
     <File Name="../deb/postremove-pak"/>
     <File Name="../deb/preremove-pak"/>
@@ -84,7 +82,8 @@
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="" IntermediateDirectory="$(ProjectPath)/../build" Command="$(IntermediateDirectory)/$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(ProjectPath)/../" PauseExecWhenProcTerminates="yes"/>
       <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
-        <![CDATA[]]>
+        <![CDATA[
+      ]]>
       </Environment>
       <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="">
         <PostConnectCommands/>
@@ -142,6 +141,7 @@
       
       
       
+      
       ]]>
       </Environment>
       <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="">
@@ -171,4 +171,9 @@
       </Completion>
     </Configuration>
   </Settings>
+  <VirtualDirectory Name="doc">
+    <File Name="../CMakeLists.txt"/>
+    <File Name="../README.md"/>
+    <File Name="../doc/license.txt"/>
+  </VirtualDirectory>
 </CodeLite_Project>

@@ -8,19 +8,14 @@
 // This version is released as part of the European Union sponsored
 // project Mona Lisa work package 4 for the Universal Proxy Application
 //
-// This version is released under the GPL version 3 open source License:
-// http://www.gnu.org/copyleft/gpl.html
+// This version is released under the GNU General Public License with restrictions.
+// See the doc/license.txt file.
 //
 // Copyright (C) 2004-2012 by GateHouse A/S
 // All Rights Reserved.
 // http://www.gatehouse.dk
 // mailto:gh@gatehouse.dk
 //====================================================================
-//
-// PluginHandler for the GateHouse AIS System
-//
-// In the connect handler it will connect using the same method as GAD.
-// 
 #include <gatehouse/pghpplugin.h>
 
 #include <gatehouse/pghplogonrequest.h>
@@ -74,11 +69,6 @@ bool PGHPFilter::SendPGHP2Mail( boost::asio::ip::tcp::socket &local_socket, cons
 	return length == clEncoded.length();
 }
 
-/*
-size_t PGHPFilter::max_buffer_size()
-{
-	return 10000;
-}*/
 
 
 bool PGHPFilter::SendStartMesg( boost::asio::ip::tcp::socket &local_socket )
@@ -116,93 +106,76 @@ bool PGHPFilter::SendLogonRequest( boost::asio::ip::tcp::socket &local_socket, R
 // Notice we are in a "safe" thread so we can wait for reply here.
 bool PGHPFilter::connect_handler( boost::asio::ip::tcp::socket &local_socket, RemoteEndpoint &_remote_ep )
 {
-	//try
-	//{
-		if ( ! this->SendLogonRequest( local_socket, _remote_ep ) )
-		{
-			throw std::system_error( make_error_code( uniproxy::error::logon_failed ), "logon request" );
-			//DOUT("Failed to send logon request");
-			//return false;
-		}
+	if ( ! this->SendLogonRequest( local_socket, _remote_ep ) )
+	{
+		throw std::system_error( make_error_code( uniproxy::error::logon_failed ), "logon request" );
+	}
 
-		for ( ;; )
+	for ( ;; )
+	{
+		char buffer[201];
+		int length = 0;
+		length = boost::asio::socket_read_some_for( local_socket, boost::asio::buffer( buffer, 200), std::chronot::seconds(10) );
+		//length = boost::asio::socket_read_some_for( local_socket, buffer, 200, std::chronot::seconds(10) );
+		if ( length == 0 )
 		{
-			char buffer[201];
-			int length = 0;
-			length = boost::asio::socket_read_some_for( local_socket, boost::asio::buffer( buffer, 200), std::chronot::seconds(10) );
-			//length = boost::asio::socket_read_some_for( local_socket, buffer, 200, std::chronot::seconds(10) );
-			if ( length == 0 )
+			throw std::system_error( make_error_code( uniproxy::error::logon_no_response ) );
+		}
+		buffer[length] = 0;
+		DOUT("Read: " << length << "-" << buffer << "-");
+		std::istringstream is( buffer );
+		while( is )
+		{
+			string line, msg;
+			std::getline( is, line );
+			DOUT("Line: " << line );
+			line += "\r\n";
+			if ( this->Decode( line, msg ) )
 			{
-				throw std::system_error( make_error_code( uniproxy::error::logon_no_response ) );
-			}
-			buffer[length] = 0;
-			DOUT("Read: " << length << "-" << buffer << "-");
-			std::istringstream is( buffer );
-			while( is )
-			{
-				string line, msg;
-				std::getline( is, line );
-				DOUT("Line: " << line );
-				line += "\r\n";
-				if ( this->Decode( line, msg ) )
+				TclAISMessageInternalBase clAISMessageData;
+				clAISMessageData.Decode(msg);
+				DOUT( "Decode type: " <<  clAISMessageData.GetType() );
+				DOUT("Msg: " << msg );
+				TclPGHP2Message pghp2;
+				if(pghp2.Decode(line))
 				{
-					TclAISMessageInternalBase clAISMessageData;
-					clAISMessageData.Decode(msg);
-					DOUT( "Decode type: " <<  clAISMessageData.GetType() );
-					DOUT("Msg: " << msg );
-					TclPGHP2Message pghp2;
-					if(pghp2.Decode(line))
+					string mail = pghp2.GetGHMail();
+					DOUT( "GH:" << mail );
+					TclAISMessageInternalBase clAISMessageData1;
+					if ( clAISMessageData1.Decode(mail) )
 					{
-						string mail = pghp2.GetGHMail();
-						DOUT( "GH:" << mail );
-						TclAISMessageInternalBase clAISMessageData1;
-						if ( clAISMessageData1.Decode(mail) )
+						DOUT( "decoded Type: " << clAISMessageData1.GetType() );
+						switch( clAISMessageData1.GetType() )
 						{
-							DOUT( "decoded Type: " << clAISMessageData1.GetType() );
-							switch( clAISMessageData1.GetType() )
+						case AISMESGINT_LOGON_REPLY:  //Logged On
 							{
-							case AISMESGINT_LOGON_REPLY:  //Logged On
+								TclAISMessageLogonReply reply;
+								reply.Decode( mail );
+								DOUT("Reply: " << reply.GetLogonReply() );
+								switch( reply.GetLogonReply() )
 								{
-									TclAISMessageLogonReply reply;
-									reply.Decode( mail );
-									DOUT("Reply: " << reply.GetLogonReply() );
-									switch( reply.GetLogonReply() )
-									{
-									case LOGON_REPLY_OK:
-										DOUT("Logon Reply OK");
-										SendStartMesg( local_socket );
-										return true;
-									case LOGON_REPLY_USER_INVALID:
-										throw std::system_error( make_error_code( uniproxy::error::logon_username_password_invalid ), " for user: " + _remote_ep.m_username );
-										//DOUT("Logon Invalid username");
-										//return false;
-									case LOGON_REPLY_PASSWORD_INVALID:
-										DOUT("Logon Invalid password");
-										break;
-										//throw std::system_error( make_error_code( uniproxy::error::logon_username_password ), " for user: " + _remote_ep.m_username );
-										//return false; NB!! Test
-									default:
-										throw std::system_error( make_error_code( uniproxy::error::logon_failed ), "unknown response" );
-										//return false;
-									}
+								case LOGON_REPLY_OK:
+									DOUT("Logon Reply OK");
+									SendStartMesg( local_socket );
+									return true;
+								case LOGON_REPLY_USER_INVALID:
+									throw std::system_error( make_error_code( uniproxy::error::logon_username_password_invalid ), " for user: " + _remote_ep.m_username );
+								case LOGON_REPLY_PASSWORD_INVALID:
+									DOUT("Logon Invalid password");
+									break;
+								default:
+									throw std::system_error( make_error_code( uniproxy::error::logon_failed ), "unknown response" );
 								}
-								break;
-							default:
-								break;
 							}
+							break;
+						default:
+							break;
 						}
 					}
 				}
 			}
 		}
-/*
 	}
-	catch (std::exception& e)
-	{
-		std::cerr << "Exception: " << e.what() << std::endl;
-		return false;
-	}
-	 */
 	return false;
 }
 

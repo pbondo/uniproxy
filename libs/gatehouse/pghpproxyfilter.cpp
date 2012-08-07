@@ -8,8 +8,8 @@
 // This version is released as part of the European Union sponsored
 // project Mona Lisa work package 4 for the Universal Proxy Application
 //
-// This version is released under the GPL version 3 open source License:
-// http://www.gnu.org/copyleft/gpl.html
+// This version is released under the GNU General Public License with restrictions.
+// See the doc/license.txt file.
 //
 // Copyright (C) 2004-2012 by GateHouse A/S
 // All Rights Reserved.
@@ -60,11 +60,6 @@ bool TclAISMessageProxyFilter::Decode(const std::string &clData)
    DecodeInteger(clDataBuffer, iOffset, "MLC", iBool);
    m_fIncludeMMSIListContent = iBool != 0;
 
-   //// Predefined areas
-   //std::string clPAreasVector;
-   //DecodeString(clDataBuffer, iOffset, "PAREA", clPAreasVector);
-   //SplitVectorValue(clPAreasVector, m_clPredefinedAreas);
-
    // User Defined areas
    std::string clUAreaVector;
    DecodeString(clDataBuffer, iOffset, "UAREA", clUAreaVector);
@@ -96,12 +91,6 @@ bool TclAISMessageProxyFilter::Encode(std::string &clData)
    EncodeString(clDataBuffer, "ML", clMMSIVector);
    EncodeInteger(clDataBuffer, "MLD", m_fMMSIListDefined);
    EncodeInteger(clDataBuffer, "MLC", m_fIncludeMMSIListContent);
-
-
-   //// Predefined areas
-   //std::string clPAreasVector;
-   //CreateVectorValue(clPAreasVector, m_clPredefinedAreas);
-   //EncodeString(clDataBuffer, "PAREA", clPAreasVector);
 
    // User defined areas
    std::string clUAreaVector;

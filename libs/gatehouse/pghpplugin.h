@@ -8,8 +8,8 @@
 // This version is released as part of the European Union sponsored
 // project Mona Lisa work package 4 for the Universal Proxy Application
 //
-// This version is released under the GPL version 3 open source License:
-// http://www.gnu.org/copyleft/gpl.html
+// This version is released under the GNU General Public License with restrictions.
+// See the doc/license.txt file.
 //
 // Copyright (C) 2004-2012 by GateHouse A/S
 // All Rights Reserved.
@@ -20,7 +20,6 @@
 #define _pghpplugin_h
 
 #include <applutil.h>
-//#include <aisparser/aiswrap.h>
 
 class PGHPFilter : public PluginHandler
 {
@@ -34,22 +33,12 @@ public:
 
 		std::string json_positions( const boost::posix_time::ptime &_from, const boost::posix_time::ptime &_to  );
 
-		//std::vector<ais_msg> m_positions;		// AIS position reports, sorted with newest first
-		//std::vector<ais_msg> m_static_voyage;	// AIS voyage reports, sorted with newest first
-
 		unsigned int m_mmsi;
 	};
 
 	PGHPFilter() : PluginHandler( "GHP" ) {}
 
-	//virtual size_t max_buffer_size();
-
 	virtual bool connect_handler( boost::asio::ip::tcp::socket &local_socket, RemoteEndpoint &_remote_ep );
-	//virtual bool stream_local2remote( boost::asio::ip::tcp::socket &local_socket, ssl_socket &remote_socket, mylib::thread &_thread );
-
-
-	//bool handle_message( const ais_msg & );
-	//bool message_filter_local2remote( Buffer &_buffer ); //, bool _full );
 
 	bool SendPGHP2Mail( boost::asio::ip::tcp::socket &local_socket, const std::string &_mail );
 
