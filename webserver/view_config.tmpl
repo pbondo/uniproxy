@@ -1,0 +1,40 @@
+<% c++ #include "webserver/content.h" %>
+<% skin view %>
+<% view config uses content::content_config extends master %>
+
+
+<% template javascript() %>
+<script type="text/javascript" src="http://localhost:8000/test/form2object.js"></script>
+<script type="text/javascript" src="http://localhost:8000/test/json2.js"></script>
+<script type="text/javascript" src="http://localhost:8000/test/config.js"></script>
+<% end template %>
+
+
+<% template mainview() %>
+<h1>Configuration</h1>
+<p/>
+<form id="testForm" action="javascript:on_apply()">
+<h2>Remote Connections</h2>
+<p>Configured for the following hosts:</p>
+<p/>
+<div id="hosts"></div>
+<p/>
+<h2>Local Connections</h2>
+<p>Configured for the following clients:</p>
+<p/>
+<div id="clients"></div>
+<p/>
+</form>
+<div id="log">Log her</div>
+<p/>
+<% end template %>
+
+
+<% template actions() %>
+<input type="button" value="Apply" onclick="on_apply()" />
+<input type="button" value="Cancel" onclick="on_cancel()" />
+<% end template %>
+
+
+<% end view %>
+<% end skin %>

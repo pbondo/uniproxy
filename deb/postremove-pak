@@ -1,0 +1,11 @@
+#!/bin/bash
+#
+# We expect the services to have been stopped
+
+rootdir=/var/lib/uniproxy
+
+# Remove the user. We don't force -f. So it will be possible to avoid deleting the user by being logged in.
+userdel uniproxy
+
+exit 0
+

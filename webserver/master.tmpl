@@ -1,0 +1,37 @@
+<% c++ #include "webserver/content.h" %>
+<% xhtml %>
+<% skin view %>
+<% view master uses content::master %>
+
+<% template javascript() %>
+<% end template %>
+<% template mainview() %>
+<% end template %>
+<% template actions() %>
+<% end template %>
+<% template css() %>
+<% end template %>
+
+
+<% template render() %>
+
+<!DOCTYPE>
+<html>
+<!-- Refresh <meta http-equiv="refresh" content="5"/>  -->
+<META HTTP-EQUIV="Pragma" CONTENT="no-cache">
+<META HTTP-EQUIV="Expires" CONTENT="-1">
+
+<head><title><%= title %></title>
+<% include css() %>
+<script type="text/javascript" src="/script/jquery.js"></script>
+<% include javascript() %>
+</head>
+
+<body>
+<% include mainview() %>
+</body>
+</html>
+<% end template %>
+
+<% end view %>
+<% end skin %>

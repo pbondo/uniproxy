@@ -1,0 +1,20 @@
+Copyright:
+=========
+The initial software package is Copyright (C) GateHouse http://www.gatehouse.dk 2011-2012
+Any derived software is copyright of the respective providers.
+
+License:
+========= Start of license =========
+The software is released as open source software under the GNU General Public License version 3 (GPL): http://www.gnu.org/licenses/gpl-3.0.html
+with the following addition:
+For any software that you provide or derive from this project you will transfer to GateHouse the right to change the license to either of:
+A) GNU General Public License version 2: http://www.gnu.org/licenses/gpl-2.0.html
+B) GNU Lesser General Public License, version 2.1: http://www.gnu.org/licenses/lgpl-2.1.html
+=========  End of license =========
+
+The reasoning being that:
+
+1) For developers: if we receive requests for changing the license to LGPL we will reserve the right to do so.
+2) For end users: if there should arise problems from GPL version 3 for example in relation to the SSL keys we will reserve the right to use GPL version 2 instead.
+
+Changing the license to any other license, such as BOOST license or a commercial license will only happen with the consent of all participants.
