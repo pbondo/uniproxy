@@ -396,7 +396,7 @@ int main(int argc,char ** argv)
 			cppcms::signal::reset_reload();
 			std::string certificate_common_name;
 			
-			DOUT( std::string("UniProxy starting with parameters: ") << argv[0] << std::string(" in path: ") << boost::filesystem3::current_path() );
+			DOUT( std::string("UniProxy starting with parameters: ") << argv[0] << std::string(" in path: ") ); //<< boost::filesystem3::current_path() );
 			log().add( std::string("UniProxy starting" ) ); // with parameters: ") + argv[0] + std::string(" in path: ") );
 			
 			DOUT("Loading plugins count: " << PluginHandler::plugins().size() );

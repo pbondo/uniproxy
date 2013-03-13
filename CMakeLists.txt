@@ -12,7 +12,7 @@ include_directories(. src/ libs/)
 # This command assemble the cppcms templates
 add_custom_command(
   OUTPUT views.cpp
-  COMMAND cppcms_tmpl_cc.py ../webserver/master.tmpl ../webserver/view_config.tmpl ../webserver/view_status.tmpl -o views.cpp
+  COMMAND python \lang\w32\bin\cppcms_tmpl_cc.py ../webserver/master.tmpl ../webserver/view_config.tmpl ../webserver/view_status.tmpl -o views.cpp
   DEPENDS webserver/master.tmpl webserver/view_config.tmpl webserver/view_status.tmpl
   WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
   COMMENT "Precompiling views"
@@ -62,8 +62,8 @@ IF (WIN32)
 
 	# VC10
 	ADD_DEFINITIONS( -D_WIN32_WINNT=0x0501 /wd4250 /wd4018 )
-	include_directories (${uniproxy_SOURCE_DIR} c:/lang/include c:/lang/w32/include c:/lang/boost_1_47 c:/lang/openssl/include/)
-	LINK_DIRECTORIES( "c:/lang/boost_1_47/lib" "c:/lang/w32/lib" "c:/lang/openssl/lib/VC/static/" )
+	include_directories (${uniproxy_SOURCE_DIR} c:/lang/w32/include c:/lang/w32/include/bp-0.30 c:/lang/w32/include/boost-1_53/ c:/lang/openssl-win32/include/)
+	LINK_DIRECTORIES( "c:/lang/w32/lib" "c:/lang/openssl-win32/lib/VC/static/" )
 
 	# Mingw64
 	#ADD_DEFINITIONS( -std=c++11 )
@@ -83,7 +83,7 @@ add_executable(uniproxy ${uniproxy_SOURCES})
 
 IF (WIN32)
 	#VC
-	target_link_libraries (uniproxy libcppcms-d libbooster-d SSLeay32MDd libeay32MDd zlib pcre dbghelp )
+	target_link_libraries (uniproxy libcppcms libbooster SSLeay32MDd libeay32MDd zlib pcre dbghelp )
 
 	# Mingw the order of libraries are important
 	#target_link_libraries (uniproxy  libcppcms libbooster pcre boost_system-mgw47-mt-1_49 boost_regex-mgw47-mt-1_49 boost_filesystem-mgw47-mt-1_49 ssleay32 crypto ws2_32 wsock32 mswsock zlib m)
