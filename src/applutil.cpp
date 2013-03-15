@@ -330,6 +330,7 @@ std::error_code SetupCertificates( boost::asio::ip::tcp::socket &_remote_socket,
 				}
 				local_certs.push_back( remote_certs[0] );
 				save_certificates_file( my_certs_name, local_certs );
+				load_certificate_names( my_certs_name );
 				return ec = std::error_code();
 			}
 		}
@@ -483,7 +484,7 @@ std::string check_string( cppcms::json::value &_input_obj, const std::string &_i
 int check_int( const char *_input)
 {
 	int result;
-	if ( _input != null_ptr && strlen(_input) > 0 )
+	if ( _input != nullptr && strlen(_input) > 0 )
 	{
 		std::string sz = _input;
 		mylib::from_string( sz, result );

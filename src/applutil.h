@@ -107,7 +107,7 @@ public:
 	~protect_pointer()
 	{
 		stdt::lock_guard<stdt::mutex> l(this->m_mutex);
-		this->m_p = null_ptr;
+		this->m_p = nullptr;
 	}
 
 	T * &m_p;
@@ -386,6 +386,25 @@ public:
 	}
 
 };
+
+
+// Used for describing the remote proxy when defining local clients.
+class ProxyEndpoint
+{
+public:
+
+	ProxyEndpoint( bool _active, const std::string &_name, const std::string &_hostname, int _port )
+	: m_active(_active), m_name(_name), m_hostname(_hostname), m_port(_port)
+	{
+	}
+
+	bool m_active;
+	std::string m_name;
+	std::string m_hostname;
+	int m_port;
+
+};
+
 
 
 class Buffer

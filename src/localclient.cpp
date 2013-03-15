@@ -46,20 +46,23 @@ boost::asio::ip::tcp::socket &LocalHostSocket::socket()
 }
 
 
-LocalHost::LocalHost( bool _active, const std::string &_name, int _local_port, const std::string &_remote_hostname, const int _remote_port, const int _max_connections, PluginHandler &_plugin )
+//LocalHost::LocalHost( bool _active, const std::string &_name, int _local_port, const std::string &_remote_hostname, const int _remote_port, const int _max_connections, PluginHandler &_plugin )
+LocalHost::LocalHost( bool _active, const std::string &_name, int _local_port, const std::vector<ProxyEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin )
 :	m_active(_active),
 	m_count_out(true),
-	mp_io_service( null_ptr ),
-	mp_acceptor( null_ptr ),
-	mp_remote_socket( null_ptr ),
+	mp_io_service( nullptr ),
+	mp_acceptor( nullptr ),
+	mp_remote_socket( nullptr ),
 	m_thread( [this]{ this->interrupt(); } ),
 	m_plugin(_plugin)
 {
 	this->m_id = ++static_local_id;
 	this->m_local_connected = this->m_remote_connected = false;
 	this->m_local_port = _local_port;
-	this->m_remote_hostname = _remote_hostname;
-	this->m_remote_port = _remote_port;
+	//this->m_remote_hostname = _remote_hostname;
+	//this->m_remote_port = _remote_port;
+	this->m_proxy_endpoints = _proxy_endpoints;
+	this->m_proxy_index = 0;
 	this->m_name = _name;
 	this->m_max_connections = _max_connections;
 	this->m_activate_stamp = boost::get_system_time();
@@ -69,7 +72,7 @@ LocalHost::LocalHost( bool _active, const std::string &_name, int _local_port, c
 void LocalHost::dolog( const std::string &_line )
 {
 	this->m_log = _line;
-	log().add( " name: " + this->m_name + " hostname: " + this->m_remote_hostname + " port: " + mylib::to_string(this->m_remote_port) + ": " + _line );
+	log().add( " name: " + this->m_name + " hostname: " + this->remote_hostname() + " port: " + mylib::to_string(this->remote_port()) + ": " + _line );
 }
 
 
@@ -126,10 +129,10 @@ bool LocalHost::remote_hostname( int index, std::string &result )
 }
 
 
-bool LocalHost::is_remote_connected()
+bool LocalHost::is_remote_connected(int index)
 {
 	stdt::lock_guard<stdt::mutex> l(this->m_mutex);
-	return this->mp_remote_socket != null_ptr && this->mp_remote_socket->lowest_layer().is_open() && this->m_remote_connected;
+	return this->mp_remote_socket != nullptr && this->mp_remote_socket->lowest_layer().is_open() && this->m_remote_connected && (this->m_proxy_index == index);
 }
 
 
@@ -176,7 +179,7 @@ void LocalHost::interrupt()
 		{
 			DOUT(__FUNCTION__ << ":" << __LINE__ );
 			stdt::lock_guard<stdt::mutex> l(this->m_mutex);
-			if ( this->mp_acceptor != null_ptr )
+			if ( this->mp_acceptor != nullptr )
 			{
 				TRY_CATCH( (*this->mp_acceptor).cancel() );
 				TRY_CATCH( boost::asio::socket_shutdown( *this->mp_acceptor ) );
@@ -194,7 +197,7 @@ void LocalHost::interrupt()
 		{
 			stdt::lock_guard<stdt::mutex> l(this->m_mutex);
 			DOUT(__FUNCTION__ << ":" << __LINE__ );
-			if ( this->mp_remote_socket != null_ptr )
+			if ( this->mp_remote_socket != nullptr )
 			{
 				TRY_CATCH( (*this->mp_remote_socket).lowest_layer().shutdown( boost::asio::socket_base::shutdown_both ) );
 			}
@@ -348,11 +351,15 @@ void LocalHost::handle_accept( boost::asio::ip::tcp::socket *_socket, const boos
 
 void LocalHost::threadproc()
 {
+	this->m_proxy_index = 0;
 	for ( ; this->m_thread.check_run() ; )
 	{
 		// On start and after each lost connection we end up here.
 		try
 		{
+			//this->m_remote_hostname = this->m_proxy_endpoints[this->m_proxy_index].m_hostname;
+			//this->m_remote_port = this->m_proxy_endpoints[remote_index].m_port;
+			
 			DOUT(__FUNCTION__ << ":" << __LINE__);
 			boost::asio::io_service io_service;
 			mylib::protect_pointer<boost::asio::io_service> p_io_service( this->mp_io_service, io_service, this->m_mutex );
@@ -390,8 +397,8 @@ void LocalHost::threadproc()
 
 			this->m_local_connected = true;
 
-			this->dolog("Connecting to remote host: " + this->m_remote_hostname + ":" + mylib::to_string(this->m_remote_port) );
-			boost::asio::sockect_connect( remote_socket.lowest_layer(), io_service, this->m_remote_hostname, this->m_remote_port );
+			this->dolog("Connecting to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) );
+			boost::asio::sockect_connect( remote_socket.lowest_layer(), io_service, this->remote_hostname(), this->remote_port() );
 			this->m_remote_connected = true;
 
 			if ( boost::get_system_time() < this->m_activate_stamp )
@@ -410,12 +417,12 @@ void LocalHost::threadproc()
 				}
 				throw std::runtime_error("Called setup certificate, retry connection"); // Not an error
 			}
-			this->dolog("Connected to remote host: " + this->m_remote_hostname + ":" + mylib::to_string(this->m_remote_port) + " Attempting SSL handshake" );
+			this->dolog("Connected to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) + " Attempting SSL handshake" );
 
 			DOUT( "handles: " << remote_socket.next_layer().native_handle() << " / " << remote_socket.lowest_layer().native_handle() );
 
 			remote_socket.handshake( boost::asio::ssl::stream_base::client );
-			this->dolog("Succesfull SSL handshake to remote host: " + this->m_remote_hostname + ":" + mylib::to_string(this->m_remote_port) );
+			this->dolog("Succesfull SSL handshake to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) );
 
 			boost::asio::socket_set_keepalive_to( *local_socket, 20 );
 			boost::asio::socket_set_keepalive_to( remote_socket.lowest_layer(), 20 );
@@ -434,8 +441,23 @@ void LocalHost::threadproc()
 		{
 			this->dolog(exc.what() );
 		}
+		if (++this->m_proxy_index >= this->m_proxy_endpoints.size())
+		{
+			this->m_proxy_index = 0;
+		}
 		this->m_local_connected = this->m_remote_connected = false;
 		this->m_thread.sleep( 4000 );	//We will need some time to ensure the remote end has settled. May need to be investigated.
 	}
 }
 
+
+std::string LocalHost::remote_hostname()
+{
+	return this->m_proxy_endpoints[this->m_proxy_index].m_hostname;
+}
+
+
+int LocalHost::remote_port()
+{
+	return this->m_proxy_endpoints[this->m_proxy_index].m_port;
+}

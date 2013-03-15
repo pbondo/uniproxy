@@ -185,7 +185,86 @@ Status.prototype.on_status_update1 = function( data )
 		json_data.clients.forEach( function(client_data) 
 		{
 			var linest = "<tr><td>" + client_data.name + "</td>";
+
 			var localhosts = '';
+			if ( client_data.local_hostname )
+			{
+				localhosts = ': ';
+				var index;
+				for ( index = 0; index < client_data.local_hostname.length; index++ )
+				{
+					localhosts = localhosts + client_data.local_hostname[index] + ", ";
+				}
+			}
+
+			linest += that.connection_string( client_data.active, client_data.connected_local, client_data.local_port + localhosts );
+			linest += that.connection_string( client_data.active, client_data.connected_remote, client_data.remote_hostname + ":" + client_data.remote_port );
+			linest += "<td>" + that.show_flow( client_data.count_in ) + "</td>";
+			linest += "<td>" + that.show_flow( client_data.count_out ) + "</td>";
+
+			//linest += "<td>" + ( ( client_data.count_out  >= 1024) ? ( parseInt(client_data.count_out / 1024) + 'K'): client_data.count_out )+ "</td>";
+			linest += "<td>" + (( client_data.log ) ? client_data.log : "&nbsp;" ) + "</td>";
+			linest += "<td>" + ( ( client_data.cert ) ? "Yes" : "&nbsp;" ) + "</td>";
+			linest += "<td>";
+			
+			if ( client_data.activate )
+			{
+				linest += client_data.activate;
+			}
+			else if ( client_data.name )
+			{
+				linest += "<input type=\"button\" value=\"Activate\" onclick=\"status1.on_client_activate('" + client_data.name + "')\" />";
+				//linest += "<input type=\"button\" value=\"Delete\" onclick=\"on_client_delete('" + client_data.name + "')\" />";
+			}
+			linest += "<td>" + ( ( client_data.cert ) ? "<input type=\"button\" value=\"Delete\" onclick=\"status1.on_client_delete('" + client_data.name + "')\" />" : "&nbsp;" ) + "</td>";
+			
+			linest += "</td></tr>";
+			sz_html += linest;
+		} );
+	}
+	sz_html += "</table>";
+	$("#clients").html( sz_html );
+
+
+	sz_html = "<table border='1'><tr><th>Port</th><th>Name</th><th>Remote</th><th>Local</th><th>Data in [B/min]</th><th>Data out [B/min]</th><th>Status</th><th>Certificate</th><th>Activate</th><th>Delete</th></tr>";
+	if ( json_data.clients )
+	{
+		json_data.clients.forEach( function(client_data) 
+		{
+			var localhosts = '';
+			var linest = "<tr><td>" + client_data.local_port + "</td>";
+			linest += "<td></td>";
+			linest += "<td></td>";
+			linest += "<td></td>";
+			linest += "<td></td>";
+			linest += "<td></td>";
+			linest += "<td>" + (( client_data.log ) ? client_data.log : "&nbsp;" ) + "</td>";
+			linest += "<td>" + ( ( client_data.cert ) ? "Yes" : "&nbsp;" ) + "</td>";
+			linest += "<td>";
+			if ( client_data.activate )
+			{
+				linest += client_data.activate;
+			}
+			else if ( client_data.name )
+			{
+				linest += "<input type=\"button\" value=\"Activate\" onclick=\"status1.on_client_activate('" + client_data.name + "')\" />";
+				//linest += "<input type=\"button\" value=\"Delete\" onclick=\"on_client_delete('" + client_data.name + "')\" />";
+			}
+			linest += "</td>";
+			linest += "<td>" + ( ( client_data.cert ) ? "<input type=\"button\" value=\"Delete\" onclick=\"status1.on_client_delete('" + client_data.name + "')\" />" : "&nbsp;" ) + "</td>";
+			linest += "</tr>";
+			
+			client_data.remotes.forEach( function(remote_data) 
+			{
+				linest += "<tr><td></td><td>" + remote_data.name + "</td>";
+				linest += "<td>" + remote_data.hostname + "</td>";
+				linest += "<td>" + remote_data.port + "</td>";
+				linest += that.connection_string( true, remote_data.connected_local, "local" );
+				linest += that.connection_string( true, remote_data.connected_remote, "remote" );
+				linest += "</tr>";
+			});
+			
+/*			
 			if ( client_data.local_hostname )
 			{
 				localhosts = ': ';
@@ -214,11 +293,15 @@ Status.prototype.on_status_update1 = function( data )
 			}
 			linest += "<td>" + ( ( client_data.cert ) ? "<input type=\"button\" value=\"Delete\" onclick=\"status1.on_client_delete('" + client_data.name + "')\" />" : "&nbsp;" ) + "</td>";
 			linest += "</td></tr>";
+*/
+
 			sz_html += linest;
 		} );
+
 	}
-	sz_html += "</table>";
-	$("#clients").html( sz_html );
+	console.log(sz_html);
+	$("#clients2").html( sz_html );
+
 
 	sz_html = "<table border='1'><tr><th>Port</th><th>Name</th><th>Remote</th><th>Local</th><th>Data in [B/min]</th><th>Data out [B/min]</th><th>Status</th><th>Certificate</th><th>Activate</th><th>Delete</th></tr>";
 	if ( json_data.hosts )
@@ -407,6 +490,8 @@ $(document).ready(function()
 </table>
 <h3>Clients</h3>
 <div id="clients" data-role="collapsible" data-collapsed="false" ></div>
+<h3>Clients</h3>
+<div id="clients2" data-role="collapsible" data-collapsed="false" ></div>
 <h3>Hosts</h3>
 <div id="hosts"></div>
 <p></p>

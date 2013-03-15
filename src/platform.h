@@ -83,7 +83,7 @@ namespace chronot
 #endif
 
 // Remove this once supported by c++11
-#define null_ptr 0
+//#define null_ptr 0
 
 #ifdef __linux__
 
@@ -101,7 +101,10 @@ namespace chronot
 
 #else
 
-	#define make_unique( xx ) new xx
+	#pragma warning( disable : 4996 )
+	// #pragma warning( disable : 4305 4244 )
+
+	//#define make_unique( xx ) new xx
 
 #endif
 

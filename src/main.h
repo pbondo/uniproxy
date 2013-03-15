@@ -93,7 +93,7 @@ public:
 	#ifdef __linux__
 		::signal(SIGHUP, SIG_DFL);
 	#endif
-		signal::m_psrv = null_ptr;
+		signal::m_psrv = nullptr;
 	}
 
 	// Notice this is handled in the OS space, so we are limited in capabilities.

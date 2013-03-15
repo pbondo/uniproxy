@@ -65,7 +65,6 @@ public:
 	boost::asio::ip::tcp::endpoint remote_endpoint();
 	boost::asio::ip::tcp::endpoint local_endpoint();
 
-	//proxy_log &dolog();
 	void dolog( const std::string &_line );
 
 	RemoteEndpoint m_endpoint;
@@ -104,12 +103,11 @@ public:
 	void start();
 	void stop();
 
-	//void load_and_validate_certificates( const std::string &_filename );
 	std::string get_password() const;
 
 	void interrupt();
 	void threadproc();
-	//proxy_log &dolog();
+
 	void dolog( const std::string &_line );
 
 	int m_id;
@@ -131,7 +129,6 @@ protected:
 
 	mylib::thread m_thread;
 
-	//proxy_log m_log;
 	std::string m_log;
 
 };

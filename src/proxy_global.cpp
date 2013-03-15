@@ -91,18 +91,38 @@ bool proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 	{
 		this->localhosts.clear();
 		cppcms::json::array ar = obj["clients"].array();
-		for ( auto iter = ar.begin(); iter != ar.end(); iter++ )
+		for ( auto iter1 = ar.begin(); iter1 != ar.end(); iter1++ )
 		{
-			auto &item = *iter;
-			bool active = cppcms::utils::check_bool( item, "active", true, false );
-			PluginHandler *plugin = &standard_plugin; // NB!! Search for the correct version
-			localhost_ptr local_ptr( new LocalHost( active,
-													check_string( item, "name", "", false),
-													check_int( item, "local_port", -1, true ),
-													check_string( item, "remote_hostname", "", true ),
-													check_int( item, "remote_port", -1, true),
-													check_int( item, "max_connections", 1, false ), *plugin ) );
-			this->localhosts.push_back( local_ptr );
+			auto &item1 = *iter1;
+			bool active = cppcms::utils::check_bool( item1, "active", true, false );
+			std::string name = check_string( item1, "name", "", false );
+			int client_port = check_int( item1, "port", -1, true );
+			int max_connections = check_int( item1, "max_connections", 1, false );
+			std::vector<ProxyEndpoint> proxy_endpoints;
+			if ( item1["remotes"].type() == cppcms::json::is_array )
+			{
+				auto ar2 = item1["remotes"].array();
+				for ( auto iter2 = ar2.begin(); iter2 != ar2.end(); iter2++ )
+				{
+					auto &item2 = *iter2;
+					ProxyEndpoint ep( cppcms::utils::check_bool( item2, "active", true, false ), 
+										check_string( item2, "name", "", false ), 
+										check_string( item2, "hostname", "", true),
+										check_int(item2,"port",-1,true) 
+										);
+					if (ep.m_active)
+					{
+						proxy_endpoints.push_back( ep );
+					}
+				}
+			}
+			if ( active && proxy_endpoints.size() > 0 )
+			{
+				// NB!! Search for the correct plugin version
+				localhost_ptr local_ptr( new LocalHost( active, name, client_port, proxy_endpoints, max_connections, standard_plugin ) );
+				local_ptr->m_proxy_endpoints = proxy_endpoints;
+				this->localhosts.push_back( local_ptr );
+			} // NB!! What else if one of them is empty
 		}
 	}
 	if ( (_json_acl & hosts) > 0 && obj["hosts"].type() == cppcms::json::is_array )
@@ -192,19 +212,20 @@ std::string proxy_global::save_json_status( bool readable )
 		obj["active"] = host.m_active;
 		obj["name"] = host.m_name;
 		obj["local_port"] = host.m_local_port;
-		obj["remote_hostname"] = host.m_remote_hostname;
-		obj["remote_port"] = host.m_remote_port;
+		obj["remote_hostname"] = host.remote_hostname();
+		obj["remote_port"] = host.remote_port();
 		obj["connected_local"] = host.is_local_connected();
-		obj["connected_remote"] = host.is_remote_connected();
-		if ( host.is_remote_connected() )
+/*
+//		obj["connected_remote"] = host.is_remote_connected();
+		if ( host.is_remote_connected(index) )
 		{
 			obj["count_in"] = host.m_count_in.get();
 			obj["count_out"] = host.m_count_out.get();
 		}
+*/
 //NB!!		obj["log"] = host.log().peek();
 		obj["log"] = host.dolog();
 
-		
 		std::vector<std::string> hostnames = host.local_hostnames();
 		//for ( int index3 = 0; host.remote_hostname(index3,sz); index3++)
 		for (int index3 = 0; index3 < hostnames.size(); index3++)
@@ -227,6 +248,24 @@ std::string proxy_global::save_json_status( bool readable )
 		{
 			auto div = host.m_activate_stamp - boost::get_system_time();
 			obj["activate"] = div.seconds();
+		}
+		
+		for ( int index2 = 0; index2 < host.m_proxy_endpoints.size(); index2++ )
+		{
+			auto &r = host.m_proxy_endpoints[index2];
+			cppcms::json::object obj2;
+			obj2["name"] = r.m_name;
+			obj2["hostname"] = r.m_hostname;
+			obj2["port"] = r.m_port;
+			//obj2["connected_local"] = false; //host.is_local_connected();
+			obj2["connected_remote"] = host.is_remote_connected(index2);
+			if ( host.is_remote_connected(index2) )
+			{
+				obj2["count_in"] = host.m_count_in.get();
+				obj2["count_out"] = host.m_count_out.get();
+			}
+
+			obj["remotes"][index2] = obj2;
 		}
 		glob["clients"][index] = obj;
 	}
@@ -313,8 +352,8 @@ std::string proxy_global::save_json_config( bool readable )
 		obj["active"] = host.m_active;
 		obj["name"] = host.m_name;
 		obj["local_port"] = host.m_local_port;
-		obj["remote_hostname"] = host.m_remote_hostname;
-		obj["remote_port"] = host.m_remote_port;
+		obj["remote_hostname"] = host.remote_hostname();
+		obj["remote_port"] = host.remote_port();
 		obj["max_connections"] = host.m_max_connections;
 		glob["clients"][index] = obj;
 	}
