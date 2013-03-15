@@ -10,14 +10,26 @@ project(uniproxy)
 include_directories(. src/ libs/)
 
 # This command assemble the cppcms templates
+IF (WIN32)
 add_custom_command(
   OUTPUT views.cpp
-  COMMAND python \lang\w32\bin\cppcms_tmpl_cc.py ../webserver/master.tmpl ../webserver/view_config.tmpl ../webserver/view_status.tmpl -o views.cpp
+  COMMAND python /lang/w32/bin/cppcms_tmpl_cc.py ../webserver/master.tmpl ../webserver/view_config.tmpl ../webserver/view_status.tmpl -o views.cpp
+  #COMMAND cppcms_tmpl_cc.py ../webserver/master.tmpl ../webserver/view_config.tmpl ../webserver/view_status.tmpl -o views.cpp
   DEPENDS webserver/master.tmpl webserver/view_config.tmpl webserver/view_status.tmpl
   WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
   COMMENT "Precompiling views"
   VERBATIM
   )
+ELSE (WIN32)
+add_custom_command(
+  OUTPUT views.cpp
+  COMMAND cppcms_tmpl_cc.py ../webserver/master.tmpl ../webserver/view_config.tmpl ../webserver/view_status.tmpl -o views.cpp
+  DEPENDS webserver/master.tmpl webserver/view_config.tmpl webserver/view_status.tmpl
+  WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+  COMMENT "Precompiling views"
+  VERBATIM
+  )
+ENDIF (WIN32)
 
 
 set( uniproxy_cpp_SOURCES
@@ -74,8 +86,9 @@ ELSE (WIN32)
 
 	ADD_DEFINITIONS( -g -std=c++11 -Wall -Wno-sign-compare )
 
-	include_directories ( /usr/local/include/boost-1.49.0/ )
-	LINK_DIRECTORIES( /usr/local/lib/boost-1.49.0/ )
+	include_directories ( /home/pba/lang/include/bp-0.30 )
+	#include_directories ( /usr/local/include/boost-1.49.0/ )
+	#LINK_DIRECTORIES( /usr/local/lib/boost-1.49.0/ )
 
 ENDIF (WIN32)
 
