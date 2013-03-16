@@ -11,7 +11,7 @@
 // This version is released under the GNU General Public License with restrictions.
 // See the doc/license.txt file.
 //
-// Copyright (C) 2011-2012 by GateHouse A/S
+// Copyright (C) 2011-2013 by GateHouse A/S
 // All Rights Reserved.
 // http://www.gatehouse.dk
 // mailto:gh@gatehouse.dk
@@ -262,12 +262,17 @@ void proxy_app::client_activate(const std::string _param)
 	for ( auto iter = global.localhosts.begin(); iter != global.localhosts.end(); iter++ )
 	{
 		LocalHost *p = iter->get();
-		if ( p->m_name == _param )
+		for ( int index = 0; index < p->m_proxy_endpoints.size(); index++ )
 		{
-			p->m_activate_stamp = boost::get_system_time() + boost::posix_time::seconds( 60 );
-			global.m_thread.stop();
-			global.m_thread.start( p->m_local_port );
-			break;
+			auto &r = p->m_proxy_endpoints[index];
+			if ( r.m_name == _param )
+			{
+				p->m_activate_stamp = boost::get_system_time() + boost::posix_time::seconds( 60 );
+				p->m_proxy_index = index;
+				global.m_thread.stop();
+				global.m_thread.start( p->m_local_port );
+				break;
+			}
 		}
 	}
 }
@@ -280,10 +285,8 @@ void proxy_app::setup_config( cppcms::json::value &settings_object )
 	{
 		DOUT("Debug = TRUE");
 		settings_object["file_server"]["enable"]=true;
-		//settings_object["file_server"]["document_root"]="test";
 		settings_object["http"]["script"]="/json";
 	}
-	//settings_object["http"]["script"]="/json";
 	#ifdef _WIN32
 	std::string coockie_path = getenv("TEMP");
 	if ( !coockie_path.length() )
@@ -297,7 +300,6 @@ void proxy_app::setup_config( cppcms::json::value &settings_object )
 	settings_object["service"]["api"]="http";
 	settings_object["service"]["port"]= global.m_port;
 	settings_object["service"]["ip"]= global.m_ip4_mask;
-	//settings_object["session"]["location"] = "server";
 	settings_object["session"]["location"] = "client";
 	settings_object["session"]["cookies"]["prefix"] = coockie;
 	settings_object["session"]["server"]["storage"] = "files"; //memory";

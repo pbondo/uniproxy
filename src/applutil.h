@@ -11,7 +11,7 @@
 // This version is released under the GNU General Public License with restrictions.
 // See the doc/license.txt file.
 //
-// Copyright (C) 2011-2012 by GateHouse A/S
+// Copyright (C) 2011-2013 by GateHouse A/S
 // All Rights Reserved.
 // http://www.gatehouse.dk
 // mailto:gh@gatehouse.dk
@@ -38,7 +38,6 @@
 #define ASSERTD( xx, yy ) { if ( !(xx) ) throw std::runtime_error( yy ); };
 #define ASSERTEC( xx, yy, zz ) { if ( !(xx) ) throw std::system_error( yy, std::string( zz ) ); };
 #define ASSERTE( xx, yy, zz ) { if ( !(xx) ) throw std::system_error( make_error_code(yy), std::string( zz ) ); };
-//#define catch_stdexception() catch( std::exception &exc ) { DOUT( "Exception: " << __FUNCTION__ << ":" << __LINE__ << " what: " << exc.what() ); }
 
 namespace uniproxy
 {

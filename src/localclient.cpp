@@ -11,7 +11,7 @@
 // This version is released under the GNU General Public License with restrictions.
 // See the doc/license.txt file.
 //
-// Copyright (C) 2011-2012 by GateHouse A/S
+// Copyright (C) 2011-2013 by GateHouse A/S
 // All Rights Reserved.
 // http://www.gatehouse.dk
 // mailto:gh@gatehouse.dk
@@ -46,8 +46,7 @@ boost::asio::ip::tcp::socket &LocalHostSocket::socket()
 }
 
 
-//LocalHost::LocalHost( bool _active, const std::string &_name, int _local_port, const std::string &_remote_hostname, const int _remote_port, const int _max_connections, PluginHandler &_plugin )
-LocalHost::LocalHost( bool _active, const std::string &_name, int _local_port, const std::vector<ProxyEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin )
+LocalHost::LocalHost( bool _active, int _local_port, const std::vector<ProxyEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin )
 :	m_active(_active),
 	m_count_out(true),
 	mp_io_service( nullptr ),
@@ -56,14 +55,12 @@ LocalHost::LocalHost( bool _active, const std::string &_name, int _local_port, c
 	m_thread( [this]{ this->interrupt(); } ),
 	m_plugin(_plugin)
 {
+	this->m_proxy_index = 0;
 	this->m_id = ++static_local_id;
 	this->m_local_connected = this->m_remote_connected = false;
 	this->m_local_port = _local_port;
-	//this->m_remote_hostname = _remote_hostname;
-	//this->m_remote_port = _remote_port;
 	this->m_proxy_endpoints = _proxy_endpoints;
 	this->m_proxy_index = 0;
-	this->m_name = _name;
 	this->m_max_connections = _max_connections;
 	this->m_activate_stamp = boost::get_system_time();
 }
@@ -72,7 +69,7 @@ LocalHost::LocalHost( bool _active, const std::string &_name, int _local_port, c
 void LocalHost::dolog( const std::string &_line )
 {
 	this->m_log = _line;
-	log().add( " name: " + this->m_name + " hostname: " + this->remote_hostname() + " port: " + mylib::to_string(this->remote_port()) + ": " + _line );
+	log().add( " hostname: " + this->remote_hostname() + " port: " + mylib::to_string(this->remote_port()) + ": " + _line );
 }
 
 
@@ -119,7 +116,6 @@ bool LocalHost::remote_hostname( int index, std::string &result )
 	{
 		result.clear();
 		boost::asio::ip::tcp::socket &socket(this->m_local_sockets[index]->socket());
-//xx xx		if ( socket.is_open() ) //&& socket.remote_endpoint().address() )
 		boost::system::error_code ec;
 		std::string sz = socket.remote_endpoint(ec).address().to_string(); // This one should not throw exceptions
 		if ( !ec ) result = sz;
@@ -247,7 +243,7 @@ void LocalHost::handle_local_read( LocalHostSocket &_hostsocket, const boost::sy
 		DOUT( "Error: " << error << " in " << __FUNCTION__ << ":" <<__LINE__ << " connections: " << this->m_local_sockets.size() );
 		if ( this->m_local_sockets.size() <= 1 )
 		{
-			throw std::runtime_error( "Local connection closed for " + this->m_name );
+			throw std::runtime_error( "Local connection closed for " + mylib::to_string(this->m_local_port) );
 		}
 		// Else we silently fail to read anything from any of the other sockets.
 		// This is a side effect of allowing more than one local client to connect. Only one is to send data.
@@ -350,15 +346,13 @@ void LocalHost::handle_accept( boost::asio::ip::tcp::socket *_socket, const boos
 
 
 void LocalHost::threadproc()
-{
-	this->m_proxy_index = 0;
+{	
 	for ( ; this->m_thread.check_run() ; )
 	{
 		// On start and after each lost connection we end up here.
 		try
 		{
-			//this->m_remote_hostname = this->m_proxy_endpoints[this->m_proxy_index].m_hostname;
-			//this->m_remote_port = this->m_proxy_endpoints[remote_index].m_port;
+			ProxyEndpoint &ep( this->m_proxy_endpoints[this->m_proxy_index]);
 			
 			DOUT(__FUNCTION__ << ":" << __LINE__);
 			boost::asio::io_service io_service;
@@ -384,12 +378,11 @@ void LocalHost::threadproc()
 			mylib::protect_pointer<boost::asio::ip::tcp::acceptor> p3( this->mp_acceptor, acceptor, this->m_mutex );
 			boost::asio::io_service::work session_work(io_service);
 
-			//void *pn = NULL;
 			std::shared_ptr<void> ptr( NULL, [this](void*){ DOUT("local exit loop"); this->interrupt(); this->cleanup();} );
 
 			this->dolog("Waiting for local connection" );
-			// Synchronous wait for connection from local TCP socket. Must be handled by the interrupt function
 
+			// Synchronous wait for connection from local TCP socket. Must be handled by the interrupt function
 			acceptor.accept( *local_socket );
 			auto p = std::make_shared<LocalHostSocket>(*this, local_socket);
 			this->m_local_sockets.push_back( p );	// NB!! redo by inserting line above directly
@@ -404,10 +397,10 @@ void LocalHost::threadproc()
 			if ( boost::get_system_time() < this->m_activate_stamp )
 			{
 				std::error_code err;
-				this->dolog("Attempting to perform certificate exchange with " + this->m_name );
+				this->dolog("Attempting to perform certificate exchange with " + ep.m_name );
 				this->m_activate_stamp = boost::get_system_time(); // Reset to current time to avoid double attempts.
-				if (	!SetupCertificates( remote_socket.next_layer(), this->m_name, false, err ) &&
-						!SetupCertificates( remote_socket.next_layer(), this->m_name, true, err ) )
+				if (	!SetupCertificates( remote_socket.next_layer(), ep.m_name, false, err ) &&
+						!SetupCertificates( remote_socket.next_layer(), ep.m_name, true, err ) )
 				{
 					this->dolog("Succeeded in exchanging certificates" );
 				}

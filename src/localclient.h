@@ -11,7 +11,7 @@
 // This version is released under the GNU General Public License with restrictions.
 // See the doc/license.txt file.
 //
-// Copyright (C) 2011-2012 by GateHouse A/S
+// Copyright (C) 2011-2013 by GateHouse A/S
 // All Rights Reserved.
 // http://www.gatehouse.dk
 // mailto:gh@gatehouse.dk
@@ -54,7 +54,8 @@ class LocalHost
 public:
 
 	//LocalHost( bool _active, const std::string &_name, int _local_port, const std::string &_remote_host, const int _remote_port, const int _max_connections, PluginHandler &_plugin );
-	LocalHost( bool _active, const std::string &_name, int _local_port, const std::vector<ProxyEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin );
+	LocalHost( bool _active, //const std::string &_name, 
+			int _local_port, const std::vector<ProxyEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin );
 
 	void start();
 	void stop();
@@ -76,19 +77,19 @@ public:
 	int remote_port();
 
 	bool m_active;
-	//std::string m_remote_hostname;
-	//int m_remote_port;
+
 	std::vector<ProxyEndpoint> m_proxy_endpoints; // The list of remote proxies to connect to in a round robin fashion.
 	int m_proxy_index;
 	int m_local_port;
 	int m_max_connections;
-	std::string m_name;
+//	std::string m_name;
 
 	bool is_local_connected();
 	bool is_remote_connected(int index);
 	void handle_accept( boost::asio::ip::tcp::socket *_socket, const boost::system::error_code& error );
 	void cleanup();
 
+	// Should these move to ProxyEndpoint ?
 	data_flow m_count_in, m_count_out;
 
 	int m_id;

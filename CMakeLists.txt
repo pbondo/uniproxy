@@ -54,12 +54,17 @@ set( uniproxy_cpp_SOURCES
 
 set( uniproxy_SOURCES
 	${uniproxy_cpp_SOURCES}
+	README.md
+	uniproxy.json.sample
 	views.cpp
+	../webserver/content.h
+	../webserver/master.tmpl
+	../webserver/view_config.tmpl
+	../webserver/view_status.tmpl
 )
 
 set( uniproxy_SOURCES
 	${uniproxy_SOURCES}
-	README.md
 	../src/applutil.h
 	../src/cppcms_util.h
 	../src/localclient.h
