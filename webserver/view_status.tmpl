@@ -390,6 +390,22 @@ Status.prototype.on_configure = function( )
 	this.reload(100);
 }
 
+
+Status.prototype.on_toggle_log = function( )
+{
+	console.log( "on_toggle_log" );
+	var testdiv_outer = jQuery("#testdiv_outer");
+	if ( testdiv_outer.height() > 0 )
+	{
+		testdiv_outer.height(0);
+	}
+	else
+	{
+		testdiv_outer.height(200);
+	}
+}
+
+
 // Generic functions below.
 
 function on_status_timer()
@@ -406,9 +422,6 @@ $(document).ready(function()
 	
 	console.log("Ready");
 	console.dir(status1);
-
-	//setTimeout(do_something, 1000);
-	//do_resize();
 });
 
 
@@ -437,22 +450,25 @@ $(document).ready(function()
 </table>
 
 <p></p>
-<div class="testdiv" id="testdiv_outer" style="height:200px;overflow:auto;border: 1px black solid">
-	<div class="testdiv_inner" id="testdiv_inner">
-	</div>
-</div>
-<p></p>
 
 <table>
 <tr>
-<td><form action="/json/command/config/upload/" method="post" enctype="multipart/form-data" accept-charset="utf-8"><input type="file" name="upload.json" ></input>
+<td><form action="/json/command/config/upload/" method="post" enctype="multipart/form-data" accept-charset="utf-8"><input type="file" name="upload.json" accept="application/json" ></input>
 	<input type="submit" value="Upload configuration"  />
+	<input type="button" value="Toggle log" onclick="status1.on_toggle_log()" /> 
+	<input type="button" value="Stop Application" onclick="status1.on_stop()" /> 
+	<input type="button" value="Reload configuration" onclick="status1.on_configure()" />
 </form>
 </td>
-<td> <input type="button" value="Stop Application" onclick="status1.on_stop()" /> </td>
-<td> <input type="button" value="Reload configuration" onclick="status1.on_configure()" /> </td>
 </tr>
 </table>
+
+<p></p>
+<div class="testdiv" id="testdiv_outer" style="height:0px;overflow:auto;border: 1px black solid">
+	<div class="testdiv_inner" id="testdiv_inner">
+	</div>
+</div>
+
 
 <% end template %>
 
