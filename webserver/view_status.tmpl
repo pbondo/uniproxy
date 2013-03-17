@@ -209,12 +209,21 @@ Status.prototype.on_status_update1 = function( data )
 			linest += "<td></td>";
 			linest += "<td>" + (( client_data.log ) ? client_data.log : "&nbsp;" ) + "</td>";
 			linest += "</tr>";
-			
+
+			var client_connected = false;
+			client_data.remotes.forEach( function(remote_data) 
+			{
+				if (remote_data.connected_remote)
+				{
+					client_connected = true;
+				}
+			});
+
 			client_data.remotes.forEach( function(remote_data) 
 			{
 				// The table row for each of the remote connections
 				linest += "<tr><td></td><td>" + remote_data.name + "</td>";
-				linest += that.connection_string( true, remote_data.connected_remote, remote_data.hostname + ":" + remote_data.port );
+				linest += that.connection_string( (!client_connected) || remote_data.connected_remote, remote_data.connected_remote, remote_data.hostname + ":" + remote_data.port );
 				linest += "<td>" + that.show_flow( remote_data.count_in ) + "</td>";			// Bytes in
 				linest += "<td>" + that.show_flow( remote_data.count_out ) + "</td>";			// Bytes out
 				linest += "<td>";
@@ -234,7 +243,14 @@ Status.prototype.on_status_update1 = function( data )
 					}
 				}
 				linest += "</td>";
-				linest += "<td>" + localhosts + "</td>";
+				if (remote_data.connected_remote)
+				{
+					linest += "<td>" + localhosts + "</td>";
+				}
+				else
+				{
+					linest += "<td></td>";
+				}
 				linest += "</tr>";
 			});
 			
@@ -276,7 +292,7 @@ Status.prototype.on_status_update1 = function( data )
 					}
 					else
 					{
-						linest += "<input type=\"button\" value=\"Activate\" onclick=\"status1.on_client_activate('" + remote_data.name + "')\" />";
+						linest += "<input type=\"button\" value=\"Activate\" onclick=\"status1.on_host_activate('" + remote_data.name + "')\" />";
 					}
 				}
 				linest += "</td>";
@@ -353,7 +369,7 @@ Status.prototype.on_client_delete = function( name )
 Status.prototype.on_host_activate = function( name )
 {
 	console.log( "on_host_activate: " + name );
-	if (confirm("Activate certificate for: " + name + " ?. Please notice the client at the other end must be activated last" ))
+	if (confirm("Activate certificate for: " + name + " ?. Please notice this end must be activated first" ))
 	{
 		jQuery.ajax({ url: '/json/command/host/activate/name=' + name + '&dummy=' + this.cache_count++ });
 	}
