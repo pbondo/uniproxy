@@ -11,7 +11,7 @@
 // This version is released under the GNU General Public License with restrictions.
 // See the doc/license.txt file.
 //
-// Copyright (C) 2011-2012 by GateHouse A/S
+// Copyright (C) 2011-2013 by GateHouse A/S
 // All Rights Reserved.
 // http://www.gatehouse.dk
 // mailto:gh@gatehouse.dk
@@ -38,7 +38,6 @@
 #define ASSERTD( xx, yy ) { if ( !(xx) ) throw std::runtime_error( yy ); };
 #define ASSERTEC( xx, yy, zz ) { if ( !(xx) ) throw std::system_error( yy, std::string( zz ) ); };
 #define ASSERTE( xx, yy, zz ) { if ( !(xx) ) throw std::system_error( make_error_code(yy), std::string( zz ) ); };
-//#define catch_stdexception() catch( std::exception &exc ) { DOUT( "Exception: " << __FUNCTION__ << ":" << __LINE__ << " what: " << exc.what() ); }
 
 namespace uniproxy
 {
@@ -107,7 +106,7 @@ public:
 	~protect_pointer()
 	{
 		stdt::lock_guard<stdt::mutex> l(this->m_mutex);
-		this->m_p = null_ptr;
+		this->m_p = nullptr;
 	}
 
 	T * &m_p;
@@ -386,6 +385,25 @@ public:
 	}
 
 };
+
+
+// Used for describing the remote proxy when defining local clients.
+class ProxyEndpoint
+{
+public:
+
+	ProxyEndpoint( bool _active, const std::string &_name, const std::string &_hostname, int _port )
+	: m_active(_active), m_name(_name), m_hostname(_hostname), m_port(_port)
+	{
+	}
+
+	bool m_active;
+	std::string m_name;
+	std::string m_hostname;
+	int m_port;
+
+};
+
 
 
 class Buffer

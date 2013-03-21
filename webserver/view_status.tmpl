@@ -179,85 +179,125 @@ Status.prototype.on_status_update1 = function( data )
 	var sz_html = "";
 	var json_data = JSON.parse( data );
 	var that = this;
-	sz_html = "<table border='1'><tr><th>Name</th><th>Local</th><th>Remote</th><th>Data in [B/min]</th><th>Data out [B/min]</th><th>Status</th><th>Certificate</th><th>Activate</th><th>Delete</th></tr>";
+
+	// ---- THE CLIENT PART ----
+	sz_html = ""; 
 	if ( json_data.clients )
 	{
+		sz_html = "<h3>Clients</h3><table border='1'><tr><th>Port</th><th>Name</th><th>Hostname</th><th>Data in [B/min]</th><th>Data out [B/min]</th><th>Certificate</th><th>Status</th></tr>";
 		json_data.clients.forEach( function(client_data) 
 		{
-			var linest = "<tr><td>" + client_data.name + "</td>";
-			var localhosts = '';
+			var localhosts = ' ';
 			if ( client_data.local_hostname )
 			{
-				localhosts = ': ';
+				var separator = ' ';
 				var index;
 				for ( index = 0; index < client_data.local_hostname.length; index++ )
 				{
-					localhosts = localhosts + client_data.local_hostname[index] + ", ";
+					localhosts = localhosts + separator + client_data.local_hostname[index];
+					separator = ',';
 				}
 			}
-			linest += that.connection_string( client_data.active, client_data.connected_local, client_data.local_port + localhosts );
-			linest += that.connection_string( client_data.active, client_data.connected_remote, client_data.remote_hostname + ":" + client_data.remote_port );
-			linest += "<td>" + that.show_flow( client_data.count_in ) + "</td>";
-			linest += "<td>" + that.show_flow( client_data.count_out ) + "</td>";
-			//linest += "<td>" + ( ( client_data.count_out  >= 1024) ? ( parseInt(client_data.count_out / 1024) + 'K'): client_data.count_out )+ "</td>";
+
+			// The table row for the local description
+			var linest = "";
+			linest += that.connection_string( true, client_data.connected_local, client_data.port );
+			linest += "<td></td>";
+			linest += "<td></td>";
+			linest += "<td></td>";
+			linest += "<td></td>";
+			linest += "<td></td>";
 			linest += "<td>" + (( client_data.log ) ? client_data.log : "&nbsp;" ) + "</td>";
-			linest += "<td>" + ( ( client_data.cert ) ? "Yes" : "&nbsp;" ) + "</td>";
-			linest += "<td>";
-			if ( client_data.activate )
+			linest += "</tr>";
+
+			var client_connected = false;
+			client_data.remotes.forEach( function(remote_data) 
 			{
-				linest += client_data.activate;
-			}
-			else if ( client_data.name )
+				if (remote_data.connected_remote)
+				{
+					client_connected = true;
+				}
+			});
+
+			client_data.remotes.forEach( function(remote_data) 
 			{
-				linest += "<input type=\"button\" value=\"Activate\" onclick=\"status1.on_client_activate('" + client_data.name + "')\" />";
-				//linest += "<input type=\"button\" value=\"Delete\" onclick=\"on_client_delete('" + client_data.name + "')\" />";
-			}
-			linest += "<td>" + ( ( client_data.cert ) ? "<input type=\"button\" value=\"Delete\" onclick=\"status1.on_client_delete('" + client_data.name + "')\" />" : "&nbsp;" ) + "</td>";
-			linest += "</td></tr>";
+				// The table row for each of the remote connections
+				linest += "<tr><td></td><td>" + remote_data.name + "</td>";
+				linest += that.connection_string( (!client_connected) || remote_data.connected_remote, remote_data.connected_remote, remote_data.hostname + ":" + remote_data.port );
+				linest += "<td>" + that.show_flow( remote_data.count_in ) + "</td>";			// Bytes in
+				linest += "<td>" + that.show_flow( remote_data.count_out ) + "</td>";			// Bytes out
+				linest += "<td>";
+				if ( remote_data.activate )
+				{
+					linest += remote_data.activate;
+				}
+				else if ( remote_data.name )
+				{
+					if ( remote_data.cert )
+					{
+						linest += "<input type=\"button\" value=\"Delete\" onclick=\"status1.on_client_delete('" + remote_data.name + "')\" />";
+					}
+					else
+					{
+						linest += "<input type=\"button\" value=\"Activate\" onclick=\"status1.on_client_activate('" + remote_data.name + "')\" />";
+					}
+				}
+				linest += "</td>";
+				if (remote_data.connected_remote)
+				{
+					linest += "<td>" + localhosts + "</td>";
+				}
+				else
+				{
+					linest += "<td></td>";
+				}
+				linest += "</tr>";
+			});
+			
+
 			sz_html += linest;
 		} );
+
 	}
-	sz_html += "</table>";
+	console.log(sz_html);
 	$("#clients").html( sz_html );
 
-	sz_html = "<table border='1'><tr><th>Port</th><th>Name</th><th>Remote</th><th>Local</th><th>Data in [B/min]</th><th>Data out [B/min]</th><th>Status</th><th>Certificate</th><th>Activate</th><th>Delete</th></tr>";
+
+	// ---- THE HOST PART ----
+	sz_html = "";
 	if ( json_data.hosts )
 	{
+		sz_html = "<h3>Hosts</h3><table border='1'><tr><th>Port</th><th>Name</th><th>Remote</th><th>Local</th><th>Data in [B/min]</th><th>Data out [B/min]</th><th>Certificate</th><th>Status</th></tr>";
 		json_data.hosts.forEach( function(host_data)
 		{
 			var linest = "<tr><td>" + host_data.port + "</td>";
-			//<td>" + host_data.type + "</td><td></td><td></td><td></td><td></td>";
-			//if ( host_data.log )
-			{
-//				linest += "<td>" + host_data.log + "</td>";
-			}
 			linest += "</tr>";
 			host_data.remotes.forEach( function(remote_data) 
 			{
 				linest += "<tr><td></td><td>" + remote_data.name + "</td>";
 				linest += that.connection_string( remote_data.active, remote_data.connected_remote, remote_data.remote_hostname );
-				var sz = "&nbsp;";
-				//if ( remote_data.local_host )
-				{
-				//	sz = remote_data.local_host;
-				}
 				linest += that.connection_string( remote_data.active, remote_data.connected_local, remote_data.local_hostname );
 				linest += "<td>" + that.show_flow( remote_data.count_in ) + "</td>";
 				linest += "<td>" + that.show_flow( remote_data.count_out ) + "</td>";
-				linest += "<td>" + ( ( remote_data.log ) ? remote_data.log : "&nbsp;" ) + "</td>";
-				linest += "<td>" + ( ( remote_data.cert ) ? "Yes" : "&nbsp;" ) + "</td>";
-				linest += "";
+				linest += "<td>";
 				if ( remote_data.activate )
 				{
-					linest += "<td>" + remote_data.activate + "</td>";
+					linest += remote_data.activate;
 				}
 				else if ( remote_data.name )
 				{
-					linest += "<td><input type=\"button\" value=\"Activate\" onclick=\"status1.on_host_activate('" + remote_data.name + "')\" /></td>";
+					if ( remote_data.cert )
+					{
+						linest += "<input type=\"button\" value=\"Delete\" onclick=\"status1.on_client_delete('" + remote_data.name + "')\" />";
+					}
+					else
+					{
+						linest += "<input type=\"button\" value=\"Activate\" onclick=\"status1.on_host_activate('" + remote_data.name + "')\" />";
+					}
 				}
-				linest += "<td>" + ( ( remote_data.cert ) ? "<input type=\"button\" value=\"Delete\" onclick=\"status1.on_host_delete('" + remote_data.name + "')\" />" : "&nbsp;" ) + "</td>";
+				linest += "</td>";
+				linest += "<td>" + ( ( remote_data.log ) ? remote_data.log : "&nbsp;" ) + "</td>";
 				linest += "</tr>";
-
 			} );
 			sz_html += linest;
 		} );
@@ -329,7 +369,7 @@ Status.prototype.on_client_delete = function( name )
 Status.prototype.on_host_activate = function( name )
 {
 	console.log( "on_host_activate: " + name );
-	if (confirm("Activate certificate for: " + name + " ?. Please notice the client at the other end must be activated last" ))
+	if (confirm("Activate certificate for: " + name + " ?. Please notice this end must be activated first" ))
 	{
 		jQuery.ajax({ url: '/json/command/host/activate/name=' + name + '&dummy=' + this.cache_count++ });
 	}
@@ -366,6 +406,22 @@ Status.prototype.on_configure = function( )
 	this.reload(100);
 }
 
+
+Status.prototype.on_toggle_log = function( )
+{
+	console.log( "on_toggle_log" );
+	var testdiv_outer = jQuery("#testdiv_outer");
+	if ( testdiv_outer.height() > 0 )
+	{
+		testdiv_outer.height(0);
+	}
+	else
+	{
+		testdiv_outer.height(200);
+	}
+}
+
+
 // Generic functions below.
 
 function on_status_timer()
@@ -382,9 +438,6 @@ $(document).ready(function()
 	
 	console.log("Ready");
 	console.dir(status1);
-
-	//setTimeout(do_something, 1000);
-	//do_resize();
 });
 
 
@@ -405,9 +458,7 @@ $(document).ready(function()
 <table>
 <tr><td><h2>UniProxy(</h2></td><td><h2> <div id="own_name"></div> </h2></td><td><h2>)</h2></td></tr>
 </table>
-<h3>Clients</h3>
 <div id="clients" data-role="collapsible" data-collapsed="false" ></div>
-<h3>Hosts</h3>
 <div id="hosts"></div>
 <p></p>
 <table>
@@ -415,22 +466,25 @@ $(document).ready(function()
 </table>
 
 <p></p>
-<div class="testdiv" id="testdiv_outer" style="height:200px;overflow:auto;border: 1px black solid">
-	<div class="testdiv_inner" id="testdiv_inner">
-	</div>
-</div>
-<p></p>
 
 <table>
 <tr>
-<td><form action="/json/command/config/upload/" method="post" enctype="multipart/form-data" accept-charset="utf-8"><input type="file" name="upload.json" ></input>
+<td><form action="/json/command/config/upload/" method="post" enctype="multipart/form-data" accept-charset="utf-8"><input type="file" name="upload.json" accept="application/json" ></input>
 	<input type="submit" value="Upload configuration"  />
+	<input type="button" value="Toggle log" onclick="status1.on_toggle_log()" /> 
+	<input type="button" value="Stop Application" onclick="status1.on_stop()" /> 
+	<input type="button" value="Reload configuration" onclick="status1.on_configure()" />
 </form>
 </td>
-<td> <input type="button" value="Stop Application" onclick="status1.on_stop()" /> </td>
-<td> <input type="button" value="Reload configuration" onclick="status1.on_configure()" /> </td>
 </tr>
 </table>
+
+<p></p>
+<div class="testdiv" id="testdiv_outer" style="height:0px;overflow:auto;border: 1px black solid">
+	<div class="testdiv_inner" id="testdiv_inner">
+	</div>
+</div>
+
 
 <% end template %>
 

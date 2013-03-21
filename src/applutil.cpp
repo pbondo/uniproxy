@@ -11,7 +11,7 @@
 // This version is released under the GNU General Public License with restrictions.
 // See the doc/license.txt file.
 //
-// Copyright (C) 2011-2012 by GateHouse A/S
+// Copyright (C) 2011-2013 by GateHouse A/S
 // All Rights Reserved.
 // http://www.gatehouse.dk
 // mailto:gh@gatehouse.dk
@@ -200,9 +200,6 @@ bool get_certificate_issuer_subject( boost::asio::ssl::stream<boost::asio::ip::t
 	return result;
 }
 
-//int socket_read_some( boost::asio::buffer &_buffer, const boost::posix_time::time_duration &_duration )
-
-
 }
 }
 
@@ -330,6 +327,7 @@ std::error_code SetupCertificates( boost::asio::ip::tcp::socket &_remote_socket,
 				}
 				local_certs.push_back( remote_certs[0] );
 				save_certificates_file( my_certs_name, local_certs );
+				load_certificate_names( my_certs_name );
 				return ec = std::error_code();
 			}
 		}
@@ -340,21 +338,6 @@ std::error_code SetupCertificates( boost::asio::ip::tcp::socket &_remote_socket,
 			int count = _remote_socket.write_some( boost::asio::buffer( cert, cert.length() ) );
 			DOUT("Wrote certificate: " << count << " of " << cert.length() << " bytes ");
 			return ec = std::error_code();
-/*
-
-			//ec = make_error_code( uniproxy::error::send_certificate );
-			//DOUT("Failed SSL handshake, will attempt to send my public certificate");
-			std::ifstream ifs( my_public_cert_name ); //"my_public_cert.pem");
-			ASSERTE( ifs.good(), uniproxy::error::certificate_not_found, std::string( " file not opened ") + my_certs_name );
-			//int length = ifs.readsome( buffer, buffer_size );
-			int length = ifs.readsome( buffer, buffer_size );
-			DOUT( __FUNCTION__ << ": " << __LINE__ << " : " << length );
-			//if ( length > 0 && length < buffer_size )
-			ASSERTE( length > 0 && length < buffer_size, uniproxy::error::certificate_not_found, std::string( " in file ") + my_certs_name );
-			int count = _remote_socket.write_some( boost::asio::buffer( buffer, length ) );
-			DOUT("Wrote certificate: " << count << " of " << length << " bytes ");
-				return ec = std::error_code();
-*/
 		}
 	}
 	catch( std::exception &exc )
@@ -388,9 +371,7 @@ bool load_certificates_file( const std::string &_filename, std::vector<certifica
 		X509 * cert;
 		while( (cert = PEM_read_X509(file, NULL, NULL, NULL)) != NULL )
 		{
-			//std::shared_ptr<X509> scert( cert, X509_free );
 			std::shared_ptr<X509> scert( cert, do_clear );
-			//[](){ DOUT("Clear X509"); } );
 			_certs.push_back( scert );
 			DOUT("Read certificate");
 		}
@@ -403,8 +384,6 @@ bool load_certificates_file( const std::string &_filename, std::vector<certifica
 
 bool load_certificates_string( const std::string &_certificate_string, std::vector<certificate_type> &_certs )
 {
-	//boost::filesystem::path tmpname = boost::filesystem::temp_directory_path() + boost::filesystem::unique_path();
-	//std::string tmpname = boost::filesystem::temp_directory_path().string() +  boost::filesystem::path_separator() + boost::filesystem::unique_path().string();
 	std::string tmpname = boost::filesystem::unique_path().string();
 	DOUT("Using temp filename: " << tmpname );
 	std::ofstream ofs( tmpname );
@@ -483,7 +462,7 @@ std::string check_string( cppcms::json::value &_input_obj, const std::string &_i
 int check_int( const char *_input)
 {
 	int result;
-	if ( _input != null_ptr && strlen(_input) > 0 )
+	if ( _input != nullptr && strlen(_input) > 0 )
 	{
 		std::string sz = _input;
 		mylib::from_string( sz, result );
@@ -530,11 +509,11 @@ std::string proxy_log::peek()
 void proxy_log::add( const std::string &_value )
 {
 	DOUT("Log: " << this->m_name << ": " << _value );
-	//this->clear();	// NB!!
 	stdt::lock_guard<stdt::mutex> l(this->m_mutex);
 	this->m_log.push_back( mylib::time_stamp() + ": " + _value);
 	this->m_logfile << mylib::time_stamp() << ": " << _value << std::endl;
 }
+
 
 void proxy_log::clear()
 {
@@ -629,26 +608,7 @@ static const error_code_pair ecp[] =
 	#include "error_codes.h"
 };
 #undef error_code_def
-/*
-{ uniproxy::error::success, "ok" },
-{ uniproxy::error::certificate_invalid, "invalid certificate" },
-{ uniproxy::error::certificate_name_invalid, "certificate name invalid" },
-{ uniproxy::error::certificate_name_unknown, "certificate name unknown" },
-{ uniproxy::error::certificate_names_mismatch, "certificate names mismatch" },
-{ uniproxy::error::connection_name_unknown, "connection name unknown" },
-{ uniproxy::error::connection_name_invalid, "connection name invalid" },
-{ uniproxy::error::certificate_not_found, "certificate not found" },
-{ uniproxy::error::url_unknown, "unknown URL" },
-{ uniproxy::error::parse_file_failed, "parse file failed" },
-{ uniproxy::error::logon_username_password_invalid, "username or password invalid" },
-{ uniproxy::error::logon_account_blocked, "account blocked" },
-{ uniproxy::error::logon_failed, "logon failed" },
-{ uniproxy::error::logon_no_response, "no response" },
-{ uniproxy::error::thread_already_running, "thread already running" },
-{ uniproxy::error::socket_invalid, "invalid socket" },
-{ uniproxy::error::unknown_error, NULL }
-};
-*/
+
 
 std::string uniproxy::category_impl::message(int ev) const
 {

@@ -11,7 +11,7 @@
 // This version is released under the GNU General Public License with restrictions.
 // See the doc/license.txt file.
 //
-// Copyright (C) 2011-2012 by GateHouse A/S
+// Copyright (C) 2011-2013 by GateHouse A/S
 // All Rights Reserved.
 // http://www.gatehouse.dk
 // mailto:gh@gatehouse.dk
@@ -93,7 +93,7 @@ public:
 	#ifdef __linux__
 		::signal(SIGHUP, SIG_DFL);
 	#endif
-		signal::m_psrv = null_ptr;
+		signal::m_psrv = nullptr;
 	}
 
 	// Notice this is handled in the OS space, so we are limited in capabilities.

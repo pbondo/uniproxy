@@ -11,7 +11,7 @@
 // This version is released under the GNU General Public License with restrictions.
 // See the doc/license.txt file.
 //
-// Copyright (C) 2011-2012 by GateHouse A/S
+// Copyright (C) 2011-2013 by GateHouse A/S
 // All Rights Reserved.
 // http://www.gatehouse.dk
 // mailto:gh@gatehouse.dk
@@ -83,7 +83,7 @@ namespace chronot
 #endif
 
 // Remove this once supported by c++11
-#define null_ptr 0
+//#define null_ptr 0
 
 #ifdef __linux__
 
@@ -101,7 +101,10 @@ namespace chronot
 
 #else
 
-	#define make_unique( xx ) new xx
+	#pragma warning( disable : 4996 )
+	// #pragma warning( disable : 4305 4244 )
+
+	//#define make_unique( xx ) new xx
 
 #endif
 

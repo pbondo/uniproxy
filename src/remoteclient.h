@@ -11,7 +11,7 @@
 // This version is released under the GNU General Public License with restrictions.
 // See the doc/license.txt file.
 //
-// Copyright (C) 2011-2012 by GateHouse A/S
+// Copyright (C) 2011-2013 by GateHouse A/S
 // All Rights Reserved.
 // http://www.gatehouse.dk
 // mailto:gh@gatehouse.dk
@@ -65,7 +65,6 @@ public:
 	boost::asio::ip::tcp::endpoint remote_endpoint();
 	boost::asio::ip::tcp::endpoint local_endpoint();
 
-	//proxy_log &dolog();
 	void dolog( const std::string &_line );
 
 	RemoteEndpoint m_endpoint;
@@ -104,12 +103,11 @@ public:
 	void start();
 	void stop();
 
-	//void load_and_validate_certificates( const std::string &_filename );
 	std::string get_password() const;
 
 	void interrupt();
 	void threadproc();
-	//proxy_log &dolog();
+
 	void dolog( const std::string &_line );
 
 	int m_id;
@@ -131,7 +129,6 @@ protected:
 
 	mylib::thread m_thread;
 
-	//proxy_log m_log;
 	std::string m_log;
 
 };
