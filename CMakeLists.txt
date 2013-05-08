@@ -79,7 +79,7 @@ IF (WIN32)
 
 	# VC10
 	ADD_DEFINITIONS( -D_WIN32_WINNT=0x0501 /wd4250 /wd4018 )
-	include_directories (${uniproxy_SOURCE_DIR} c:/lang/w32/include c:/lang/w32/include/bp-0.30 c:/lang/w32/include/boost-1_53/ c:/lang/openssl-win32/include/)
+	include_directories (${uniproxy_SOURCE_DIR} c:/lang/w32/include/bp-0.30 c:/lang/w32/include c:/lang/w32/include/boost-1_53/ c:/lang/openssl-win32/include/)
 	LINK_DIRECTORIES( "c:/lang/w32/lib" "c:/lang/openssl-win32/lib/VC/static/" )
 
 	# Mingw64
