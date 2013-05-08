@@ -82,6 +82,9 @@ IF (WIN32)
 	include_directories (${uniproxy_SOURCE_DIR} c:/lang/w32/include/bp-0.30 c:/lang/w32/include c:/lang/w32/include/boost-1_53/ c:/lang/openssl-win32/include/)
 	LINK_DIRECTORIES( "c:/lang/w32/lib" "c:/lang/openssl-win32/lib/VC/static/" )
 
+        # Use multi cores
+        SET(VISUAL_STUDIO_MP_FLAG "/MP")
+
 	# Mingw64
 	#ADD_DEFINITIONS( -std=c++11 )
 	#include_directories (${uniproxy_SOURCE_DIR} c:/lang/include c:/lang/mw64/include c:/lang/mw64/include/boost-1_49  c:/lang/OpenSSL-1.0.0a-bin-x64/x86_64-w64-mingw32/include )
