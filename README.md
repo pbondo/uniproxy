@@ -24,6 +24,7 @@ Building instructions:
 Linux (Ubuntu)
 --------------
 Dependencies:
+Python (www.python.org)
 cmake (www.cmake.org)
 openssl (www.openssl.org)
 boost (www.boost.org)
@@ -42,6 +43,7 @@ The codelite project files should be correct.
 Windows (Windows 7)
 -------------------
 Dependencies:
+Python (www.python.org)
 cmake (www.cmake.org)
 openssl (www.openssl.org)
 boost (www.boost.org)
