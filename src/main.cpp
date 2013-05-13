@@ -25,8 +25,8 @@
 #include <cppcms/http_file.h>
 #include "cppcms_util.h"
 
-#include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
+#include <boost/filesystem.hpp>
 #include <fstream>
 
 #include <webserver/content.h>
@@ -390,15 +390,27 @@ void session_data::update_timestamp()
 
 //-----------------------------------
 
-const char help[] = "Usage: uniproxy [-p port=8085] [-u udp_port]\nLog on with webbrowser http://localhost:8085/";
-
-
+const char help_text[] = "Usage: uniproxy [-l/--working-dir=<working directory>]\nLog on with webbrowser http://localhost:8085/\n";
 
 
 
 int main(int argc,char ** argv)
 {
 	int openssl_count = 0;
+
+   if (check_arg( argc, argv, 'h', "help"))
+   {
+      std::cout << help_text << std::endl;
+      return 0;
+   }
+   std::string workdir;
+   if (check_arg( argc, argv, 'w', "working-dir", workdir) && workdir.length() > 0)
+   {
+      // If this fails, there is not much we can do about it anyway, so we silently fail.
+      boost::system::error_code ec;
+      boost::filesystem::current_path(workdir,ec);
+   }
+
 	do
 	{
 		try

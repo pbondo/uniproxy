@@ -526,4 +526,7 @@ std::string get_common_name( const certificate_type &_cert );
 // Read a text (NOT binary file).
 std::string readfile( const std::string &_filename );
 
+bool check_arg(int argc, char *argv[], char _short_argument, const char *_long_argument);
+bool check_arg( int argc, char *argv[], char _short_argument, const char *_long_argument, std::string &result );
+
 #endif
