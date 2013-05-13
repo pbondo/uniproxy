@@ -38,6 +38,8 @@ Source: "../build/release/uniproxy.exe"; DestDir: "{app}"
 
 Source: "third/vcredist_x86.exe"; Flags: dontcopy
 Source: "third/openssl.exe"; DestDir: "{app}"
+Source: "third/libeay32.dll"; DestDir: "{app}"
+Source: "third/ssleay32.dll"; DestDir: "{app}"
 Source: "third/nssm.exe"; DestDir: "{app}"; Check: GetInstallService()
 Source: "third/zlib.dll"; DestDir: "{app}"
 
