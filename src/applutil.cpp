@@ -25,18 +25,20 @@
 #include <mstcpip.h>
 #endif
 
+std::ofstream logfile;
+
 namespace mylib
 {
 
 std::ostream &dout()
 {
-	return std::cout;
+	return logfile;
 }
 
 
 std::ostream &derr()
 {
-	return std::cout;
+	return logfile;
 }
 
 

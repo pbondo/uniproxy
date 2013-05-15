@@ -313,7 +313,7 @@ void proxy_app::setup_config( cppcms::json::value &settings_object )
 bool proxy_app::execute_openssl()
 {
 	// openssl req -x509 -nodes -days 365 -subj "/C=DK/ST=Denmark/L=GateHouse/CN=client" -newkey rsa:1024 -keyout my_private_key.pem -out my_public_cert.pem
-	std::string scriptname = "openssl req -x509 -nodes -days 365 -subj /C=DK/ST=Denmark/L=GateHouse/CN=" + global.m_name + " -newkey rsa:1024 -keyout my_private_key.pem -out my_public_cert.pem";
+	std::string scriptname = "openssl req -config openssl.cnf -x509 -nodes -days 10000 -subj /C=DK/ST=Denmark/L=GateHouse/CN=" + global.m_name + " -newkey rsa:1024 -keyout my_private_key.pem -out my_public_cert.pem ";
 	boost::process::context ctx;
 	ctx.environment = boost::process::self::get_environment();
 	ctx.stdout_behavior = boost::process::capture_stream(); 
@@ -398,18 +398,19 @@ int main(int argc,char ** argv)
 {
 	int openssl_count = 0;
 
-   if (check_arg( argc, argv, 'h', "help"))
-   {
-      std::cout << help_text << std::endl;
-      return 0;
-   }
-   std::string workdir;
-   if (check_arg( argc, argv, 'w', "working-dir", workdir) && workdir.length() > 0)
-   {
-      // If this fails, there is not much we can do about it anyway, so we silently fail.
-      boost::system::error_code ec;
-      boost::filesystem::current_path(workdir,ec);
-   }
+	if (check_arg( argc, argv, 'h', "help"))
+	{
+		std::cout << help_text << std::endl;
+		return 0;
+	}
+	std::string workdir;
+	if (check_arg( argc, argv, 'w', "working-dir", workdir) && workdir.length() > 0)
+	{
+		// If this fails, there is not much we can do about it anyway, so we silently fail.
+		boost::system::error_code ec;
+		boost::filesystem::current_path(workdir,ec);
+	}
+	logfile.open("uniproxy_stdouterr.log");
 
 	do
 	{
@@ -418,7 +419,11 @@ int main(int argc,char ** argv)
 			cppcms::signal::reset_reload();
 			std::string certificate_common_name;
 			log().clear();
-			DOUT( std::string("UniProxy starting with parameters: ") << argv[0] << std::string(" in path: ") << boost::filesystem::current_path() );
+			DOUT( std::string("UniProxy starting with in path: ") << boost::filesystem::current_path() << " with parameters:");
+			for (int index = 0; index < argc; index++)
+			{
+				DOUT("Arg: " << index << " value: " << argv[index]);
+			}
 			log().add( std::string("UniProxy starting" ) ); // with parameters: ") + argv[0] + std::string(" in path: ") );
 
 			DOUT("Loading plugins count: " << PluginHandler::plugins().size() );
