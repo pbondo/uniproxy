@@ -1,4 +1,5 @@
 /installer/Output
 build
 .*~
+/installer/third/*
 
