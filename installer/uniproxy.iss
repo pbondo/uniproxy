@@ -47,7 +47,7 @@ Source: "../script/jquery.js"; DestDir: "{app}/script"
 Source: "../uniproxy.json.sample"; DestDir: "{app}/doc"
 
 [Run]
-Filename: "{app}\nssm.exe"; Parameters: "install Uniproxy uniproxy.exe -w {app}"; WorkingDir: "{app}"; StatusMsg: Installing Uniproxy as a service; Check: GetInstallService()
+Filename: "{app}\nssm.exe"; Parameters: "install Uniproxy ""{app}\uniproxy.exe"" "; WorkingDir: "{app}"; StatusMsg: Installing Uniproxy as a service; Check: GetInstallService()
 Filename: "sc"; Parameters: "start Uniproxy"; StatusMsg: "Starting Uniproxy service"; Check: GetInstallService()
 
 [UninstallRun]
