@@ -20,23 +20,26 @@
 #include <fstream>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string/regex.hpp>
+#include <boost/chrono.hpp>
 
 #ifdef _WIN32
 #include <mstcpip.h>
 #endif
+
+std::ofstream logfile;
 
 namespace mylib
 {
 
 std::ostream &dout()
 {
-	return std::cout;
+	return logfile;
 }
 
 
 std::ostream &derr()
 {
-	return std::cout;
+	return logfile;
 }
 
 
@@ -523,12 +526,11 @@ void proxy_log::clear()
 
 
 
-
 int64_t data_flow::timestamp()
 {
-	auto time = stdt::chrono::steady_clock::now(); 		// get the current time
+	auto time = boost::chrono::steady_clock::now(); 		// get the current time
 	auto since_epoch = time.time_since_epoch(); 		// get the duration since epoch
-	stdt::chrono::seconds secs = stdt::chrono::duration_cast<stdt::chrono::seconds>(since_epoch);
+	boost::chrono::seconds secs = boost::chrono::duration_cast<boost::chrono::seconds>(since_epoch);
 	return secs.count();
 }
 
@@ -671,5 +673,69 @@ proxy_log &log()
 bool operator==( boost::asio::ip::tcp::socket &p1, boost::asio::ip::tcp::socket &p2 )
 {
 	return p1.native() == p2.native();
+}
+
+
+std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems)
+{
+   std::stringstream ss(s);
+   std::string item;
+   while(std::getline(ss, item, delim))
+   {
+      elems.push_back(item);
+   }
+   return elems;
+}
+
+
+std::vector<std::string> split(const std::string &s, char delim)
+{
+   std::vector<std::string> elems;
+   return split(s, delim, elems);
+}
+
+
+bool check_arg(int argc, char *argv[], char _short_argument, const char *_long_argument)
+{
+   for ( int index = 0; index < argc; index++ )
+   {
+      if ( _short_argument && std::string( "-" ) + _short_argument == argv[index] )
+      {
+         return true;
+      }
+      if ( _long_argument && std::string( "--" ) + std::string(_long_argument) == std::string(argv[index]) )
+      {
+         return true;
+      }
+   }
+   return false;
+}
+
+
+bool check_arg( int argc, char *argv[], char _short_argument, const char *_long_argument, std::string &result )
+{
+   for ( int index = 0; index < argc; index++ )
+   {
+      if ( _short_argument && std::string( "-" ) + _short_argument == argv[index] )
+      {
+         index++;
+         if (index >= argc || argv[index][0] == '-') // Check if there is an appended parameter, which is not an argument.
+         {
+            return false;
+         }
+         result = argv[index];
+         return true;
+      }
+      if ( _long_argument && std::string(argv[index]).find("--") == 0 )
+      {
+         std::vector<std::string> strs = split(argv[index], '=');
+         if ( strs.size() >= 2 && std::string( "--" ) + std::string(_long_argument) == strs[0])
+         {			
+            result = strs[1];
+            return true;
+         }
+      }
+   }
+   return false;
 }
 

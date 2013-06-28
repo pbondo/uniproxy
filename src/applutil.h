@@ -353,7 +353,7 @@ public:
 };
 
 proxy_log &log();
-
+extern std::ofstream logfile;
 
 // The configured data for each remote connection. Handles each of the "remotes" in the list below.
 //	{	port : 8750, type : "GHP"
@@ -525,5 +525,8 @@ std::string get_common_name( const certificate_type &_cert );
 
 // Read a text (NOT binary file).
 std::string readfile( const std::string &_filename );
+
+bool check_arg(int argc, char *argv[], char _short_argument, const char *_long_argument);
+bool check_arg( int argc, char *argv[], char _short_argument, const char *_long_argument, std::string &result );
 
 #endif

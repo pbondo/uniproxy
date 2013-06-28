@@ -25,8 +25,8 @@
 #include <cppcms/http_file.h>
 #include "cppcms_util.h"
 
-#include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
+#include <boost/filesystem.hpp>
 #include <fstream>
 
 #include <webserver/content.h>
@@ -102,6 +102,7 @@ void proxy_app::logger_get()
 
 void proxy_app::status_get()
 {
+	this->response().content_type("application/json");
 	this->response().out() << this->status_get_json();
 }
 
@@ -313,7 +314,7 @@ void proxy_app::setup_config( cppcms::json::value &settings_object )
 bool proxy_app::execute_openssl()
 {
 	// openssl req -x509 -nodes -days 365 -subj "/C=DK/ST=Denmark/L=GateHouse/CN=client" -newkey rsa:1024 -keyout my_private_key.pem -out my_public_cert.pem
-	std::string scriptname = "openssl req -x509 -nodes -days 365 -subj /C=DK/ST=Denmark/L=GateHouse/CN=" + global.m_name + " -newkey rsa:1024 -keyout my_private_key.pem -out my_public_cert.pem";
+	std::string scriptname = "openssl req -config openssl.cnf -x509 -nodes -days 10000 -subj /C=DK/ST=Denmark/L=GateHouse/CN=" + global.m_name + " -newkey rsa:1024 -keyout my_private_key.pem -out my_public_cert.pem ";
 	boost::process::context ctx;
 	ctx.environment = boost::process::self::get_environment();
 	ctx.stdout_behavior = boost::process::capture_stream(); 
@@ -390,15 +391,28 @@ void session_data::update_timestamp()
 
 //-----------------------------------
 
-const char help[] = "Usage: uniproxy [-p port=8085] [-u udp_port]\nLog on with webbrowser http://localhost:8085/";
-
-
+const char help_text[] = "Usage: uniproxy [-l/--working-dir=<working directory>]\nLog on with webbrowser http://localhost:8085/\n";
 
 
 
 int main(int argc,char ** argv)
 {
 	int openssl_count = 0;
+
+	if (check_arg( argc, argv, 'h', "help"))
+	{
+		std::cout << help_text << std::endl;
+		return 0;
+	}
+	std::string workdir;
+	if (check_arg( argc, argv, 'w', "working-dir", workdir) && workdir.length() > 0)
+	{
+		// If this fails, there is not much we can do about it anyway, so we silently fail.
+		boost::system::error_code ec;
+		boost::filesystem::current_path(workdir,ec);
+	}
+	logfile.open("uniproxy_stdouterr.log");
+
 	do
 	{
 		try
@@ -406,8 +420,12 @@ int main(int argc,char ** argv)
 			cppcms::signal::reset_reload();
 			std::string certificate_common_name;
 			log().clear();
-			DOUT( std::string("UniProxy starting with parameters: ") << argv[0] << std::string(" in path: ") << boost::filesystem::current_path() );
-			log().add( std::string("UniProxy starting" ) ); // with parameters: ") + argv[0] + std::string(" in path: ") );
+			DOUT( std::string("UniProxy starting with in path: ") << boost::filesystem::current_path() << " with parameters:");
+			for (int index = 0; index < argc; index++)
+			{
+				DOUT("Arg: " << index << " value: " << argv[index]);
+			}
+			log().add( std::string("UniProxy starting" ) );
 
 			DOUT("Loading plugins count: " << PluginHandler::plugins().size() );
 			for ( int index = 0; index < PluginHandler::plugins().size(); index++ )

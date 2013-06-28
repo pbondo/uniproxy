@@ -77,30 +77,31 @@ set( uniproxy_SOURCES
 
 IF (WIN32)
 
-	# VC10
+	SET(LANG c:/lang)
+
+	# VS2012
 	ADD_DEFINITIONS( -D_WIN32_WINNT=0x0501 /wd4250 /wd4018 )
-	include_directories (${uniproxy_SOURCE_DIR} c:/lang/w32/include c:/lang/w32/include/bp-0.30 c:/lang/w32/include/boost-1_53/ c:/lang/openssl-win32/include/)
-	LINK_DIRECTORIES( "c:/lang/w32/lib" "c:/lang/openssl-win32/lib/VC/static/" )
+	include_directories (${uniproxy_SOURCE_DIR} ${LANG}/w32/include/bp-0.30 ${LANG}/w32/include ${LANG}/w32/include/boost-1_53/ ${LANG}/openssl-win32/include/)
+	LINK_DIRECTORIES( "${LANG}/w32/lib" "${LANG}/openssl-win32/lib/VC/static/" )
+	# Use multi cores
+	SET(VISUAL_STUDIO_MP_FLAG "/MP")
 
 	# Mingw64
 	#ADD_DEFINITIONS( -std=c++11 )
-	#include_directories (${uniproxy_SOURCE_DIR} c:/lang/include c:/lang/mw64/include c:/lang/mw64/include/boost-1_49  c:/lang/OpenSSL-1.0.0a-bin-x64/x86_64-w64-mingw32/include )
-	#LINK_DIRECTORIES( c:/lang/OpenSSL-1.0.0a-bin-x64/x86_64-w64-mingw32/lib c:/lang/mingw/x86_64-w64-mingw32/lib c:c:/lang/mingw/lib "c:/lang/mw64/lib"  )
+	#include_directories (${uniproxy_SOURCE_DIR} ${LANG}/include ${LANG}/mw64/include ${LANG}/mw64/include/boost-1_49  ${LANG}/OpenSSL-1.0.0a-bin-x64/x86_64-w64-mingw32/include )
+	#LINK_DIRECTORIES( ${LANG}/OpenSSL-1.0.0a-bin-x64/x86_64-w64-mingw32/lib ${LANG}/mingw/x86_64-w64-mingw32/lib c:${LANG}/mingw/lib "${LANG}/mw64/lib"  )
 
 ELSE (WIN32)
 
 	ADD_DEFINITIONS( -g -std=c++11 -Wall -Wno-sign-compare )
-
 	include_directories ( /home/pba/lang/include/bp-0.30 )
-	#include_directories ( /usr/local/include/boost-1.49.0/ )
-	#LINK_DIRECTORIES( /usr/local/lib/boost-1.49.0/ )
 
 ENDIF (WIN32)
 
 add_executable(uniproxy ${uniproxy_SOURCES})
 
 IF (WIN32)
-	#VC
+	# VS2012
 	target_link_libraries (uniproxy libcppcms libbooster SSLeay32MDd libeay32MDd zlib pcre dbghelp )
 
 	# Mingw the order of libraries are important
@@ -108,7 +109,7 @@ IF (WIN32)
 
 ELSE (WIN32)
 
-	target_link_libraries(uniproxy cppcms.a booster.a boost_filesystem-mt.a boost_system-mt.a boost_regex-mt.a pthread pcre icuuc icui18n icudata gcrypt dl z ssl.a crypto.a)
+	target_link_libraries(uniproxy boost_filesystem-mt.a boost_system-mt.a boost_chrono-mt.a boost_regex-mt.a cppcms.a booster.a pthread pcre icuuc icui18n icudata gcrypt dl z ssl.a crypto.a)
 
 	INSTALL(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/)
 	INSTALL(DIRECTORY DESTINATION /var/lib/uniproxy)
