@@ -102,6 +102,7 @@ void proxy_app::logger_get()
 
 void proxy_app::status_get()
 {
+	this->response().content_type("application/json");
 	this->response().out() << this->status_get_json();
 }
 

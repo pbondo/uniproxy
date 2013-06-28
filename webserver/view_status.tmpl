@@ -175,9 +175,16 @@ Status.prototype.show_flow = function( input )
 
 Status.prototype.on_status_update1 = function( data )
 {
+	console.log("type: " + typeof data );
 	console.log("status: " + data );
 	var sz_html = "";
-	var json_data = JSON.parse( data );
+	var json_data = null;
+	if (typeof data === 'object')
+		json_data = data;
+	else if (typeof data === 'string')
+		json_data = JSON.parse(data);
+	else
+		return;
 	var that = this;
 
 	// ---- THE CLIENT PART ----
@@ -437,6 +444,7 @@ $(document).ready(function()
 	status1 = new Status();
 	
 	console.log("Ready");
+	$.ajaxSetup({ cache: false });
 	console.dir(status1);
 });
 
