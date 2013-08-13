@@ -411,16 +411,16 @@ int main(int argc,char ** argv)
 		boost::system::error_code ec;
 		boost::filesystem::current_path(workdir,ec);
 	}
-	logfile.open("uniproxy_stdouterr.log");
 
 	do
 	{
 		try
 		{
+			new (&global)proxy_global();
 			cppcms::signal::reset_reload();
 			std::string certificate_common_name;
 			log().clear();
-			DOUT( std::string("UniProxy starting with in path: ") << boost::filesystem::current_path() << " with parameters:");
+			DOUT( std::string("UniProxy starting in path: ") << boost::filesystem::current_path() << " with parameters:");
 			for (int index = 0; index < argc; index++)
 			{
 				DOUT("Arg: " << index << " value: " << argv[index]);
@@ -449,7 +449,19 @@ int main(int argc,char ** argv)
 				bool load_private = false, load_public = false;
 				{
 					std::ifstream ifs( my_private_key_name );
-					load_private = ifs.good(); // It is not a certificate, so we should not override!!!!
+					if ( ifs.good() )
+					{
+						boost::system::error_code ec1,ec2;
+						boost::asio::ssl::context ctx(boost::asio::ssl::context_base::sslv23);
+						ctx.use_private_key_file(my_private_key_name,boost::asio::ssl::context_base::file_format::pem,ec1);
+						ctx.use_certificate_file(my_public_cert_name,boost::asio::ssl::context_base::file_format::pem,ec2);
+						load_private = !ec1 && !ec2;
+						DOUT("Private handling: " << load_private << " 1:" << ec1 << " " << (ec1) << " " << !ec1 << " 2:" << ec2 << " " << (ec2) << " " << !ec2 );
+						if (!load_private)
+						{
+							DOUT("Found private file which does NOT contain a valid private key. Delete file: " << my_private_key_name);
+						}
+					}
 				}
 				{
 					std::vector<certificate_type> certs;
@@ -457,10 +469,15 @@ int main(int argc,char ** argv)
 					if ( load_public )
 					{
 						certificate_common_name = get_common_name(certs[0]);
-						DOUT("Found own certificate with name: \"" << certificate_common_name + "\"" );
-						if ( global.m_name != certificate_common_name )
+						DOUT("Found own private certificate with name: \"" << certificate_common_name + "\"" );
+						if ( global.m_name == certificate_common_name )
 						{
-							log().add( "Own name \"" + global.m_name + "\" does not match own certificate \"" + certificate_common_name + "\"" );
+							DOUT("Certificate do match own name");
+						}
+						else
+						{
+							log().add("Own name \"" + global.m_name + "\" does not match own certificate \"" + certificate_common_name + "\"");
+   						//throw std::runtime_error("Own name \"" + global.m_name + "\" does not match own certificate \"" + certificate_common_name + "\"" );
 						}
 					}
 				}

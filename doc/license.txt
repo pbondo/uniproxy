@@ -1,6 +1,6 @@
 Copyright:
 =========
-The initial software package is Copyright (C) GateHouse http://www.gatehouse.dk 2011-2012
+The initial software package is Copyright (C) GateHouse http://www.gatehouse.dk 2011-2013
 Any derived software is copyright of the respective providers.
 
 License:
