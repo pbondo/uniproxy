@@ -248,10 +248,10 @@ namespace asio {
 void socket_set_keepalive_to( ip::tcp::socket::lowest_layer_type &_socket, int _timeout );
 
 // Send the socket shutdown command
-void socket_shutdown( ip::tcp::socket::lowest_layer_type &_socket );
+void socket_shutdown( ip::tcp::socket::lowest_layer_type &_socket, boost::system::error_code &ec );
 
 // I dont understand why the above cannot be used?
-void socket_shutdown( boost::asio::ip::tcp::acceptor &_acceptor );
+void socket_shutdown( boost::asio::ip::tcp::acceptor &_acceptor, boost::system::error_code &ec );
 
 // _host may be either a host name, or a IPv4 or IPv6 address
 void sockect_connect( ip::tcp::socket::lowest_layer_type &_socket, boost::asio::io_service &_io_service, const std::string &_hostname, int _port );

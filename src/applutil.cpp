@@ -149,15 +149,16 @@ void socket_set_keepalive_to( ip::tcp::socket::lowest_layer_type &_socket, int _
 }
 
 
-void socket_shutdown( ip::tcp::socket::lowest_layer_type &_socket )
+void socket_shutdown( ip::tcp::socket::lowest_layer_type &_socket, boost::system::error_code &ec )
 {
-	_socket.shutdown(ip::tcp::socket::shutdown_both);
+	_socket.shutdown(ip::tcp::socket::shutdown_both,ec);
 }
 
 
-void socket_shutdown( boost::asio::ip::tcp::acceptor &_acceptor )
+void socket_shutdown( boost::asio::ip::tcp::acceptor &_acceptor, boost::system::error_code &ec )
 {
 	shutdown( _acceptor.native(), ip::tcp::socket::shutdown_both );
+	ec = make_error_code(boost::system::errc::success);
 }
 
 
@@ -288,51 +289,43 @@ bool delete_certificate_file( const std::string &_filename, const std::string &_
 }
 
 
-//bool SetupCertificates( boost::asio::ip::tcp::socket &_remote_socket, const std::string &_connection_name, bool _server )
 std::error_code SetupCertificates( boost::asio::ip::tcp::socket &_remote_socket, const std::string &_connection_name, bool _server, std::error_code& ec )
 {
 	try
 	{
 		ec = make_error_code( uniproxy::error::unknown_error );
-		DOUT( __FUNCTION__ << " " << _server );
+		DOUT( __FUNCTION__ << " " << _server << " connection name: " << _connection_name << " server?: " << _server );
 		const int buffer_size = 4000;
 		char buffer[buffer_size]; //
 		memset(buffer,0,buffer_size);
-		//ASSERTD( _connection_name.length() > 0, "Attempting to setup a certificate without a known connection name");
 		ASSERTE( _connection_name.length() > 0, uniproxy::error::connection_name_unknown, "" );
 		if ( _server )
 		{
-			//ec = make_error_code( uniproxy::error::receive_certificate );
 			int length = _remote_socket.read_some( boost::asio::buffer( buffer, buffer_size ) );
 			DOUT("Received: " << length << " bytes");
-			//ASSERTD( length > 0 && length < buffer_size, "Invalid data received from remote host during certificate exchange" ); // NB!! Check the overflow situation.....
 			ASSERTE( length > 0 && length < buffer_size, uniproxy::error::certificate_invalid, "received" ); // NB!! Check the overflow situation.....
 			DOUT("SSL Possible Certificate received: " << buffer );
 			std::vector<certificate_type> remote_certs, local_certs;
-			//ASSERTD( load_certificates_string( buffer, remote_certs ) && remote_certs.size() == 1, "Invalid certificate received from remote host during certificate exchange" );
-			ASSERTE( load_certificates_string( buffer, remote_certs ) && remote_certs.size() == 1, uniproxy::error::certificate_invalid, "received" );
+			ASSERTE( load_certificates_string( buffer, remote_certs ) && remote_certs.size() == 1, uniproxy::error::certificate_invalid, "received for connection: " + _connection_name  );
 
 			std::string remote_name = get_common_name( remote_certs[0] );
 			DOUT("Received certificate name: " << remote_name << " for connection: " << _connection_name );
-			if ( _connection_name == remote_name ) //.length() > 0 )
-			{
-				//ASSERTD( load_certificates_file( my_certs_name, local_certs ), std::string( "Failed to load local certificates from file: " ) + my_certs_name );
-				ASSERTE( load_certificates_file( my_certs_name, local_certs ), uniproxy::error::certificate_not_found, std::string( " in file ") + my_certs_name );
+			ASSERTE(_connection_name == remote_name, uniproxy::error::certificate_invalid, "Received " + remote_name + " for connection: " + _connection_name + ". They must match");
+			ASSERTE( load_certificates_file( my_certs_name, local_certs ), uniproxy::error::certificate_not_found, std::string( " in file ") + my_certs_name + " for connection: " + _connection_name);
 
-				for ( auto iter = local_certs.begin(); iter != local_certs.end(); iter++ )
+			for ( auto iter = local_certs.begin(); iter != local_certs.end(); iter++ )
+			{
+				if ( remote_name == get_common_name( *iter ) )
 				{
-					if ( remote_name == get_common_name( *iter ) )
-					{
-						DOUT("Removing old existing certificate name for replacement: " << remote_name );
-						local_certs.erase( iter );
-						break;
-					}
+					DOUT("Removing old existing certificate name for replacement: " << remote_name );
+					local_certs.erase( iter );
+					break;
 				}
-				local_certs.push_back( remote_certs[0] );
-				save_certificates_file( my_certs_name, local_certs );
-				load_certificate_names( my_certs_name );
-				return ec = std::error_code();
 			}
+			local_certs.push_back( remote_certs[0] );
+			save_certificates_file( my_certs_name, local_certs );
+			load_certificate_names( my_certs_name );
+			return ec = std::error_code();
 		}
 		else
 		{
@@ -353,12 +346,10 @@ std::error_code SetupCertificates( boost::asio::ip::tcp::socket &_remote_socket,
 
 int do_clear( X509 * cert)
 {
-	//DOUT("Clearing X509");
 	if ( cert )
 	{
 		X509_free( cert );
 	}
-	//DOUT("Cleared X509");
 	return 0;
 }
 
@@ -525,7 +516,6 @@ void proxy_log::clear()
 }
 
 
-
 int64_t data_flow::timestamp()
 {
 	auto time = boost::chrono::steady_clock::now(); 		// get the current time
@@ -594,6 +584,7 @@ const char* uniproxy::category_impl::name() const noexcept
 {
 	return "uniproxy";
 }
+
 
 class error_code_pair
 {

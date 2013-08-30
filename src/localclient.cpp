@@ -152,7 +152,8 @@ void LocalHost::cleanup()
 		stdt::lock_guard<stdt::mutex> l(this->m_mutex);
 		while ( this->m_local_sockets.size() > 0 )
 		{
-			TRY_CATCH( this->m_local_sockets.front()->socket().close() );
+			boost::system::error_code ec;
+			TRY_CATCH( this->m_local_sockets.front()->socket().close(ec) );
 			this->m_local_sockets.erase( this->m_local_sockets.begin() ); // Since we use shared_ptr it should autodelete.
 		}
 		DOUT(__FUNCTION__ << ":" << __LINE__ );
@@ -177,8 +178,9 @@ void LocalHost::interrupt()
 			stdt::lock_guard<stdt::mutex> l(this->m_mutex);
 			if ( this->mp_acceptor != nullptr )
 			{
-				TRY_CATCH( (*this->mp_acceptor).cancel() );
-				TRY_CATCH( boost::asio::socket_shutdown( *this->mp_acceptor ) );
+				boost::system::error_code ec;
+				TRY_CATCH( (*this->mp_acceptor).cancel(ec) );
+				TRY_CATCH( boost::asio::socket_shutdown( *this->mp_acceptor,ec ) );
 			}
 		}
 		{
@@ -187,7 +189,8 @@ void LocalHost::interrupt()
 
 			for ( int index = 0; index < this->m_local_sockets.size(); index++ )
 			{
-				TRY_CATCH( this->m_local_sockets[index]->socket().shutdown( boost::asio::socket_base::shutdown_both ) );
+				boost::system::error_code ec;
+				TRY_CATCH( this->m_local_sockets[index]->socket().shutdown( boost::asio::socket_base::shutdown_both, ec ) );
 			}
 		}
 		{
@@ -195,7 +198,8 @@ void LocalHost::interrupt()
 			DOUT(__FUNCTION__ << ":" << __LINE__ );
 			if ( this->mp_remote_socket != nullptr )
 			{
-				TRY_CATCH( (*this->mp_remote_socket).lowest_layer().shutdown( boost::asio::socket_base::shutdown_both ) );
+				boost::system::error_code ec;
+				TRY_CATCH( (*this->mp_remote_socket).lowest_layer().shutdown( boost::asio::socket_base::shutdown_both, ec ) );
 			}
 		}
 	}
@@ -221,8 +225,9 @@ void LocalHost::remove_socket( boost::asio::ip::tcp::socket &_socket )
 	{
 		if ( (*iter)->socket() == _socket )
 		{
-			TRY_CATCH( _socket.shutdown(boost::asio::socket_base::shutdown_both) );
-			TRY_CATCH( _socket.close() );
+			boost::system::error_code ec;
+			TRY_CATCH( _socket.shutdown(boost::asio::socket_base::shutdown_both,ec) );
+			TRY_CATCH( _socket.close(ec) );
 			this->m_local_sockets.erase(iter);
 			break;
 		}

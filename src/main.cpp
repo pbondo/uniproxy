@@ -313,8 +313,11 @@ void proxy_app::setup_config( cppcms::json::value &settings_object )
 
 bool proxy_app::execute_openssl()
 {
-	// openssl req -x509 -nodes -days 365 -subj "/C=DK/ST=Denmark/L=GateHouse/CN=client" -newkey rsa:1024 -keyout my_private_key.pem -out my_public_cert.pem
-	std::string scriptname = "openssl req -config openssl.cnf -x509 -nodes -days 10000 -subj /C=DK/ST=Denmark/L=GateHouse/CN=" + global.m_name + " -newkey rsa:1024 -keyout my_private_key.pem -out my_public_cert.pem ";
+	std::string params;
+#ifdef _WIN32
+	params = " -config openssl.cnf ";
+#endif
+	std::string scriptname = "openssl req " + params + "-x509 -nodes -days 10000 -subj /C=DK/ST=Denmark/L=GateHouse/CN=" + global.m_name + " -newkey rsa:1024 -keyout my_private_key.pem -out my_public_cert.pem ";
 	boost::process::context ctx;
 	ctx.environment = boost::process::self::get_environment();
 	ctx.stdout_behavior = boost::process::capture_stream(); 
