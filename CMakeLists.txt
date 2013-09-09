@@ -109,7 +109,7 @@ IF (WIN32)
 
 ELSE (WIN32)
 
-	target_link_libraries(uniproxy boost_filesystem-mt.a boost_system-mt.a boost_chrono-mt.a boost_regex-mt.a cppcms.a booster.a pthread pcre icuuc icui18n icudata gcrypt dl z ssl.a crypto.a)
+	target_link_libraries(uniproxy boost_filesystem-mt.a boost_system-mt.a boost_chrono-mt.a boost_regex-mt.a cppcms.a booster.a pthread pcre icuuc icui18n icudata gcrypt dl z ssl.a crypto.a rt.a)
 
 	INSTALL(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/)
 	INSTALL(DIRECTORY DESTINATION /var/lib/uniproxy)
