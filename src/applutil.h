@@ -353,7 +353,6 @@ public:
 };
 
 proxy_log &log();
-extern std::ofstream logfile;
 
 // The configured data for each remote connection. Handles each of the "remotes" in the list below.
 //	{	port : 8750, type : "GHP"

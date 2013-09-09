@@ -437,7 +437,7 @@ void LocalHost::threadproc()
 		}
 		catch( std::exception &exc )
 		{
-			this->dolog(exc.what() );
+			this->dolog(exc.what());
 		}
 		if (++this->m_proxy_index >= this->m_proxy_endpoints.size())
 		{

@@ -443,7 +443,7 @@ void RemoteProxyHost::handle_accept(RemoteProxyClient* new_session, const boost:
 			mylib::msleep( 2000 );
 			DOUT("Trying to reload verify file");
 			this->m_context.load_verify_file( my_certs_name );
-			load_certificate_names( my_certs_name );
+			// This call is not multithread safe. load_certificate_names( my_certs_name );
 
 			// We create the next one, which is then waiting for a connection.
 			new_session = new RemoteProxyClient(m_io_service, m_context,*this);

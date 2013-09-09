@@ -26,20 +26,19 @@
 #include <mstcpip.h>
 #endif
 
-std::ofstream logfile;
 
 namespace mylib
 {
 
 std::ostream &dout()
 {
-	return logfile;
+   return log().m_logfile;
 }
 
 
 std::ostream &derr()
 {
-	return logfile;
+   return log().m_logfile;
 }
 
 
@@ -212,6 +211,7 @@ std::vector<std::string> m_cert_names;
 
 bool load_certificate_names( const std::string & _filename )
 {
+   std::string names;
 	bool result = false;
 	std::vector< certificate_type > certs;
 	m_cert_names.clear();
@@ -220,9 +220,11 @@ bool load_certificate_names( const std::string & _filename )
 		for ( auto iter = certs.begin(); iter != certs.end(); iter++ )
 		{
 			m_cert_names.push_back( get_common_name( *iter ) );
+         names += "|" + get_common_name( *iter );
 		}
 		result = true;
 	}
+   DOUT("Load certificates from file: " << names );
 	return result;
 }
 
@@ -306,20 +308,24 @@ std::error_code SetupCertificates( boost::asio::ip::tcp::socket &_remote_socket,
 			ASSERTE( length > 0 && length < buffer_size, uniproxy::error::certificate_invalid, "received" ); // NB!! Check the overflow situation.....
 			DOUT("SSL Possible Certificate received: " << buffer );
 			std::vector<certificate_type> remote_certs, local_certs;
-			ASSERTE( load_certificates_string( buffer, remote_certs ) && remote_certs.size() == 1, uniproxy::error::certificate_invalid, "received for connection: " + _connection_name  );
 
+			ASSERTE( load_certificates_string( buffer, remote_certs ) && remote_certs.size() == 1, uniproxy::error::certificate_invalid, "received for connection: " + _connection_name  );
 			std::string remote_name = get_common_name( remote_certs[0] );
 			DOUT("Received certificate name: " << remote_name << " for connection: " << _connection_name );
+
 			ASSERTE(_connection_name == remote_name, uniproxy::error::certificate_invalid, "Received " + remote_name + " for connection: " + _connection_name + ". They must match");
 			ASSERTE( load_certificates_file( my_certs_name, local_certs ), uniproxy::error::certificate_not_found, std::string( " in file ") + my_certs_name + " for connection: " + _connection_name);
 
-			for ( auto iter = local_certs.begin(); iter != local_certs.end(); iter++ )
+			for ( auto iter = local_certs.begin(); iter != local_certs.end(); )
 			{
 				if ( remote_name == get_common_name( *iter ) )
 				{
 					DOUT("Removing old existing certificate name for replacement: " << remote_name );
-					local_certs.erase( iter );
-					break;
+					iter = local_certs.erase( iter );
+				}
+				else
+				{
+					iter++;
 				}
 			}
 			local_certs.push_back( remote_certs[0] );
@@ -485,7 +491,7 @@ std::string check_ip4( const std::string &_input )
 proxy_log::proxy_log(const std::string&_name)
 {
 	this->m_name = _name;
-	this->m_logfile.open("uniproxy.log");
+	this->m_logfile.open("uniproxy.log",std::ios::app|std::ios::ate);
 }
 
 std::string proxy_log::peek()
