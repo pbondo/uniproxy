@@ -1,0 +1,18 @@
+{
+	"clients" : [
+		{
+			"port" : 1240,
+			"remotes" : [
+				{ "name" : "remote_certificate", "hostname" : "remote_hostname.com", "port":8750 }
+			]
+		}
+	],
+	"hosts" : [
+        	{
+			"port" : "8750",
+			"locals" : [ { "hostname" : "localhost", "port" : 2000 } ],
+			"remotes" : [ { "name" : "remote_certificate" } ]
+	        }
+	],
+	"config" : { "name" : "my_certificate" }
+}
