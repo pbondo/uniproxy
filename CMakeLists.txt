@@ -55,7 +55,7 @@ set( uniproxy_cpp_SOURCES
 set( uniproxy_SOURCES
 	${uniproxy_cpp_SOURCES}
 	README.md
-	uniproxy.json.sample
+	../doc/uniproxy.json.sample
 	views.cpp
 	../webserver/content.h
 	../webserver/master.tmpl
@@ -114,7 +114,10 @@ ELSE (WIN32)
 	INSTALL(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/)
 	INSTALL(DIRECTORY DESTINATION /var/lib/uniproxy)
 	INSTALL(DIRECTORY DESTINATION /var/lib/uniproxy/script)
+	INSTALL(DIRECTORY DESTINATION ${CMAKE_INSTALL_PREFIX}/share/doc/uniproxy/)
 	INSTALL(FILES script/jquery.js DESTINATION /var/lib/uniproxy/script/)
+	INSTALL(FILES doc/license.txt DESTINATION ${CMAKE_INSTALL_PREFIX}/share/doc/uniproxy/)
+	INSTALL(FILES doc/uniproxy.json.sample DESTINATION ${CMAKE_INSTALL_PREFIX}/share/doc/uniproxy/)
 	INSTALL(FILES deb/uniproxy.conf DESTINATION /etc/init/ )
 
 ENDIF (WIN32)

@@ -1,16 +1,16 @@
 #!/bin/bash
 #
 #
-# ln -s ../deb/postinstall-pak
-# ln -s ../deb/preremove-pak
-# ln -s ../deb/postremove-pak
-# sudo checkinstall --install=no --pkgversion=0.0.1 --pkglicense=GPL --pkgname=mytracker --maintainer="Poul Bondo \<pba@mailme.dk\>" --provides=mytracker --requires="libproj0" --nodoc --exclude=/home
-#
 
 rootdir=/var/lib/uniproxy
 
 # Create user and home
 useradd -d ${rootdir} -g users -s /bin/bash -m --system uniproxy
+
+if [ ! -e /etc/init.d/uniproxy ]; then 
+	ln -s /lib/init/upstart-job /etc/init.d/uniproxy
+fi
+
 
 echo "useradd: $?" 1>> /tmp/uniproxy.log 2>> /tmp/uniproxy.log
 
