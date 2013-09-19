@@ -43,9 +43,10 @@ Source: "third/libeay32.dll"; DestDir: "{app}"
 Source: "third/ssleay32.dll"; DestDir: "{app}"
 Source: "third/nssm.exe"; DestDir: "{app}"; Check: GetInstallService()
 Source: "third/zlib.dll"; DestDir: "{app}"
+Source: "third/nc.exe"; DestDir: "{app}"
 
 Source: "../script/jquery.js"; DestDir: "{app}/script"
-Source: "../uniproxy.json.sample"; DestDir: "{app}/doc"
+Source: "../doc/uniproxy.json.sample"; DestDir: "{app}/doc"
 
 [Run]
 Filename: "{app}\nssm.exe"; Parameters: "install Uniproxy ""{app}\uniproxy.exe"" "; WorkingDir: "{app}"; StatusMsg: Installing Uniproxy as a service; Check: GetInstallService()

@@ -192,7 +192,8 @@ Status.prototype.on_status_update1 = function( data )
 	if ( json_data.clients )
 	{
 		sz_html = "<h3>Clients</h3><table border='1'><tr><th>Port</th><th>Name</th><th>Hostname</th><th>Data in [B/min]</th><th>Data out [B/min]</th><th>Certificate</th><th>Status</th></tr>";
-		json_data.clients.forEach( function(client_data) 
+		//json_data.clients.forEach( function(client_data) 
+		$.each(json_data.clients, function(i,client_data) 
 		{
 			var localhosts = ' ';
 			if ( client_data.local_hostname )
@@ -218,7 +219,8 @@ Status.prototype.on_status_update1 = function( data )
 			linest += "</tr>";
 
 			var client_connected = false;
-			client_data.remotes.forEach( function(remote_data) 
+			//client_data.remotes.forEach( function(remote_data) 
+			$.each(client_data, function(i2,remote_data) 
 			{
 				if (remote_data.connected_remote)
 				{
@@ -226,7 +228,8 @@ Status.prototype.on_status_update1 = function( data )
 				}
 			});
 
-			client_data.remotes.forEach( function(remote_data) 
+			//client_data.remotes.forEach( function(remote_data) 
+			$.each(client_data.remotes, function(i3,remote_data) 
 			{
 				// The table row for each of the remote connections
 				linest += "<tr><td></td><td>" + remote_data.name + "</td>";
@@ -418,7 +421,7 @@ Status.prototype.on_toggle_log = function( )
 {
 	console.log( "on_toggle_log" );
 	var testdiv_outer = jQuery("#testdiv_outer");
-	if ( testdiv_outer.height() > 0 )
+	if ( testdiv_outer.height() > 100 )
 	{
 		testdiv_outer.height(0);
 	}
@@ -488,7 +491,7 @@ $(document).ready(function()
 </table>
 
 <p></p>
-<div class="testdiv" id="testdiv_outer" style="height:0px;overflow:auto;border: 1px black solid">
+<div class="testdiv" id="testdiv_outer" style="height:200px;overflow:auto;border: 1px black solid">
 	<div class="testdiv_inner" id="testdiv_inner">
 	</div>
 </div>

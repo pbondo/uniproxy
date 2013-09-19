@@ -52,6 +52,8 @@ set( uniproxy_cpp_SOURCES
 	../libs/gatehouse/pghp2.cpp
 )
 
+
+
 set( uniproxy_SOURCES
 	${uniproxy_cpp_SOURCES}
 	README.md
@@ -76,6 +78,11 @@ set( uniproxy_SOURCES
 )
 
 IF (WIN32)
+	set( uniproxy_SOURCES
+		${uniproxy_SOURCES}
+		../src/win_util.cpp
+		../src/win_util.h
+		)
 
 	SET(LANG c:/lang)
 

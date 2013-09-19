@@ -33,6 +33,10 @@
 #include <boost/process.hpp>
 #include "proxy_global.h"
 
+#ifdef _WIN32
+#include "win_util.h"
+#endif
+
 namespace cppcms 
 {
 
@@ -414,7 +418,9 @@ int main(int argc,char ** argv)
 		boost::system::error_code ec;
 		boost::filesystem::current_path(workdir,ec);
 	}
-
+#ifdef _WIN32
+   EnableFirewallRule();
+#endif
 	do
 	{
 		try
