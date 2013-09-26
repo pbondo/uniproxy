@@ -244,7 +244,7 @@ void proxy_app::config_upload()
 	}
 	catch( std::system_error &exc1 )
 	{
-		log().add( exc1.code().message() + " " + exc1.what() );
+		log().add( "Error: " + exc1.code().message() + " " + exc1.what() );
 	}
 	catch( std::exception &exc2 )
 	{

@@ -45,9 +45,11 @@ std::ostream &derr()
 std::string time_stamp()
 {
 	std::string sz;
-	boost::posix_time::time_duration d = boost::get_system_time().time_of_day();
+   boost::posix_time::ptime stamp = boost::get_system_time();
+   sz += boost::gregorian::to_iso_string(stamp.date()) + " ";
+	boost::posix_time::time_duration d = stamp.time_of_day();
 	d = boost::posix_time::time_duration( d.hours(), d.minutes(), d.seconds(), 0 );
-	sz = boost::posix_time::to_simple_string( d );
+	sz += boost::posix_time::to_simple_string( d );
 	return sz;
 }
 
