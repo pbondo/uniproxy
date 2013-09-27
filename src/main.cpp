@@ -280,6 +280,7 @@ void proxy_app::client_activate(const std::string _param)
 			}
 		}
 	}
+	//NB!!providerclients
 }
 
 

@@ -54,6 +54,15 @@ void proxy_global::lock()
 			p->start();
 		}
 	}
+	for ( auto iter = this->providerclients.begin(); iter != this->providerclients.end(); iter++ )
+	{
+		providerclient_ptr p = *iter;
+		if ( p->m_active )
+		{
+			DOUT("Starting providerclients at: " );
+			p->start();
+		}
+	}
 }
 
 
@@ -73,9 +82,15 @@ void proxy_global::unlock()
 		DOUT("localhost.Stop()");
 		(*iter)->stop();
 	}
+	for ( auto iter = this->providerclients.begin(); iter != this->providerclients.end(); iter++ )
+	{
+		DOUT("providerclient.Stop()");
+		(*iter)->stop();
+	}
 	this->m_thread.stop();
 	this->remotehosts.clear();
 	this->localhosts.clear();
+	this->providerclients.clear();
 }
 
 
@@ -95,8 +110,9 @@ bool proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 			auto &item1 = *iter1;
 			bool active = cppcms::utils::check_bool( item1, "active", true, false );
 			int client_port = check_int( item1, "port", -1, true );
+			bool provider = cppcms::utils::check_bool( item1, "provider", false, false );
 			int max_connections = check_int( item1, "max_connections", 1, false );
-			std::vector<ProxyEndpoint> proxy_endpoints;
+			std::vector<ProxyEndpoint> proxy_endpoints, provider_endpoints;
 			if ( item1["remotes"].type() == cppcms::json::is_array )
 			{
 				auto ar2 = item1["remotes"].array();
@@ -114,7 +130,38 @@ bool proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 					}
 				}
 			}
-			if ( active && proxy_endpoints.size() > 0 )
+			if (provider)
+			{
+				if ( item1["locals"].type() == cppcms::json::is_array ) // Only for provider
+				{
+					auto ar2 = item1["locals"].array();
+					for ( auto iter2 = ar2.begin(); iter2 != ar2.end(); iter2++ )
+					{
+						auto &item2 = *iter2;
+						ProxyEndpoint ep( cppcms::utils::check_bool( item2, "active", true, false ), 
+											check_string( item2, "name", "", false ), 
+											check_string( item2, "hostname", "", true),
+											check_int(item2,"port",-1,true) 
+											);
+						if (ep.m_active)
+						{
+							provider_endpoints.push_back( ep );
+						}
+					}
+				}
+				if ( active && provider_endpoints.size() > 0 )
+				{
+					providerclient_ptr local_ptr( new ProviderClient( active, provider_endpoints, proxy_endpoints, standard_plugin ) );
+					//local_ptr->m_proxy_endpoints = proxy_endpoints;
+					this->providerclients.push_back( local_ptr );
+				}
+				else
+				{
+					// NB!! Here should go an error if active
+					DERR("Provider configuration invalid");
+				}
+			}
+			else if ( active && proxy_endpoints.size() > 0 )
 			{
 				// NB!! Search for the correct plugin version
 				localhost_ptr local_ptr( new LocalHost( active, client_port, proxy_endpoints, max_connections, standard_plugin ) );

@@ -107,10 +107,16 @@ static bool check_bool( cppcms::json::value &_input_obj, const std::string &_inp
 static bool check_bool( cppcms::json::value &_input_obj, const std::string &_inputname, const bool _default_value, bool _required )
 {
 	bool result = _default_value;
+	bool found = false;
 	if ( _inputname.length() > 0 )
 	{
+		found = true;
 		cppcms::json::value value = _input_obj.find( _inputname );
-		if ( value.type() == cppcms::json::is_number )
+		if ( value.type() == cppcms::json::is_boolean )
+		{
+			result = value.get_value<bool>( );	// I.e. true
+		}
+		else if ( value.type() == cppcms::json::is_number )
 		{
 			result = value.get_value<int>( ) > 0;	// I.e. 1,2,3,4,5.... => true
 		}
@@ -119,8 +125,12 @@ static bool check_bool( cppcms::json::value &_input_obj, const std::string &_inp
 			std::string sz = value.get_value<std::string>( );
 			result = sz == "true" || sz == "on";
 		}
+		else
+		{
+			found = false;
+		}
 	}
-	else if ( _required )
+	if ( _required && !found)
 	{
 		// NB!! Give a better description and location of the problem. And how do we show this to the user ?
 		throw std::runtime_error("Failed to validate JSON input for bool value " + _inputname + " which is required");
