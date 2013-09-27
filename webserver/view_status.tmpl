@@ -186,6 +186,7 @@ Status.prototype.on_status_update1 = function( data )
 		return;
 
 	var that = this;
+	var idata = 0;
 
 	// ---- THE CLIENT PART ----
 	sz_html = ""; 
@@ -193,7 +194,7 @@ Status.prototype.on_status_update1 = function( data )
 	{
 		sz_html = "<h3>Clients</h3><table border='1'><tr><th>Port</th><th>Name</th><th>Hostname</th><th>Data in [B/min]</th><th>Data out [B/min]</th><th>Certificate</th><th>Status</th></tr>";
 		//json_data.clients.forEach( function(client_data) 
-		$.each(json_data.clients, function(i,client_data) 
+		$.each(json_data.clients, function(idata,client_data) 
 		{
 			var localhosts = ' ';
 			if ( client_data.local_hostname )
@@ -208,7 +209,7 @@ Status.prototype.on_status_update1 = function( data )
 			}
 
 			// The table row for the local description
-			var linest = "";
+			var linest = "<tr>";
 			linest += that.connection_string( true, client_data.connected_local, client_data.port );
 			linest += "<td></td>";
 			linest += "<td></td>";
@@ -219,8 +220,7 @@ Status.prototype.on_status_update1 = function( data )
 			linest += "</tr>";
 
 			var client_connected = false;
-			//client_data.remotes.forEach( function(remote_data) 
-			$.each(client_data, function(i2,remote_data) 
+			$.each(client_data, function(idata,remote_data) 
 			{
 				if (remote_data.connected_remote)
 				{
@@ -228,8 +228,7 @@ Status.prototype.on_status_update1 = function( data )
 				}
 			});
 
-			//client_data.remotes.forEach( function(remote_data) 
-			$.each(client_data.remotes, function(i3,remote_data) 
+			$.each(client_data.remotes, function(idata,remote_data) 
 			{
 				// The table row for each of the remote connections
 				linest += "<tr><td></td><td>" + remote_data.name + "</td>";
@@ -263,7 +262,6 @@ Status.prototype.on_status_update1 = function( data )
 				}
 				linest += "</tr>";
 			});
-			
 
 			sz_html += linest;
 		} );
@@ -271,6 +269,26 @@ Status.prototype.on_status_update1 = function( data )
 	}
 	console.log(sz_html);
 	$("#clients").html( sz_html );
+
+
+	// ---- THE PROVIDERS PART ----
+	sz_html = ""; 
+	if ( json_data.providers )
+	{
+		sz_html = "<h3>Providers</h3><table border='1'><tr><th>Port</th><th>Name</th><th>Hostname</th><th>Data in [B/min]</th><th>Data out [B/min]</th><th>Certificate</th><th>Status</th></tr>";
+		$.each(json_data.providers, function(idata,provider_data) 
+		{
+			var linest = "<tr><td></td>";
+			linest += that.connection_string( true, provider_data.connected_local, provider_data.local_port );
+			
+			linest += "<td>Hello</td>";
+			linest += "<td>" + (( client_data.log ) ? client_data.log : "&nbsp;" ) + "</td>";
+			linest += "</tr>";
+			sz_html += linest;
+		} );
+	}
+	console.log(sz_html);
+	$("#providers").html( sz_html );
 
 
 	// ---- THE HOST PART ----
@@ -470,6 +488,7 @@ $(document).ready(function()
 <tr><td><h2>UniProxy(</h2></td><td><h2> <div id="own_name"></div> </h2></td><td><h2>)</h2></td></tr>
 </table>
 <div id="clients" data-role="collapsible" data-collapsed="false" ></div>
+<div id="providers"></div>
 <div id="hosts"></div>
 <p></p>
 <table>

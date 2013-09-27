@@ -21,7 +21,6 @@
 #include <cppcms/view.h>
 
 
-
 PluginHandler standard_plugin("");
 
 
@@ -120,7 +119,7 @@ bool proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 				{
 					auto &item2 = *iter2;
 					ProxyEndpoint ep( cppcms::utils::check_bool( item2, "active", true, false ), 
-										check_string( item2, "name", "", false ), 
+										check_string( item2, "name", "", true ), 
 										check_string( item2, "hostname", "", true),
 										check_int(item2,"port",-1,true) 
 										);
@@ -301,7 +300,37 @@ std::string proxy_global::save_json_status( bool readable )
 		glob["clients"][index1] = obj;
 	}
 
+	// ---- THE PROVIDER PART ----
+	for ( int index = 0; index < this->providerclients.size(); index++ )
+	{
+		ProviderClient &prov = *this->providerclients[index];
+		cppcms::json::object obj;
+		obj["id"] = prov.m_id;
+		obj["active"] = prov.m_active;
+		obj["log"] = prov.dolog();
+//		obj["name"] = prov.m_name;
 
+		if ( prov.is_local_connected() )
+		{
+			obj["connected_local"] = true;
+			obj["local_hostname"] = prov.local_hostname();
+			obj["local_port"] = prov.local_port();
+		}
+		if ( prov.is_remote_connected() )
+		{
+			obj["connected_remote"] = true;
+			obj["remote_hostname"] = prov.remote_hostname();
+			obj["remote_port"] = prov.remote_port();
+		}
+		
+		if ( prov.m_activate_stamp > boost::get_system_time())
+		{				
+			auto div = prov.m_activate_stamp - boost::get_system_time();
+			obj["activate"] = div.total_seconds();
+		}
+		
+		glob["providers"][index] = obj;
+	}
 
 	// ---- THE HOST PART ----
 	for ( int index = 0; index < this->remotehosts.size(); index++ )
@@ -413,6 +442,23 @@ std::string proxy_global::save_json_config( bool readable )
 			obj_host["remotes"][index2] = obj;
 		}
 		glob["hosts"][index] = obj_host;
+	}
+	
+	// The provider part
+	for ( int index = 0; index < this->providerclients.size(); index++ )
+	{
+		ProviderClient &prov = *this->providerclients[index];
+		cppcms::json::object obj;
+		obj["id"] = prov.m_id;
+		obj["active"] = prov.m_active;
+		//obj["local_port"] = host.m_local_port;
+		//obj["remote_hostname"] = prov.remote_hostname();
+		//obj["remote_port"] = prov.remote_port();
+
+		//obj["local_hostname"] = prov.local_hostname();
+		//obj["local_port"] = prov.local_port();
+		//obj["max_connections"] = host.m_max_connections;
+		glob["providers"][index] = obj;
 	}
 
 	cppcms::json::object web_obj;

@@ -186,6 +186,21 @@ void sockect_connect( ip::tcp::socket::lowest_layer_type &_socket, boost::asio::
 	}
 }
 
+
+bool is_connected( ip::tcp::socket::lowest_layer_type &_socket )
+{
+	boost::system::error_code ec;
+	if (_socket.is_open())
+	{
+		// is_open is not enough, we need to ensure we are connected. Check for the remote end_point.
+		// boost::asio::ip::tcp::endpoint ep = 
+		_socket.remote_endpoint(ec);
+		return (!ec);
+	}
+	return false;
+}
+
+
 bool get_certificate_issuer_subject( boost::asio::ssl::stream<boost::asio::ip::tcp::socket> &_socket, std::string &_issuer, std::string &_subject )
 {
 	bool result = false;

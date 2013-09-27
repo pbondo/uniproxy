@@ -256,6 +256,9 @@ void socket_shutdown( boost::asio::ip::tcp::acceptor &_acceptor, boost::system::
 // _host may be either a host name, or a IPv4 or IPv6 address
 void sockect_connect( ip::tcp::socket::lowest_layer_type &_socket, boost::asio::io_service &_io_service, const std::string &_hostname, int _port );
 
+// Check whether the socket is connected.
+bool is_connected( ip::tcp::socket::lowest_layer_type &_socket );
+
 bool get_certificate_issuer_subject( boost::asio::ssl::stream<boost::asio::ip::tcp::socket> &_socket, std::string &_issuer, std::string &_subject );
 
 // This function will perform a read_some on a blocking socket. Notice it uses a thread, so it is slow.
