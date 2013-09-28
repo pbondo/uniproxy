@@ -44,15 +44,16 @@ void proxy_global::lock()
 		DOUT("Starting remotehost at: " << p->m_local_port ); //m_acceptor.local_endpoint() );
 		p->start();
 	}
-	for ( auto iter = this->localhosts.begin(); iter != this->localhosts.end(); iter++ )
+	for ( auto iter = this->localclients.begin(); iter != this->localclients.end(); iter++ )
 	{
-		localhost_ptr p = *iter;
+		baseclient_ptr p = *iter;
 		if ( p->m_active )
 		{
 			DOUT("Starting localhost at: " << p->m_local_port );
 			p->start();
 		}
 	}
+/*	
 	for ( auto iter = this->providerclients.begin(); iter != this->providerclients.end(); iter++ )
 	{
 		providerclient_ptr p = *iter;
@@ -62,6 +63,7 @@ void proxy_global::lock()
 			p->start();
 		}
 	}
+*/
 }
 
 
@@ -76,20 +78,22 @@ void proxy_global::unlock()
 		RemoteProxyHost* p2 = p.get();
 		p2->stop();
 	}
-	for ( auto iter = this->localhosts.begin(); iter != this->localhosts.end(); iter++ )
+	for ( auto iter = this->localclients.begin(); iter != this->localclients.end(); iter++ )
 	{
 		DOUT("localhost.Stop()");
 		(*iter)->stop();
 	}
+/*	
 	for ( auto iter = this->providerclients.begin(); iter != this->providerclients.end(); iter++ )
 	{
 		DOUT("providerclient.Stop()");
 		(*iter)->stop();
 	}
+*/
 	this->m_thread.stop();
 	this->remotehosts.clear();
-	this->localhosts.clear();
-	this->providerclients.clear();
+	this->localclients.clear();
+	//this->providerclients.clear();
 }
 
 
@@ -102,7 +106,7 @@ bool proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 	stdt::lock_guard<stdt::mutex> l(this->m_mutex);
 	if ( (_json_acl & clients) > 0 && obj["clients"].type() == cppcms::json::is_array )
 	{
-		this->localhosts.clear();
+		this->localclients.clear();
 		cppcms::json::array ar = obj["clients"].array();
 		for ( auto iter1 = ar.begin(); iter1 != ar.end(); iter1++ )
 		{
@@ -150,9 +154,9 @@ bool proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 				}
 				if ( active && provider_endpoints.size() > 0 )
 				{
-					providerclient_ptr local_ptr( new ProviderClient( active, provider_endpoints, proxy_endpoints, standard_plugin ) );
+					baseclient_ptr local_ptr( new ProviderClient( active, provider_endpoints, proxy_endpoints, standard_plugin ) );
 					//local_ptr->m_proxy_endpoints = proxy_endpoints;
-					this->providerclients.push_back( local_ptr );
+					this->localclients.push_back( local_ptr );
 				}
 				else
 				{
@@ -163,9 +167,9 @@ bool proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 			else if ( active && proxy_endpoints.size() > 0 )
 			{
 				// NB!! Search for the correct plugin version
-				localhost_ptr local_ptr( new LocalHost( active, client_port, proxy_endpoints, max_connections, standard_plugin ) );
+				baseclient_ptr local_ptr( new LocalHost( active, client_port, proxy_endpoints, max_connections, standard_plugin ) );
 				//local_ptr->m_proxy_endpoints = proxy_endpoints;
-				this->localhosts.push_back( local_ptr );
+				this->localclients.push_back( local_ptr );
 			} // NB!! What else if one of them is empty
 		}
 	}
@@ -248,9 +252,9 @@ std::string proxy_global::save_json_status( bool readable )
 	cppcms::json::value glob;
 
 	// ---- THE CLIENT PART ----
-	for ( int index1 = 0; index1 < this->localhosts.size(); index1++ )
+	for ( int index1 = 0; index1 < this->localclients.size(); index1++ )
 	{
-		LocalHost &local( *this->localhosts[index1] );
+		BaseClient &local = *this->localclients[index1];
 		cppcms::json::object obj;
 		obj["id"] = local.m_id;
 		obj["active"] = local.m_active;
@@ -299,7 +303,7 @@ std::string proxy_global::save_json_status( bool readable )
 		}
 		glob["clients"][index1] = obj;
 	}
-
+/*
 	// ---- THE PROVIDER PART ----
 	for ( int index = 0; index < this->providerclients.size(); index++ )
 	{
@@ -331,7 +335,7 @@ std::string proxy_global::save_json_status( bool readable )
 		
 		glob["providers"][index] = obj;
 	}
-
+*/
 	// ---- THE HOST PART ----
 	for ( int index = 0; index < this->remotehosts.size(); index++ )
 	{
@@ -404,9 +408,9 @@ std::string proxy_global::save_json_config( bool readable )
 	stdt::lock_guard<stdt::mutex> l(this->m_mutex);
 	cppcms::json::value glob;
 	// The client part
-	for ( int index = 0; index < this->localhosts.size(); index++ )
+	for ( int index = 0; index < this->localclients.size(); index++ )
 	{
-		LocalHost &host( *this->localhosts[index] );
+		BaseClient &host( *this->localclients[index] );
 		cppcms::json::object obj;
 		obj["id"] = host.m_id;
 		obj["active"] = host.m_active;
@@ -443,7 +447,7 @@ std::string proxy_global::save_json_config( bool readable )
 		}
 		glob["hosts"][index] = obj_host;
 	}
-	
+/*	
 	// The provider part
 	for ( int index = 0; index < this->providerclients.size(); index++ )
 	{
@@ -460,7 +464,7 @@ std::string proxy_global::save_json_config( bool readable )
 		//obj["max_connections"] = host.m_max_connections;
 		glob["providers"][index] = obj;
 	}
-
+*/
 	cppcms::json::object web_obj;
 	web_obj["port"] = this->m_port;
 	web_obj["ip4"] = this->m_ip4_mask;

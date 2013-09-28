@@ -264,9 +264,9 @@ void proxy_app::shutdown()
 void proxy_app::client_activate(const std::string _param)
 {
 	DOUT(__FUNCTION__ << ": " << _param );
-	for ( auto iter = global.localhosts.begin(); iter != global.localhosts.end(); iter++ )
+	for ( auto iter = global.localclients.begin(); iter != global.localclients.end(); iter++ )
 	{
-		LocalHost *p = iter->get();
+		BaseClient *p = iter->get();
 		for ( int index = 0; index < p->m_proxy_endpoints.size(); index++ )
 		{
 			auto &r = p->m_proxy_endpoints[index];

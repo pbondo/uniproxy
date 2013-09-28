@@ -25,9 +25,10 @@
 #include "providerclient.h"
 #include <cppcms/application.h>
 
-typedef std::shared_ptr<LocalHost> localhost_ptr;
+typedef std::shared_ptr<BaseClient> baseclient_ptr;
+//typedef std::shared_ptr<LocalHost> localhost_ptr;
 typedef std::shared_ptr<RemoteProxyHost> remotehost_ptr;
-typedef std::shared_ptr<ProviderClient> providerclient_ptr;
+//typedef std::shared_ptr<ProviderClient> providerclient_ptr;
 
 class client_certificate_exchange : public mylib::thread
 {
@@ -103,9 +104,10 @@ public:
 	stdt::mutex m_mutex;
 
 	// NB!! We need a gate / mutex for these. For now only a problem during shutdown. Also for config update
-	std::vector<localhost_ptr> localhosts;
 	std::vector<remotehost_ptr> remotehosts;
-	std::vector<providerclient_ptr> providerclients;
+	std::vector<baseclient_ptr> localclients;
+	//std::vector<localhost_ptr> localhosts;
+	//std::vector<providerclient_ptr> providerclients;
 
 	//bool m_reload;	// Set this before calling service().shutdown();
 	int m_port;

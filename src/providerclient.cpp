@@ -22,28 +22,29 @@
 using boost::asio::ip::tcp;
 
 
-static int static_local_id = 0;
+//static int static_local_id = 0;
 
 
 ProviderClient::ProviderClient( bool _active, 
 		const std::vector<ProxyEndpoint> &_local_endpoints, const std::vector<ProxyEndpoint> &_proxy_endpoints, 
 		PluginHandler &_plugin )
-:	m_active(_active),
-	m_proxy_connected_index(0),
+:	BaseClient(_active, -1, _proxy_endpoints, 1, _plugin),
+	//m_active(_active),
+	//m_proxy_index(0),
 	m_local_connected_index(0),
-	m_count_out(true),
-	mp_remote_socket( nullptr ),
-	mp_local_socket( nullptr ),
-	m_thread( [this]{ this->interrupt(); } ),
-	m_plugin(_plugin)
+	//m_count_out(true),
+	//mp_remote_socket( nullptr ),
+	mp_local_socket( nullptr )
+	//m_thread( [this]{ this->interrupt(); } ),
+	//m_plugin(_plugin)
 {
-	this->m_id = ++static_local_id;
-	this->m_proxy_endpoints = _proxy_endpoints;
+	//this->m_id = ++static_local_id;
+	//this->m_proxy_endpoints = _proxy_endpoints;
 	this->m_local_endpoints = _local_endpoints;
-	this->m_activate_stamp = boost::get_system_time();
+	//this->m_activate_stamp = boost::get_system_time();
 }
 
-
+/*
 void ProviderClient::dolog( const std::string &_line )
 {
 	this->m_log = _line;
@@ -55,7 +56,7 @@ const std::string ProviderClient::dolog()
 {
 	return this->m_log;
 }
-
+*/
 
 bool ProviderClient::is_local_connected() const
 {
@@ -63,13 +64,13 @@ bool ProviderClient::is_local_connected() const
 	return this->mp_local_socket != nullptr && is_connected(this->mp_local_socket->lowest_layer());
 }
 
-
+/*
 bool ProviderClient::is_remote_connected() const
 {
 	stdt::lock_guard<stdt::mutex> l(this->m_mutex);
 	return this->mp_remote_socket != nullptr && is_connected(this->mp_remote_socket->lowest_layer());
 }
-
+*/
 
 void ProviderClient::start()
 {
@@ -109,7 +110,7 @@ void ProviderClient::interrupt()
 	DOUT(__FUNCTION__ << ":" << __LINE__ );
 }
 
-
+/*
 ssl_socket &ProviderClient::remote_socket()
 {
 	ASSERTE(this->mp_remote_socket, uniproxy::error::socket_invalid, "");
@@ -121,7 +122,7 @@ std::string ProviderClient::get_password() const
 {
 	return "1234";
 }
-
+*/
 
 void ProviderClient::lock()
 {
@@ -141,7 +142,7 @@ void ProviderClient::threadproc()
 		// On start and after each lost connection we end up here.
 		try
 		{
-			this->m_proxy_connected_index = 0;
+			this->m_proxy_index = 0;
 			this->m_local_connected_index = 0;
 
 			boost::asio::io_service io_service;
@@ -196,7 +197,7 @@ void ProviderClient::threadproc()
 					boost::asio::sockect_connect( remote_socket.lowest_layer(), io_service, this->m_proxy_endpoints[index].m_hostname, this->m_proxy_endpoints[index].m_port );
 					//boost::asio::sockect_connect( remote_socket.lowest_layer(), io_service, this->remote_hostname(), this->remote_port() );
 					//DOUT( __FUNCTION__ << ":" << __LINE__ );
-					this->m_proxy_connected_index = index;
+					this->m_proxy_index = index;
 					break;
 				}
 				catch( std::exception &exc )
@@ -208,7 +209,7 @@ void ProviderClient::threadproc()
 
 			if ( boost::get_system_time() < this->m_activate_stamp )
 			{
-				ProxyEndpoint &ep = this->m_proxy_endpoints[this->m_proxy_connected_index];
+				ProxyEndpoint &ep = this->m_proxy_endpoints[this->m_proxy_index];
 				std::error_code err;
 				this->dolog("Provider attempting to perform certificate exchange with " + ep.m_name );
 				this->m_activate_stamp = boost::get_system_time(); // Reset to current time to avoid double attempts.
@@ -258,23 +259,34 @@ void ProviderClient::threadproc()
 	}
 }
 
-
+/*
 std::string ProviderClient::remote_hostname() const
 {
-	return this->m_proxy_endpoints[this->m_proxy_connected_index].m_hostname;
+	return this->m_proxy_endpoints[this->m_proxy_index].m_hostname;
 }
 
 
 int ProviderClient::remote_port() const
 {
-	return this->m_proxy_endpoints[this->m_proxy_connected_index].m_port;
+	return this->m_proxy_endpoints[this->m_proxy_index].m_port;
 }
-
+*/
 
 std::string ProviderClient::local_hostname() const
 {
 	return this->m_local_endpoints[this->m_local_connected_index].m_hostname;
 }
+
+std::vector<std::string> ProviderClient::local_hostnames()
+{
+	std::vector<std::string> result;
+	for ( auto &ep : this->m_local_endpoints )
+	{
+		result.push_back(ep.m_hostname);
+	}
+	return result;
+}
+
 
 
 int ProviderClient::local_port() const

@@ -34,6 +34,7 @@ ENDIF (WIN32)
 
 set( uniproxy_cpp_SOURCES
 	../src/main.cpp
+	../src/baseclient.cpp
 	../src/localclient.cpp
 	../src/remoteclient.cpp
 	../src/providerclient.cpp
@@ -69,6 +70,7 @@ set( uniproxy_SOURCES
 set( uniproxy_SOURCES
 	${uniproxy_SOURCES}
 	../src/applutil.h
+	../src/baseclient.h
 	../src/cppcms_util.h
 	../src/localclient.h
 	../src/providerclient.h

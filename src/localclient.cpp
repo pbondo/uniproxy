@@ -21,7 +21,7 @@
 #include <boost/bind.hpp>
 
 
-static int static_local_id = 0;
+//static int static_local_id = 0;
 
 using boost::asio::ip::tcp;
 
@@ -47,25 +47,27 @@ boost::asio::ip::tcp::socket &LocalHostSocket::socket()
 
 
 LocalHost::LocalHost( bool _active, int _local_port, const std::vector<ProxyEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin )
-:	m_active(_active),
-	m_count_out(true),
+:	BaseClient(_active, _local_port, _proxy_endpoints, _max_connections, _plugin),
+//	m_active(_active),
+//	m_count_out(true),
 	mp_io_service( nullptr ),
-	mp_acceptor( nullptr ),
-	mp_remote_socket( nullptr ),
-	m_thread( [this]{ this->interrupt(); } ),
-	m_plugin(_plugin)
+	mp_acceptor( nullptr )
+	//mp_remote_socket( nullptr ),
+	//m_thread( [this]{ this->interrupt(); } ),
+	//m_plugin(_plugin)
 {
-	this->m_proxy_index = 0;
-	this->m_id = ++static_local_id;
-	this->m_local_connected = this->m_remote_connected = false;
-	this->m_local_port = _local_port;
-	this->m_proxy_endpoints = _proxy_endpoints;
-	this->m_proxy_index = 0;
-	this->m_max_connections = _max_connections;
-	this->m_activate_stamp = boost::get_system_time();
+	//this->m_proxy_index = 0;
+	//this->m_id = ++static_local_id;
+	this->m_local_connected = false; 
+	//this->m_remote_connected = false;
+	//this->m_local_port = _local_port;
+	//this->m_proxy_endpoints = _proxy_endpoints;
+	//this->m_proxy_index = 0;
+	//this->m_max_connections = _max_connections;
+	//this->m_activate_stamp = boost::get_system_time();
 }
 
-
+/*
 void LocalHost::dolog( const std::string &_line )
 {
 	this->m_log = _line;
@@ -77,9 +79,9 @@ const std::string LocalHost::dolog()
 {
 	return this->m_log;
 }
+*/
 
-
-bool LocalHost::is_local_connected()
+bool LocalHost::is_local_connected() const
 {
 	bool result = false;
 	stdt::lock_guard<stdt::mutex> l(this->m_mutex);
@@ -108,7 +110,7 @@ std::vector<std::string> LocalHost::local_hostnames()
 	return result;
 }
 
-
+/*
 bool LocalHost::remote_hostname( int index, std::string &result )
 {
 	stdt::lock_guard<stdt::mutex> l(this->m_mutex);
@@ -130,7 +132,7 @@ bool LocalHost::is_remote_connected(int index)
 	stdt::lock_guard<stdt::mutex> l(this->m_mutex);
 	return this->mp_remote_socket != nullptr && this->mp_remote_socket->lowest_layer().is_open() && this->m_remote_connected && (this->m_proxy_index == index);
 }
-
+*/
 
 void LocalHost::start()
 {
@@ -210,13 +212,13 @@ void LocalHost::interrupt()
 	DOUT(__FUNCTION__ << ":" << __LINE__ );
 }
 
-
+/*
 ssl_socket &LocalHost::remote_socket()
 {
 	ASSERTE(this->mp_remote_socket, uniproxy::error::socket_invalid, "");
 	return *this->mp_remote_socket;
 }
-
+*/
 
 void LocalHost::remove_socket( boost::asio::ip::tcp::socket &_socket )
 {
@@ -320,12 +322,12 @@ void LocalHost::handle_remote_write(const boost::system::error_code& error)
 	}
 }
 
-
+/*
 std::string LocalHost::get_password() const
 {
 	return "1234";
 }
-
+*/
 
 void LocalHost::handle_accept( boost::asio::ip::tcp::socket *_socket, const boost::system::error_code& error )
 {
@@ -397,7 +399,7 @@ void LocalHost::threadproc()
 
 			this->dolog("Connecting to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) );
 			boost::asio::sockect_connect( remote_socket.lowest_layer(), io_service, this->remote_hostname(), this->remote_port() );
-			this->m_remote_connected = true;
+			//this->m_remote_connected = true;
 
 			if ( boost::get_system_time() < this->m_activate_stamp )
 			{
@@ -443,12 +445,13 @@ void LocalHost::threadproc()
 		{
 			this->m_proxy_index = 0;
 		}
-		this->m_local_connected = this->m_remote_connected = false;
+		this->m_local_connected = false;
+		//this->m_remote_connected = false;
 		this->m_thread.sleep( 4000 );	//We will need some time to ensure the remote end has settled. May need to be investigated.
 	}
 }
 
-
+/*
 std::string LocalHost::remote_hostname()
 {
 	return this->m_proxy_endpoints[this->m_proxy_index].m_hostname;
@@ -459,3 +462,5 @@ int LocalHost::remote_port()
 {
 	return this->m_proxy_endpoints[this->m_proxy_index].m_port;
 }
+*/
+
