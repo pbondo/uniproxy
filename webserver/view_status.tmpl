@@ -193,7 +193,6 @@ Status.prototype.on_status_update1 = function( data )
 	if ( json_data.clients )
 	{
 		sz_html = "<h3>Clients</h3><table border='1'><tr><th>Port</th><th>Name</th><th>Hostname</th><th>Data in [B/min]</th><th>Data out [B/min]</th><th>Certificate</th><th>Status</th></tr>";
-		//json_data.clients.forEach( function(client_data) 
 		$.each(json_data.clients, function(idata,client_data) 
 		{
 			var localhosts = ' ';
@@ -240,7 +239,7 @@ Status.prototype.on_status_update1 = function( data )
 				{
 					linest += remote_data.activate;
 				}
-				else if ( remote_data.name )
+				else if ( remote_data.name && client_data.id )
 				{
 					if ( remote_data.cert )
 					{
@@ -248,7 +247,7 @@ Status.prototype.on_status_update1 = function( data )
 					}
 					else
 					{
-						linest += "<input type=\"button\" value=\"Activate\" onclick=\"status1.on_client_activate('" + remote_data.name + "')\" />";
+						linest += "<input type=\"button\" value=\"Activate\" onclick=\"status1.on_client_activate(" + client_data.id + ", '" + remote_data.name + "')\" />";
 					}
 				}
 				linest += "</td>";
@@ -372,12 +371,12 @@ Status.prototype.do_get_update = function( )
 }
 
 
-Status.prototype.on_client_activate = function( name )
+Status.prototype.on_client_activate = function( id, name )
 {
 	console.log( "on_client_activate: " + name );
 	if (confirm("Activate certificate for: " + name + " ?. Please notice the host at the other end must be activated first" ))
 	{
-		jQuery.ajax({ url: '/json/command/client/activate/name=' + name + '&dummy=' + this.cache_count++ });
+		jQuery.ajax({ url: '/json/command/client/activate/name=' + name + '&id=' + id + '&dummy=' + this.cache_count++ });
 		this.reload(200);
 	}
 }

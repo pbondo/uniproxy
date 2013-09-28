@@ -27,49 +27,61 @@ class BaseClient
 {
 public:
 
-	BaseClient(//bool _active, const std::vector<ProxyEndpoint> &_proxy_endpoints, const int _max_connections);
-	bool _active, //const std::string &_name, 
-			int _local_port, const std::vector<ProxyEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin );
-	
+	BaseClient(bool _active, int _local_port, const std::vector<ProxyEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin);
+
 	virtual void start() = 0;
 	virtual void stop() = 0;
 	virtual void interrupt() = 0;
-
 	virtual bool is_local_connected() const = 0;
-	//virtual std::string local_hostname() const = 0;
+	virtual std::vector<std::string> local_hostnames() const = 0;
+	virtual std::string local_portname() const;
 
-	virtual std::vector<std::string> local_hostnames() = 0;
-
-	// NB!! The remote connections does not need to be virtual.
-	//virtual bool is_remote_connected() const = 0;
+	// The remote connections does not need to be virtual.
 	std::string remote_hostname() const;
 	int remote_port() const;
 	bool is_remote_connected(int index = -1) const;
 
-	//bool remote_hostname( int index, std::string &result );
 	ssl_socket &remote_socket();
-	std::string get_password() const;
-
 
 	const std::string dolog();
 	void dolog( const std::string &_line );
+
+	std::string get_password() const;
 	
+	void threadproc_activate(int _index);
+	void start_activate(int _index);
+	void stop_activate();
+	void ssl_prepare(boost::asio::ssl::context &_ctx) const;
 
 	std::vector<ProxyEndpoint> m_proxy_endpoints; // The list of remote proxies to connect to in a round robin fashion.
 
+	int m_id;
 	int m_proxy_index;
 	bool m_active;
 	ssl_socket *mp_remote_socket;
 	data_flow m_count_in, m_count_out;
-	boost::posix_time::ptime m_activate_stamp;
+
+protected:
+
 	int m_local_port;
-	int m_id;
+
+public:
+
 	int m_max_connections;
+	boost::posix_time::ptime m_activate_stamp;
+
+protected:
+
 	std::string m_log;
+	mylib::thread m_thread_activate;
 	mylib::thread m_thread;
 	PluginHandler &m_plugin;
 
 	mutable stdt::mutex m_mutex;
+
+	enum { max_length = 1024 };
+	char m_local_data[max_length];
+	char m_remote_data[max_length];
 
 };
 

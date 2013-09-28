@@ -25,10 +25,10 @@
 #include "providerclient.h"
 #include <cppcms/application.h>
 
+
 typedef std::shared_ptr<BaseClient> baseclient_ptr;
-//typedef std::shared_ptr<LocalHost> localhost_ptr;
 typedef std::shared_ptr<RemoteProxyHost> remotehost_ptr;
-//typedef std::shared_ptr<ProviderClient> providerclient_ptr;
+
 
 class client_certificate_exchange : public mylib::thread
 {
@@ -101,15 +101,11 @@ public:
 	std::string save_json_status( bool readable );
 	std::string save_json_config( bool readable );
 
-	stdt::mutex m_mutex;
-
-	// NB!! We need a gate / mutex for these. For now only a problem during shutdown. Also for config update
+	// lists with associated mutex
+	stdt::mutex m_mutex_list;
 	std::vector<remotehost_ptr> remotehosts;
 	std::vector<baseclient_ptr> localclients;
-	//std::vector<localhost_ptr> localhosts;
-	//std::vector<providerclient_ptr> providerclients;
 
-	//bool m_reload;	// Set this before calling service().shutdown();
 	int m_port;
 	std::string m_ip4_mask;
 	bool m_debug;
@@ -117,14 +113,22 @@ public:
 	// Own name to be used for generating own certifcate.
 	std::string m_name;
 
-	client_certificate_exchange m_thread;
-
 	session_data &get_session_data( cppcms::session_interface &_session );
 
 	int m_session_id_counter;
 	stdt::mutex m_session_data_mutex;
 	std::vector< std::shared_ptr<session_data>> m_sessions;
 
+	// (common) Names from the certificates loaded from the imported certs.pem file.
+	std::mutex m_mutex_certificates;
+	std::vector<std::string> m_cert_names;
+	bool load_certificate_names( const std::string & _filename );
+	std::error_code SetupCertificates( boost::asio::ip::tcp::socket &_remote_socket, const std::string &_connection_name, bool _server, std::error_code& ec );
+
+	bool certificate_available( const std::string &_cert_name);
+
 };
+
+extern proxy_global global;
 
 #endif

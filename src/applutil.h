@@ -496,18 +496,10 @@ private:
 };
 
 
-
-
 int check_int( cppcms::json::value &_input_obj, const std::string &_inputname, const int _default_value, bool _required );
 std::string check_string( cppcms::json::value &_input_obj, const std::string &_inputname, const std::string & _default_value, bool _required );
 int check_int( const char *_input);
 std::string check_ip4( const std::string &_input );
-
-std::error_code SetupCertificates( boost::asio::ip::tcp::socket &_remote_socket, const std::string &_name, bool _server, std::error_code& ec );
-
-// (common) Names from the certificates loaded from the imported certs.pem file.
-extern std::vector<std::string> m_cert_names;
-bool load_certificate_names( const std::string & _filename );
 
 
 // Certificate handling

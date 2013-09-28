@@ -18,45 +18,19 @@
 //====================================================================
 #include "providerclient.h"
 #include <boost/bind.hpp>
+#include "proxy_global.h"
 
 using boost::asio::ip::tcp;
 
 
-//static int static_local_id = 0;
-
-
-ProviderClient::ProviderClient( bool _active, 
-		const std::vector<ProxyEndpoint> &_local_endpoints, const std::vector<ProxyEndpoint> &_proxy_endpoints, 
-		PluginHandler &_plugin )
+ProviderClient::ProviderClient(bool _active, const std::vector<ProxyEndpoint> &_local_endpoints, const std::vector<ProxyEndpoint> &_proxy_endpoints, PluginHandler &_plugin)
 :	BaseClient(_active, -1, _proxy_endpoints, 1, _plugin),
-	//m_active(_active),
-	//m_proxy_index(0),
 	m_local_connected_index(0),
-	//m_count_out(true),
-	//mp_remote_socket( nullptr ),
 	mp_local_socket( nullptr )
-	//m_thread( [this]{ this->interrupt(); } ),
-	//m_plugin(_plugin)
 {
-	//this->m_id = ++static_local_id;
-	//this->m_proxy_endpoints = _proxy_endpoints;
 	this->m_local_endpoints = _local_endpoints;
-	//this->m_activate_stamp = boost::get_system_time();
 }
 
-/*
-void ProviderClient::dolog( const std::string &_line )
-{
-	this->m_log = _line;
-	log().add( " hostname: " + this->remote_hostname() + " port: " + mylib::to_string(this->remote_port()) + ": " + _line );
-}
-
-
-const std::string ProviderClient::dolog()
-{
-	return this->m_log;
-}
-*/
 
 bool ProviderClient::is_local_connected() const
 {
@@ -64,13 +38,6 @@ bool ProviderClient::is_local_connected() const
 	return this->mp_local_socket != nullptr && is_connected(this->mp_local_socket->lowest_layer());
 }
 
-/*
-bool ProviderClient::is_remote_connected() const
-{
-	stdt::lock_guard<stdt::mutex> l(this->m_mutex);
-	return this->mp_remote_socket != nullptr && is_connected(this->mp_remote_socket->lowest_layer());
-}
-*/
 
 void ProviderClient::start()
 {
@@ -110,19 +77,6 @@ void ProviderClient::interrupt()
 	DOUT(__FUNCTION__ << ":" << __LINE__ );
 }
 
-/*
-ssl_socket &ProviderClient::remote_socket()
-{
-	ASSERTE(this->mp_remote_socket, uniproxy::error::socket_invalid, "");
-	return *this->mp_remote_socket;
-}
-
-
-std::string ProviderClient::get_password() const
-{
-	return "1234";
-}
-*/
 
 void ProviderClient::lock()
 {
@@ -136,17 +90,34 @@ void ProviderClient::unlock()
 
 
 void ProviderClient::threadproc()
-{	
+{
+	int timeout = 5000;
 	for ( ; this->m_thread.check_run() ; )
 	{
 		// On start and after each lost connection we end up here.
 		try
 		{
+			if (timeout < 30000)
+			{
+				timeout += 2000;
+			}
+			this->m_thread.sleep( timeout );
+
+			bool found = false;
+			for ( int index = 0; index < this->m_proxy_endpoints.size(); index++ )
+			{
+				if (global.certificate_available(this->m_proxy_endpoints[index].m_name))
+				{
+					found = true;
+				}
+			}
+			if (!found) continue;
+
 			this->m_proxy_index = 0;
 			this->m_local_connected_index = 0;
 
 			boost::asio::io_service io_service;
-			//std::shared_ptr<void> ptr( NULL, [this](void*){ DOUT("local exit loop"); this->interrupt(); this->cleanup();} );
+
 			stdt::lock_guard<ProviderClient> l(*this);
 
 			boost::asio::io_service::work session_work(io_service);
@@ -162,9 +133,7 @@ void ProviderClient::threadproc()
 				{
 					this->dolog("Performing local connection to: " + ep );
 					boost::asio::sockect_connect( local_socket, io_service, this->m_local_endpoints[index].m_hostname, this->m_local_endpoints[index].m_port );
-					//DOUT( __FUNCTION__ << ":" << __LINE__ );
 					this->m_local_connected_index = index;
-					//this->m_local_connected = true;
 					break;
 				}
 				catch( std::exception &exc )
@@ -186,45 +155,27 @@ void ProviderClient::threadproc()
 			mylib::protect_pointer<ssl_socket> p2( this->mp_remote_socket, remote_socket, this->m_mutex );
 
 			this->dolog("Connecting to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) );
-			//boost::asio::sockect_connect( remote_socket.lowest_layer(), io_service, this->remote_hostname(), this->remote_port() );
 			for ( int index = 0; index < this->m_proxy_endpoints.size(); index++ )
 			{
-				std::string ep = this->m_proxy_endpoints[index].m_hostname + ":" + mylib::to_string(this->m_proxy_endpoints[index].m_port);
-				try
+				if (global.certificate_available(this->m_proxy_endpoints[index].m_name))
 				{
-					this->dolog("Performing remote connection to: " + ep );
-					//boost::asio::sockect_connect( local_socket, io_service, this->m_proxy_endpoints[index].m_hostname, this-m_proxy_endpoints[index].m_port );
-					boost::asio::sockect_connect( remote_socket.lowest_layer(), io_service, this->m_proxy_endpoints[index].m_hostname, this->m_proxy_endpoints[index].m_port );
-					//boost::asio::sockect_connect( remote_socket.lowest_layer(), io_service, this->remote_hostname(), this->remote_port() );
-					//DOUT( __FUNCTION__ << ":" << __LINE__ );
-					this->m_proxy_index = index;
-					break;
-				}
-				catch( std::exception &exc )
-				{
-					DOUT(  __FUNCTION__ << ":" << __LINE__ << " Failed connection to: " << ep << " " << exc.what() );
+					std::string ep = this->m_proxy_endpoints[index].m_hostname + ":" + mylib::to_string(this->m_proxy_endpoints[index].m_port);
+					try
+					{
+						this->dolog("Performing remote connection to: " + ep );
+						boost::asio::sockect_connect( remote_socket.lowest_layer(), io_service, this->m_proxy_endpoints[index].m_hostname, this->m_proxy_endpoints[index].m_port );
+						this->m_proxy_index = index;
+						break;
+					}
+					catch( std::exception &exc )
+					{
+						DOUT(  __FUNCTION__ << ":" << __LINE__ << " Failed connection to: " << ep << " " << exc.what() );
+					}
 				}
 			}
 			ASSERTE(this->is_remote_connected(), uniproxy::error::socket_invalid,"Provider failed connection to remote host");
+			timeout = 5000;
 
-			if ( boost::get_system_time() < this->m_activate_stamp )
-			{
-				ProxyEndpoint &ep = this->m_proxy_endpoints[this->m_proxy_index];
-				std::error_code err;
-				this->dolog("Provider attempting to perform certificate exchange with " + ep.m_name );
-				this->m_activate_stamp = boost::get_system_time(); // Reset to current time to avoid double attempts.
-				if (	!SetupCertificates( remote_socket.next_layer(), ep.m_name, false, err ) &&
-						!SetupCertificates( remote_socket.next_layer(), ep.m_name, true, err ) )
-				{
-					this->dolog("Succeeded in exchanging certificates" );
-				}
-				else
-				{
-					this->dolog("Failed to exchange certificate: " + err.message() );
-				}
-				throw std::runtime_error("Called setup certificate, retry connection"); // Not an error
-			}
-			
 			this->dolog("Provider connected to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) + " Attempting SSL handshake" );
 			remote_socket.handshake(boost::asio::ssl::stream_base::client);
 			this->dolog("Succesfull SSL handshake to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()));
@@ -253,31 +204,17 @@ void ProviderClient::threadproc()
 		{
 			this->dolog(exc.what());
 		}
-		//We will need some time to ensure the remote end has settled. May need to be investigated.
-		// Could also increase over time while unsuccessfull and reset on succesfull connection.
-		this->m_thread.sleep( 4000 );
 	}
 }
 
-/*
-std::string ProviderClient::remote_hostname() const
-{
-	return this->m_proxy_endpoints[this->m_proxy_index].m_hostname;
-}
-
-
-int ProviderClient::remote_port() const
-{
-	return this->m_proxy_endpoints[this->m_proxy_index].m_port;
-}
-*/
 
 std::string ProviderClient::local_hostname() const
 {
 	return this->m_local_endpoints[this->m_local_connected_index].m_hostname;
 }
 
-std::vector<std::string> ProviderClient::local_hostnames()
+
+std::vector<std::string> ProviderClient::local_hostnames() const
 {
 	std::vector<std::string> result;
 	for ( auto &ep : this->m_local_endpoints )
@@ -288,8 +225,8 @@ std::vector<std::string> ProviderClient::local_hostnames()
 }
 
 
-
-int ProviderClient::local_port() const
+std::string ProviderClient::local_portname() const
 {
-	return this->m_local_endpoints[this->m_local_connected_index].m_port;
+	return "Provider";
 }
+

@@ -63,7 +63,7 @@ public:
 	void status_get();
 	void index();
 	void script(const std::string);
-	void client_activate(const std::string);
+	void client_activate(const std::string, const std::string _id);
 	void host_activate(const std::string);
 	void certificate_delete(const std::string);
 

@@ -48,7 +48,7 @@ cppcms::service *signal::m_psrv = NULL;
 // I didn't want to bother having a file for a single line of code. The following line does not really belong here.
 std::vector<PluginHandler*> *PluginHandler::m_plugins = NULL;
 class cppcms::form c;
-proxy_global global;
+
 std::string config_filename = "uniproxy.json";
 
 
@@ -57,7 +57,7 @@ std::string config_filename = "uniproxy.json";
 
 proxy_app::proxy_app(cppcms::service &srv) : cppcms::application(srv)
 {
-	dispatcher().assign("^/command/client/activate/name=(.*)&dummy=(.*)$",&proxy_app::client_activate,this,1);
+	dispatcher().assign("^/command/client/activate/name=(.*)&id=(.*)&dummy=(.*)$",&proxy_app::client_activate,this,1,2);
 	dispatcher().assign("^/command/host/activate/name=(.*)&dummy=(.*)$",&proxy_app::host_activate,this,1);
 	dispatcher().assign("^/command/client/delete/name=(.*)&dummy=(.*)$",&proxy_app::certificate_delete,this,1);
 	dispatcher().assign("^/command/host/delete/name=(.*)&dummy=(.*)$",&proxy_app::certificate_delete,this,1);
@@ -261,26 +261,32 @@ void proxy_app::shutdown()
 }
 
 
-void proxy_app::client_activate(const std::string _param)
+void proxy_app::client_activate(const std::string _param, const std::string _id)
 {
-	DOUT(__FUNCTION__ << ": " << _param );
+	DOUT(__FUNCTION__ << ": " << _param << " ID: " << _id);
+	
 	for ( auto iter = global.localclients.begin(); iter != global.localclients.end(); iter++ )
 	{
 		BaseClient *p = iter->get();
-		for ( int index = 0; index < p->m_proxy_endpoints.size(); index++ )
+		int id;
+		if (p->m_id == mylib::from_string(_id,id) )
 		{
-			auto &r = p->m_proxy_endpoints[index];
-			if ( r.m_name == _param )
+			for ( int index = 0; index < p->m_proxy_endpoints.size(); index++ )
 			{
-				p->m_activate_stamp = boost::get_system_time() + boost::posix_time::seconds( 60 );
-				p->m_proxy_index = index;
-				global.m_thread.stop();
-				global.m_thread.start( p->m_local_port );
-				break;
+				auto &r = p->m_proxy_endpoints[index];
+				if ( r.m_name == _param )
+				{
+					p->m_activate_stamp = boost::get_system_time() + boost::posix_time::seconds( 60 );
+					p->m_proxy_index = index;
+					//global.m_thread.stop();
+					//global.m_thread.start( p->m_local_port );
+					p->stop_activate();
+					p->start_activate(index);
+					break;
+				}
 			}
 		}
 	}
-	//NB!!providerclients
 }
 
 
@@ -540,7 +546,7 @@ int main(int argc,char ** argv)
 					log().add("Failed to populate configuration");
 				}
 			}
-			load_certificate_names( my_certs_name );
+			global.load_certificate_names( my_certs_name );
 			stdt::lock_guard<proxy_global> lock(global);
 
 			DOUT( "Loaded config: " << global.save_json_config( true ) );

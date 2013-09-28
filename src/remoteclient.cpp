@@ -20,6 +20,7 @@
 #include <boost/bind.hpp>
 #include <boost/regex.hpp>
 #include <boost/algorithm/string/regex.hpp>
+#include "proxy_global.h"
 
 static int static_remote_count = 0;
 
@@ -77,8 +78,6 @@ bool RemoteProxyClient::is_remote_connected()
 boost::asio::ip::tcp::endpoint RemoteProxyClient::local_endpoint()
 {
 	boost::system::error_code ec;
-	//boost::asio::ip::address adr;
-	//adr = this->m_local_socket.remote_endpoint(ec).address();
 	boost::asio::ip::tcp::endpoint ep = this->m_local_socket.remote_endpoint(ec);
 	return ep;
 }
@@ -87,8 +86,6 @@ boost::asio::ip::tcp::endpoint RemoteProxyClient::local_endpoint()
 boost::asio::ip::tcp::endpoint RemoteProxyClient::remote_endpoint()
 {
 	boost::system::error_code ec;
-	//boost::asio::ip::address adr;
-	//adr = this->m_remote_socket.lowest_layer().remote_endpoint(ec).address();
 	boost::asio::ip::tcp::endpoint ep = this->m_remote_socket.lowest_layer().remote_endpoint(ec);
 	return ep;
 }
@@ -200,8 +197,8 @@ void RemoteProxyClient::remote_threadproc()
 			this->m_host.m_activate_stamp = boost::get_system_time();
 			this->dolog( "Attempting to exchange certificates" );
 			std::error_code err;
-			if ( !SetupCertificates( this->m_remote_socket.next_layer(), this->m_host.m_activate_name, true, err ) &&
-				 !SetupCertificates( this->m_remote_socket.next_layer(), this->m_host.m_activate_name, false, err ) )
+			if ( !global.SetupCertificates( this->m_remote_socket.next_layer(), this->m_host.m_activate_name, true, err ) &&
+				 !global.SetupCertificates( this->m_remote_socket.next_layer(), this->m_host.m_activate_name, false, err ) )
 			{
 				this->dolog( "Succesfully exchanged certificates" );
 			}
@@ -307,7 +304,7 @@ void RemoteProxyClient::remote_threadproc()
 RemoteProxyHost::RemoteProxyHost( unsigned short _local_port, std::vector<RemoteEndpoint> &_remote_ep, std::vector<Address> &_local_ep, PluginHandler &_plugin )
 :	m_io_service(),
 	m_context(m_io_service, boost::asio::ssl::context::sslv23),
-	m_acceptor(m_io_service), //,boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), _local_port)),
+	m_acceptor(m_io_service),
 	m_plugin( _plugin ),
 	m_local_port(_local_port),
 	m_thread( [&](){this->interrupt(); } )

@@ -22,7 +22,7 @@
 
 
 PluginHandler standard_plugin("");
-
+proxy_global global;
 
 proxy_global::proxy_global()
 {
@@ -37,7 +37,7 @@ proxy_global::proxy_global()
 
 void proxy_global::lock()
 {
-	stdt::lock_guard<stdt::mutex> l(this->m_mutex);
+	stdt::lock_guard<stdt::mutex> l(this->m_mutex_list);
 	for ( auto iter = this->remotehosts.begin(); iter != this->remotehosts.end(); iter++ )
 	{
 		remotehost_ptr p = *iter;
@@ -49,27 +49,16 @@ void proxy_global::lock()
 		baseclient_ptr p = *iter;
 		if ( p->m_active )
 		{
-			DOUT("Starting localhost at: " << p->m_local_port );
+			DOUT("Starting localhost at: " << p->local_portname() );
 			p->start();
 		}
 	}
-/*	
-	for ( auto iter = this->providerclients.begin(); iter != this->providerclients.end(); iter++ )
-	{
-		providerclient_ptr p = *iter;
-		if ( p->m_active )
-		{
-			DOUT("Starting providerclients at: " );
-			p->start();
-		}
-	}
-*/
 }
 
 
 void proxy_global::unlock()
 {
-	stdt::lock_guard<stdt::mutex> l(this->m_mutex);
+	stdt::lock_guard<stdt::mutex> l(this->m_mutex_list);
 	DOUT("sockethandler.StopAll()");
 	for ( auto iter = this->remotehosts.begin(); iter != this->remotehosts.end(); iter++ )
 	{
@@ -83,17 +72,8 @@ void proxy_global::unlock()
 		DOUT("localhost.Stop()");
 		(*iter)->stop();
 	}
-/*	
-	for ( auto iter = this->providerclients.begin(); iter != this->providerclients.end(); iter++ )
-	{
-		DOUT("providerclient.Stop()");
-		(*iter)->stop();
-	}
-*/
-	this->m_thread.stop();
 	this->remotehosts.clear();
 	this->localclients.clear();
-	//this->providerclients.clear();
 }
 
 
@@ -103,7 +83,7 @@ void proxy_global::unlock()
 // NB!! This should not be called while threads are active.
 bool proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 {
-	stdt::lock_guard<stdt::mutex> l(this->m_mutex);
+	stdt::lock_guard<stdt::mutex> l(this->m_mutex_list);
 	if ( (_json_acl & clients) > 0 && obj["clients"].type() == cppcms::json::is_array )
 	{
 		this->localclients.clear();
@@ -168,7 +148,6 @@ bool proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 			{
 				// NB!! Search for the correct plugin version
 				baseclient_ptr local_ptr( new LocalHost( active, client_port, proxy_endpoints, max_connections, standard_plugin ) );
-				//local_ptr->m_proxy_endpoints = proxy_endpoints;
 				this->localclients.push_back( local_ptr );
 			} // NB!! What else if one of them is empty
 		}
@@ -225,7 +204,6 @@ bool proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 			}
 			if ( remote_endpoints.size() > 0 && local_endpoints.size() > 0 )
 			{
-				//remotehost_ptr remote_ptr( new RemoteProxyHost( host_port, remote_endpoints, local_endpoints, *plugin ) );
 				remotehost_ptr remote_ptr = std::make_shared<RemoteProxyHost>( host_port, remote_endpoints, local_endpoints, *plugin );
 				this->remotehosts.push_back( remote_ptr );
 			} // NB!! What else if one of them is empty
@@ -248,7 +226,7 @@ bool proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 	
 std::string proxy_global::save_json_status( bool readable )
 {
-	stdt::lock_guard<stdt::mutex> l(this->m_mutex);
+	stdt::lock_guard<stdt::mutex> l(this->m_mutex_list);
 	cppcms::json::value glob;
 
 	// ---- THE CLIENT PART ----
@@ -258,7 +236,7 @@ std::string proxy_global::save_json_status( bool readable )
 		cppcms::json::object obj;
 		obj["id"] = local.m_id;
 		obj["active"] = local.m_active;
-		obj["port"] = local.m_local_port;
+		obj["port"] = local.local_portname();
 		obj["connected_local"] = local.is_local_connected();
 		obj["log"] = local.dolog();
 
@@ -286,12 +264,9 @@ std::string proxy_global::save_json_status( bool readable )
 				obj2["count_in"] = local.m_count_in.get();
 				obj2["count_out"] = local.m_count_out.get();
 			}
-			for (int index3 = 0; index3 < m_cert_names.size(); index3++)
+			if (this->certificate_available(r.m_name))
 			{
-				if ( r.m_name == m_cert_names[index3] )
-				{
-					obj2["cert"] = true;
-				}
+				obj2["cert"] = true;
 			}
 			if ( local.m_proxy_index == index2 && local.m_activate_stamp > boost::get_system_time())
 			{				
@@ -303,46 +278,15 @@ std::string proxy_global::save_json_status( bool readable )
 		}
 		glob["clients"][index1] = obj;
 	}
-/*
-	// ---- THE PROVIDER PART ----
-	for ( int index = 0; index < this->providerclients.size(); index++ )
-	{
-		ProviderClient &prov = *this->providerclients[index];
-		cppcms::json::object obj;
-		obj["id"] = prov.m_id;
-		obj["active"] = prov.m_active;
-		obj["log"] = prov.dolog();
-//		obj["name"] = prov.m_name;
 
-		if ( prov.is_local_connected() )
-		{
-			obj["connected_local"] = true;
-			obj["local_hostname"] = prov.local_hostname();
-			obj["local_port"] = prov.local_port();
-		}
-		if ( prov.is_remote_connected() )
-		{
-			obj["connected_remote"] = true;
-			obj["remote_hostname"] = prov.remote_hostname();
-			obj["remote_port"] = prov.remote_port();
-		}
-		
-		if ( prov.m_activate_stamp > boost::get_system_time())
-		{				
-			auto div = prov.m_activate_stamp - boost::get_system_time();
-			obj["activate"] = div.total_seconds();
-		}
-		
-		glob["providers"][index] = obj;
-	}
-*/
+
 	// ---- THE HOST PART ----
 	for ( int index = 0; index < this->remotehosts.size(); index++ )
 	{
 		RemoteProxyHost &host( *this->remotehosts[index] );
 		cppcms::json::object obj_host;
 		obj_host["id"] = host.m_id;
-		obj_host["port"] = host.m_local_port; // .m_acceptor.local_endpoint().port();
+		obj_host["port"] = host.m_local_port;
 		obj_host["type"] = host.m_plugin.m_type;
 
 		// Loop through each remote proxy
@@ -351,12 +295,9 @@ std::string proxy_global::save_json_status( bool readable )
 			cppcms::json::object obj;
 			obj["active"] = host.m_remote_ep[index2].m_active;
 			obj["name"] = host.m_remote_ep[index2].m_name;
-			for ( int index3 = 0; index3 < m_cert_names.size(); index3++)
+			if (this->certificate_available(host.m_remote_ep[index2].m_name))
 			{
-				if ( host.m_remote_ep[index2].m_name == m_cert_names[index3] )
-				{
 					obj["cert"] = true;
-				}
 			}
 			obj["hostname"] = host.m_remote_ep[index2].m_hostname;
 			if ( host.m_remote_ep[index2].m_name == host.m_activate_name && host.m_activate_stamp > boost::get_system_time() )
@@ -380,7 +321,7 @@ std::string proxy_global::save_json_status( bool readable )
 					obj["connected_remote"] = is_remote_connected;
 					if ( is_remote_connected ) // Not thread safe
 					{
-						obj["remote_hostname"] =  client.remote_endpoint().address().to_string();
+						obj["remote_hostname"] =  client.remote_endpoint().address().to_string(); // NB!! This one is dangerous
 						obj["count_in"] = client.m_count_in.get();
 						obj["count_out"] = client.m_count_out.get();
 					}
@@ -405,7 +346,7 @@ std::string proxy_global::save_json_status( bool readable )
 // NB!! Currently for debugging only.
 std::string proxy_global::save_json_config( bool readable )
 {
-	stdt::lock_guard<stdt::mutex> l(this->m_mutex);
+	stdt::lock_guard<stdt::mutex> l(this->m_mutex_list);
 	cppcms::json::value glob;
 	// The client part
 	for ( int index = 0; index < this->localclients.size(); index++ )
@@ -414,7 +355,7 @@ std::string proxy_global::save_json_config( bool readable )
 		cppcms::json::object obj;
 		obj["id"] = host.m_id;
 		obj["active"] = host.m_active;
-		obj["local_port"] = host.m_local_port;
+		obj["local_port"] = host.local_portname();
 		obj["remote_hostname"] = host.remote_hostname();
 		obj["remote_port"] = host.remote_port();
 		obj["max_connections"] = host.m_max_connections;
@@ -447,24 +388,7 @@ std::string proxy_global::save_json_config( bool readable )
 		}
 		glob["hosts"][index] = obj_host;
 	}
-/*	
-	// The provider part
-	for ( int index = 0; index < this->providerclients.size(); index++ )
-	{
-		ProviderClient &prov = *this->providerclients[index];
-		cppcms::json::object obj;
-		obj["id"] = prov.m_id;
-		obj["active"] = prov.m_active;
-		//obj["local_port"] = host.m_local_port;
-		//obj["remote_hostname"] = prov.remote_hostname();
-		//obj["remote_port"] = prov.remote_port();
 
-		//obj["local_hostname"] = prov.local_hostname();
-		//obj["local_port"] = prov.local_port();
-		//obj["max_connections"] = host.m_max_connections;
-		glob["providers"][index] = obj;
-	}
-*/
 	cppcms::json::object web_obj;
 	web_obj["port"] = this->m_port;
 	web_obj["ip4"] = this->m_ip4_mask;
@@ -512,5 +436,92 @@ session_data &proxy_global::get_session_data( cppcms::session_interface &_sessio
 	auto p = std::make_shared<session_data>( id );
 	this->m_sessions.push_back( p );
 	return *p;
+}
+
+
+bool proxy_global::load_certificate_names( const std::string & _filename )
+{
+	std::lock_guard<std::mutex> lock(this->m_mutex_certificates);
+   std::string names;
+	bool result = false;
+	std::vector< certificate_type > certs;
+	m_cert_names.clear();
+	if ( load_certificates_file( _filename, certs ) )
+	{
+		for ( auto iter = certs.begin(); iter != certs.end(); iter++ )
+		{
+			m_cert_names.push_back( get_common_name( *iter ) );
+         names += "|" + get_common_name( *iter );
+		}
+		result = true;
+	}
+   DOUT("Load certificates from file: " << names );
+	return result;
+}
+
+
+std::error_code proxy_global::SetupCertificates( boost::asio::ip::tcp::socket &_remote_socket, const std::string &_connection_name, bool _server, std::error_code& ec )
+{
+	try
+	{
+		ec = make_error_code( uniproxy::error::unknown_error );
+		DOUT( __FUNCTION__ << " " << _server << " connection name: " << _connection_name << " server?: " << _server );
+		const int buffer_size = 4000;
+		char buffer[buffer_size]; //
+		memset(buffer,0,buffer_size);
+		ASSERTE( _connection_name.length() > 0, uniproxy::error::connection_name_unknown, "" );
+		if ( _server )
+		{
+			int length = _remote_socket.read_some( boost::asio::buffer( buffer, buffer_size ) );
+			DOUT("Received: " << length << " bytes");
+			ASSERTE( length > 0 && length < buffer_size, uniproxy::error::certificate_invalid, "received" ); // NB!! Check the overflow situation.....
+			DOUT("SSL Possible Certificate received: " << buffer );
+			std::vector<certificate_type> remote_certs, local_certs;
+
+			ASSERTE( load_certificates_string( buffer, remote_certs ) && remote_certs.size() == 1, uniproxy::error::certificate_invalid, "received for connection: " + _connection_name  );
+			std::string remote_name = get_common_name( remote_certs[0] );
+			DOUT("Received certificate name: " << remote_name << " for connection: " << _connection_name );
+
+			ASSERTE(_connection_name == remote_name, uniproxy::error::certificate_invalid, "Received " + remote_name + " for connection: " + _connection_name + ". They must match");
+			ASSERTE( load_certificates_file( my_certs_name, local_certs ), uniproxy::error::certificate_not_found, std::string( " in file ") + my_certs_name + " for connection: " + _connection_name);
+
+			for ( auto iter = local_certs.begin(); iter != local_certs.end(); )
+			{
+				if ( remote_name == get_common_name( *iter ) )
+				{
+					DOUT("Removing old existing certificate name for replacement: " << remote_name );
+					iter = local_certs.erase( iter );
+				}
+				else
+				{
+					iter++;
+				}
+			}
+			local_certs.push_back( remote_certs[0] );
+			save_certificates_file( my_certs_name, local_certs );
+			this->load_certificate_names( my_certs_name );
+			return ec = std::error_code();
+		}
+		else
+		{
+			std::string cert = readfile( my_public_cert_name );
+			ASSERTE( cert.length() > 0, uniproxy::error::certificate_not_found, std::string( " certificate not found in file: ") + my_certs_name );
+			int count = _remote_socket.write_some( boost::asio::buffer( cert, cert.length() ) );
+			DOUT("Wrote certificate: " << count << " of " << cert.length() << " bytes ");
+			return ec = std::error_code();
+		}
+	}
+	catch( std::exception &exc )
+	{
+		DOUT( __FUNCTION__ << " exception: " << exc.what() );
+	}
+	return ec;
+}
+
+
+bool proxy_global::certificate_available( const std::string &_cert_name)
+{
+	std::lock_guard<std::mutex> lock(this->m_mutex_certificates);
+	return std::find(this->m_cert_names.begin(), this->m_cert_names.end(), _cert_name ) != this->m_cert_names.end();
 }
 

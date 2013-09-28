@@ -52,17 +52,13 @@ class LocalHost : public BaseClient
 {
 public:
 
-	//LocalHost( bool _active, const std::string &_name, int _local_port, const std::string &_remote_host, const int _remote_port, const int _max_connections, PluginHandler &_plugin );
-	LocalHost( bool _active, //const std::string &_name, 
-			int _local_port, const std::vector<ProxyEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin );
+	LocalHost(bool _active, int _local_port, const std::vector<ProxyEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin);
 
 	void start();
 	void stop();
 
 	void threadproc();
 	void interrupt();
-
-//	ssl_socket &remote_socket();
 
 	void handle_local_read( LocalHostSocket &_hostsocket, const boost::system::error_code& error,size_t bytes_transferred);
 	void handle_remote_read(const boost::system::error_code& error,size_t bytes_transferred);
@@ -71,64 +67,23 @@ public:
 	void handle_remote_write(const boost::system::error_code& error);
 
 	void remove_socket( boost::asio::ip::tcp::socket &_socket );
-	
-	//std::string remote_hostname();
-	//int remote_port();
-
-	//bool m_active;
-
-	//std::vector<ProxyEndpoint> m_proxy_endpoints; // The list of remote proxies to connect to in a round robin fashion.
-	//int m_proxy_index;
-//	int m_local_port;
-	//int m_max_connections;
-//	std::string m_name;
-
 	bool is_local_connected() const;
-	//bool is_remote_connected(int index);
 	void handle_accept( boost::asio::ip::tcp::socket *_socket, const boost::system::error_code& error );
 	void cleanup();
 
-	// Should these move to ProxyEndpoint ?
-	//data_flow m_count_in, m_count_out;
-
-	//int m_id;
-
-	//void dolog( const std::string &_line );
-	//const std::string dolog();
-
-
-	//std::string get_password() const;
-
-	//boost::posix_time::ptime m_activate_stamp;
-
-	//bool remote_hostname( int index, std::string &result );
-	std::vector<std::string> local_hostnames();
-
+	std::vector<std::string> local_hostnames() const;
 
 protected:
-
-	// It is difficult to handle the mutexes, so keep this one protected and use local getter function to retrieve information.
-	//stdt::mutex m_mutex;
 
 	std::vector<std::shared_ptr<LocalHostSocket> > m_local_sockets; // Elements are inserted here, once they have been accepted.
 
 	// These are used for RAII handling. They do not own anything and should not be assigned by new.
 	boost::asio::io_service *mp_io_service;
 	boost::asio::ip::tcp::acceptor *mp_acceptor;
-	//ssl_socket *mp_remote_socket;
-
-	//mylib::thread m_thread;
-	//PluginHandler &m_plugin;
 	int m_write_count;
 
-	bool m_local_connected; //, m_remote_connected;
+	bool m_local_connected;
 
-	enum { max_length = 1024 };
-	char m_local_data[max_length];
-	char m_remote_data[max_length];
-
-	//std::string m_log;
 };
-
 
 #endif
