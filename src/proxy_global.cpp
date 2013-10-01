@@ -441,7 +441,7 @@ session_data &proxy_global::get_session_data( cppcms::session_interface &_sessio
 
 bool proxy_global::load_certificate_names( const std::string & _filename )
 {
-	std::lock_guard<std::mutex> lock(this->m_mutex_certificates);
+	stdt::lock_guard<stdt::mutex> lock(this->m_mutex_certificates);
    std::string names;
 	bool result = false;
 	std::vector< certificate_type > certs;
@@ -521,7 +521,7 @@ std::error_code proxy_global::SetupCertificates( boost::asio::ip::tcp::socket &_
 
 bool proxy_global::certificate_available( const std::string &_cert_name)
 {
-	std::lock_guard<std::mutex> lock(this->m_mutex_certificates);
+	stdt::lock_guard<stdt::mutex> lock(this->m_mutex_certificates);
 	return std::find(this->m_cert_names.begin(), this->m_cert_names.end(), _cert_name ) != this->m_cert_names.end();
 }
 

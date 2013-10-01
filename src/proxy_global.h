@@ -120,7 +120,7 @@ public:
 	std::vector< std::shared_ptr<session_data>> m_sessions;
 
 	// (common) Names from the certificates loaded from the imported certs.pem file.
-	std::mutex m_mutex_certificates;
+	stdt::mutex m_mutex_certificates;
 	std::vector<std::string> m_cert_names;
 	bool load_certificate_names( const std::string & _filename );
 	std::error_code SetupCertificates( boost::asio::ip::tcp::socket &_remote_socket, const std::string &_connection_name, bool _server, std::error_code& ec );

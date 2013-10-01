@@ -688,8 +688,10 @@ int process::execute_process( const std::string& _command, const std::string& _p
 		std::string cmd;
 		std::string param;
 #ifdef _WIN32
-		cmd = "cmd.exe";
-		param = " /C \"" + _command + " " + _param + "\"";
+		//cmd = "cmd.exe";
+		//param = " /C \"" + _command + ".exe " + _param + "\"";
+		cmd = _command + ".exe";
+		param = _param;
 #else
 		cmd = "/bin/bash";
 		param = " -c \"" + _command + " " + _param + "\"";

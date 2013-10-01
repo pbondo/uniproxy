@@ -11,4 +11,7 @@ From http://nssm.cc
 From  http://www.gzip.org/zlib/
 * zlib.dll
 
+From netcat ?
+* nc.exe
+
 And vcredist_x86.exe matching the version of Visual Studio you are using.
