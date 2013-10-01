@@ -523,4 +523,31 @@ std::string readfile( const std::string &_filename );
 bool check_arg(int argc, char *argv[], char _short_argument, const char *_long_argument);
 bool check_arg( int argc, char *argv[], char _short_argument, const char *_long_argument, std::string &result );
 
+namespace std2
+{
+
+#ifdef _WIN32
+template<class T, class U> std::unique_ptr<T> make_unique(U&& u)
+{
+	 return std::unique_ptr<T>(new T(std::forward<U>(u)));
+}
+#else
+template<typename T, typename... Args> std::unique_ptr<T> make_unique(Args&&... args)
+{
+    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
+#endif
+
+} // namespace std2
+
+
+class process
+{
+public:
+
+static int execute_process( const std::string& _command, const std::string& _param = "", std::function<void(const std::string&)> _out = nullptr, std::function<void(const std::string&)> _err = nullptr);
+
+}; // class
+
+
 #endif

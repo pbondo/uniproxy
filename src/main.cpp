@@ -328,25 +328,12 @@ bool proxy_app::execute_openssl()
 #ifdef _WIN32
 	params = " -config openssl.cnf ";
 #endif
-	std::string scriptname = "openssl req " + params + "-x509 -nodes -days 10000 -subj /C=DK/ST=Denmark/L=GateHouse/CN=" + global.m_name + " -newkey rsa:1024 -keyout my_private_key.pem -out my_public_cert.pem ";
-	boost::process::context ctx;
-	ctx.environment = boost::process::self::get_environment();
-	ctx.stdout_behavior = boost::process::capture_stream(); 
-	ctx.stderr_behavior = boost::process::capture_stream();
-	DOUT("Execute openssl: " << scriptname );
-	boost::process::child c = boost::process::launch_shell( scriptname, ctx );
-	std::string line; 
-	boost::process::pistream &is1 = c.get_stdout(); 
-	while (std::getline(is1, line)) 
-		std::cout << line << std::endl; 	
-	boost::process::pistream &is2 = c.get_stderr(); 
-	while (std::getline(is2, line)) 
-		std::cout << line << std::endl; 	
-
-	DOUT("Waiting for openssl: " << c.get_id() );
-	boost::process::status s = c.wait();
-	DOUT("openssl returned: " << s.exit_status() << " " << s.exited() );
-	return (s.exit_status() == 0) && (s.exited() == 1);
+	int res = process::execute_process( "openssl", " req " + params + "-x509 -nodes -days 10000 -subj /C=DK/ST=Denmark/L=GateHouse/CN=" + global.m_name + " -newkey rsa:1024 -keyout my_private_key.pem -out my_public_cert.pem "
+	, [&](const std::string &_out) { DOUT(_out); }
+	, [&](const std::string &_err) { DERR(_err); }
+	);
+	DOUT("Execute openssl result: " << res);
+	return res == 0;
 }
 
 
