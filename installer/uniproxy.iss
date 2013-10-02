@@ -24,7 +24,7 @@
 [Setup]
 AppName=Uniproxy
 AppVerName=Uniproxy {#VERSIONNUMBER} build {#BUILDNUMBER}
-DefaultDirName={pf}\uniproxy
+DefaultDirName={pf64}\uniproxy
 DefaultGroupName=Uniproxy
 UninstallDisplayIcon={app}\uniproxy.exe
 OutputBaseFilename=uniproxy_{#VERSIONNUMBER}
@@ -34,7 +34,7 @@ Compression=lzma
 SolidCompression=yes
 
 [Files]
-Source: "../build/release/uniproxy.exe"; DestDir: "{app}"
+Source: "../build64/release/uniproxy.exe"; DestDir: "{app}"
 
 Source: "third/vcredist_x86.exe"; Flags: dontcopy
 Source: "third/openssl.exe"; DestDir: "{app}"

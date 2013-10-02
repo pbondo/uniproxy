@@ -13,6 +13,19 @@ The documentation ie. the requirement specification is available but will not be
 Log:
 ========
 
+1/10-2013 PBondo
+----------------
+Has been running successfully deployed for more than a year now.
+
+Added support for the provider proxy configuration.
+
+Changed build type for Windows to 64 bit.
+
+Installer included for Windows
+
+Switched to Visual Studio 2012.
+
+
 6/8-2012 PBondo
 ---------------
 Preparing for initial push of the source for uniproxy.
@@ -53,7 +66,7 @@ cppcms (cppcms.com)
 
 mkdir build
 cd build
-cmake -G "Visual Studio 10" ..
+cmake -G "Visual Studio 11 Win64" ..
 make
 
 
