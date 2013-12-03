@@ -36,7 +36,7 @@ SolidCompression=yes
 [Files]
 Source: "../build64/release/uniproxy.exe"; DestDir: "{app}"
 
-Source: "third/vcredist_x86.exe"; Flags: dontcopy
+Source: "third/vcredist_x64.exe"; Flags: dontcopy
 Source: "third/openssl.exe"; DestDir: "{app}"
 Source: "third/openssl.cnf"; DestDir: "{app}"
 Source: "third/libeay32.dll"; DestDir: "{app}"
