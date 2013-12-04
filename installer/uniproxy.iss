@@ -36,7 +36,10 @@ SolidCompression=yes
 [Files]
 Source: "../build64/release/uniproxy.exe"; DestDir: "{app}"
 
-Source: "third/vcredist_x64.exe"; Flags: dontcopy
+; For uniproxy
+Source: "third/vcredist_x64-vc11.exe"; Flags: dontcopy
+; For openssl
+Source: "third/vcredist_x86-vc9.exe"; Flags: dontcopy
 Source: "third/openssl.exe"; DestDir: "{app}"
 Source: "third/openssl.cnf"; DestDir: "{app}"
 Source: "third/libeay32.dll"; DestDir: "{app}"
@@ -108,7 +111,8 @@ begin
          StopService(UniproxyServiceName, true);
       end;
 
-      InstallNamedRuntime('vcredist_x86.exe');
+      InstallNamedRuntime('vcredist_x86-vc9.exe');
+      InstallNamedRuntime('vcredist_x64-vc11.exe');
    end;
 end;
 
