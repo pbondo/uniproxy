@@ -83,72 +83,52 @@ namespace filesystem {
 
 const std::string path_separator()
 {
-/*
-	boost::filesystem::path slash("/");
-	std::string preferredSlash;
-#ifdef _WIN32
-	slash.make_preferred();
-	preferredSlash = "/"; //NB!! This does not compile on Windows (std::string)slash.make_preferred().native();
-	preferredSlash = slash; //.c_str();
-		//.native();
-#else
-	preferredSlash = slash.make_preferred().native();
-#endif
-	return preferredSlash;
-*/
 	return std::string("/");
 }
+
 }
 
 namespace asio {
 
 /// int _timeout = 0 [seconds] if <= 0 then don't change system value.
-void socket_set_keepalive_to( ip::tcp::socket::lowest_layer_type &_socket, int _timeout )
+void socket_set_keepalive_to( ip::tcp::socket::lowest_layer_type &_socket, std::chrono::seconds _timeout )
 {
-	if ( _timeout >  0 )
+	int result;
+	std::uint32_t optval = false;
+	if (_timeout >  std::chrono::seconds(0))
 	{
 	#ifdef _WIN32
-		int iResult;
-		int _native_socket = _socket.native();
 		struct tcp_keepalive
 		{
 			u_long  onoff;
 			u_long  keepalivetime;
 			u_long  keepaliveinterval;
-
 		};
-		struct tcp_keepalive keepalive = {0};
-		DWORD uiBytes=0;
-		iResult=WSAIoctl(_native_socket,SIO_KEEPALIVE_VALS, NULL, 0, &keepalive,sizeof(keepalive), &uiBytes,0,0);
-		if ( iResult == 0 )
-		{
-			keepalive.onoff=1;
-			//keepalive.keepalivetime=_iTime;
-			keepalive.keepaliveinterval=_timeout;
-			iResult=WSAIoctl(_native_socket,SIO_KEEPALIVE_VALS, &keepalive,sizeof(keepalive), NULL, 0,&uiBytes,0,0);
-		}
+		struct tcp_keepalive keepalive = { 0 };
+		DWORD uiBytes = sizeof(keepalive);
+		keepalive.onoff = 1;
+		keepalive.keepalivetime = (u_long)(std::chrono::duration_cast<std::chrono::milliseconds>(_timeout)).count();
+		keepalive.keepaliveinterval = 1000;
+		result = WSAIoctl(_socket.native(), SIO_KEEPALIVE_VALS, &keepalive, sizeof(keepalive), NULL, 0, &uiBytes, 0, 0);
 	#else
-		int result;
-		//int s = _native_socket;
-		int s = _socket.native();
 		int optval;
 		socklen_t optlen = sizeof(optval);
-		optval = _timeout;
-
-		result = setsockopt(s, SOL_TCP, TCP_KEEPIDLE, &optval, optlen);
-		result = getsockopt(s, SOL_TCP, TCP_KEEPIDLE, &optval, &optlen);
+		optval = _timeout.count();
+		result = setsockopt(_socket.native(), SOL_TCP, TCP_KEEPIDLE, &optval, optlen);
+		result = getsockopt(_socket.native(), SOL_TCP, TCP_KEEPIDLE, &optval, &optlen);
 		optval = 3;
-		result = setsockopt(s, SOL_TCP, TCP_KEEPCNT, &optval, optlen);
-		result = getsockopt(s, SOL_TCP, TCP_KEEPCNT, &optval, &optlen);
+		result = setsockopt(_socket.native(), SOL_TCP, TCP_KEEPCNT, &optval, optlen);
+		result = getsockopt(_socket.native(), SOL_TCP, TCP_KEEPCNT, &optval, &optlen);
 		optval = 10;
-		result = setsockopt(s, SOL_TCP, TCP_KEEPINTVL, &optval, optlen);
-		result = getsockopt(s, SOL_TCP, TCP_KEEPINTVL, &optval, &optlen);
-		optval = 1;
-		result = setsockopt(s, SOL_SOCKET, SO_KEEPALIVE, &optval, optlen);
-		result = getsockopt(s, SOL_SOCKET, SO_KEEPALIVE, &optval, &optlen);
+		result = setsockopt(_socket.native(), SOL_TCP, TCP_KEEPINTVL, &optval, optlen);
+		result = getsockopt(_socket.native(), SOL_TCP, TCP_KEEPINTVL, &optval, &optlen);
 		if ( result){}
 	#endif
+		optval = true;
 	}
+	socklen_t optlen = sizeof(optval);
+	result = setsockopt(_socket.native(), SOL_SOCKET, SO_KEEPALIVE, (const char*)&optval, optlen);
+	//result = getsockopt(_socket.native(), SOL_SOCKET, SO_KEEPALIVE, (char*)&optval, &optlen);
 }
 
 

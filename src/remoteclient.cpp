@@ -144,7 +144,7 @@ void RemoteProxyClient::local_threadproc()
 	try
 	{
 		DOUT( __FUNCTION__ << ":" << __LINE__ );
-		boost::asio::socket_set_keepalive_to( this->m_local_socket, 20 );
+		boost::asio::socket_set_keepalive_to( this->m_local_socket, std::chrono::seconds(20) );
 
 		if ( this->m_host.m_plugin.stream_local2remote(this->m_local_socket, this->m_remote_socket, this->m_local_thread ) )
 		{
@@ -267,7 +267,7 @@ void RemoteProxyClient::remote_threadproc()
 		}
 		//this->dolog().clear();
 		this->m_local_thread.start( [&]{this->local_threadproc(); } );
-		boost::asio::socket_set_keepalive_to( this->m_remote_socket.lowest_layer(), 20 );
+		boost::asio::socket_set_keepalive_to( this->m_remote_socket.lowest_layer(), std::chrono::seconds(20) );
 		for ( ; this->m_remote_thread.check_run(); )
 		{
 			int length = this->m_remote_socket.read_some( boost::asio::buffer( this->m_remote_read_buffer, this->m_host.m_plugin.max_buffer_size() ) );

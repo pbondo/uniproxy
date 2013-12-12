@@ -356,8 +356,8 @@ void LocalHost::threadproc()
 			remote_socket.handshake( boost::asio::ssl::stream_base::client );
 			this->dolog("Succesfull SSL handshake to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) );
 
-			boost::asio::socket_set_keepalive_to( *local_socket, 20 );
-			boost::asio::socket_set_keepalive_to( remote_socket.lowest_layer(), 20 );
+			boost::asio::socket_set_keepalive_to( *local_socket, std::chrono::seconds(20) );
+			boost::asio::socket_set_keepalive_to( remote_socket.lowest_layer(), std::chrono::seconds(20) );
 
 			local_socket->async_read_some( boost::asio::buffer( m_local_data, max_length), boost::bind(&LocalHostSocket::handle_local_read, p.get(), boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred) );
 			remote_socket.async_read_some( boost::asio::buffer( m_remote_data, max_length), boost::bind(&LocalHost::handle_remote_read, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred) );

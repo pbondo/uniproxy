@@ -180,8 +180,8 @@ void ProviderClient::threadproc()
 			remote_socket.handshake(boost::asio::ssl::stream_base::client);
 			this->dolog("Succesfull SSL handshake to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()));
 
-			boost::asio::socket_set_keepalive_to( local_socket, 20 );
-			boost::asio::socket_set_keepalive_to( remote_socket.lowest_layer(), 20 );
+			boost::asio::socket_set_keepalive_to( local_socket, std::chrono::seconds(20) );
+			boost::asio::socket_set_keepalive_to( remote_socket.lowest_layer(), std::chrono::seconds(20) );
 
 			// This implementation uses the naive read some data and then write some data.
 			// Since the TCP stack is using buffers internally this should run reasonably efficient.

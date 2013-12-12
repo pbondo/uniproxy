@@ -13,6 +13,10 @@ The documentation ie. the requirement specification is available but will not be
 Log:
 ========
 
+12/12-2013 PBondo
+-----------------
+Fix TCP keep alive bug on Windows.
+
 1/10-2013 PBondo
 ----------------
 Has been running successfully deployed for more than a year now.

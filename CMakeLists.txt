@@ -95,8 +95,8 @@ IF (WIN32)
 
 	# VS2012
 	ADD_DEFINITIONS( -D_WIN32_WINNT=0x0501 /wd4250 /wd4018  /wd4267)
-	include_directories (${uniproxy_SOURCE_DIR} ${LANG}/vc${VC}-w64/include ${LANG}/third/include ${BOOST} ${LANG}/openssl-win64/include/  c:/lang/vc${VC}-w64/third/include/ )
-	LINK_DIRECTORIES( "${LANG}/vc${VC}-w64/lib" "${LANG}/openssl-win64/lib/VC/static/" ${BOOST}/libs ${BOOST}/lib64-msvc-${VC}.0)
+	include_directories (${uniproxy_SOURCE_DIR} ${LANG}/w64-vc${VC}/include ${LANG}/third/include ${BOOST} ${LANG}/openssl-win64/include/  c:/lang/w64-vc${VC}/third/include/ )
+	LINK_DIRECTORIES( "${LANG}/w64-vc${VC}/lib" "${LANG}/openssl-win64/lib/VC/static/" ${BOOST}/libs ${BOOST}/lib64-msvc-${VC}.0)
 	# Use multi cores
 	SET(VISUAL_STUDIO_MP_FLAG "/MP")
 
