@@ -7,7 +7,7 @@ cmake_minimum_required(VERSION 2.4)
 
 project(uniproxy)
 
-include_directories(. src/ libs/)
+include_directories(. src/ libs/ ${HOME}/lang/third/include/)
 
 # This command assemble the cppcms templates
 IF (WIN32)
@@ -121,7 +121,12 @@ IF (WIN32)
 
 ELSE (WIN32)
 
-	target_link_libraries(uniproxy boost_filesystem-mt.a boost_system-mt.a boost_chrono-mt.a boost_regex-mt.a boost_date_time-mt.a boost_iostreams-mt.a cppcms.a booster.a pthread pcre icuuc icui18n icudata gcrypt dl z ssl.a crypto.a rt.a)
+	#-Wl,--whole-archive -lpthread -Wl,--no-while-archive
+	ADD_DEFINITIONS( -Wl,--whole-archive -Wl,--no-while-archive )
+
+	target_link_libraries(uniproxy boost_filesystem-mt.a boost_system-mt.a boost_chrono-mt.a boost_regex-mt.a boost_date_time-mt.a boost_iostreams-mt.a cppcms.a booster.a pthread pcre.a icuuc.a icui18n.a icudata.a icuuc.a gcrypt.a gpg-error.a dl z.a ssl.a crypto.a rt.a c)
+	#target_link_libraries(uniproxy boost_filesystem-mt.a boost_system-mt.a boost_chrono-mt.a boost_regex-mt.a boost_date_time-mt.a boost_iostreams-mt.a cppcms.a booster.a pthread pcre.a icuuc.a icui18n.a icudata.a icuuc.a gcrypt dl z ssl.a crypto.a rt.a c)
+	#target_link_libraries(uniproxy boost_filesystem-mt.a boost_system-mt.a boost_chrono-mt.a boost_regex-mt.a boost_date_time-mt.a boost_iostreams-mt.a cppcms.a booster.a pthread pcre icuuc icui18n icudata gcrypt dl z ssl.a crypto.a rt.a)
 
 	INSTALL(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/)
 	INSTALL(DIRECTORY DESTINATION /var/lib/uniproxy)
