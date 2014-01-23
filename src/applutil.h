@@ -30,6 +30,7 @@
 #include <boost/asio/ssl.hpp>
 
 #include <fstream>
+#include <chrono>
 
 #define DOUT( xx ) { mylib::dout() << mylib::time_stamp() << " id:"  << std::this_thread::get_id() << " " << xx << std::endl; }
 #define DERR( xx ) { mylib::derr() << mylib::time_stamp() << " "  << xx << std::endl; }
@@ -245,7 +246,7 @@ const std::string path_separator();
 namespace asio {
 
 // _timeout [seconds]
-void socket_set_keepalive_to( ip::tcp::socket::lowest_layer_type &_socket, int _timeout );
+void socket_set_keepalive_to( ip::tcp::socket::lowest_layer_type &_socket, std::chrono::seconds _timeout );
 
 // Send the socket shutdown command
 void socket_shutdown( ip::tcp::socket::lowest_layer_type &_socket, boost::system::error_code &ec );

@@ -88,13 +88,15 @@ IF (WIN32)
 		../src/win_util.h
 		)
 
+	SET(VC 11)
 	SET(LANG c:/lang)
-	SET(BOOST c:/local/boost_1_54_0)
+	SET(BOOST d:/lang/boost_1_55_0)
+
 
 	# VS2012
-	ADD_DEFINITIONS( -D_WIN32_WINNT=0x0501 /wd4250 /wd4018 )
-	include_directories (${uniproxy_SOURCE_DIR} ${LANG}/w64/include ${LANG}/third/include ${BOOST} ${LANG}/openssl-win64/include/  c:/lang/w64/third/include/ )
-	LINK_DIRECTORIES( "${LANG}/w64/lib" "${LANG}/openssl-win64/lib/VC/static/" ${BOOST}/libs ${BOOST}/lib64-msvc-11.0)
+	ADD_DEFINITIONS( -D_WIN32_WINNT=0x0501 /wd4250 /wd4018  /wd4267)
+	include_directories (${uniproxy_SOURCE_DIR} ${LANG}/w64-vc${VC}/include ${LANG}/third/include ${BOOST} ${LANG}/openssl-win64/include/  c:/lang/w64-vc${VC}/third/include/ )
+	LINK_DIRECTORIES( "${LANG}/w64-vc${VC}/lib" "${LANG}/openssl-win64/lib/VC/static/" ${BOOST}/libs ${BOOST}/lib64-msvc-${VC}.0)
 	# Use multi cores
 	SET(VISUAL_STUDIO_MP_FLAG "/MP")
 
@@ -110,11 +112,11 @@ ELSE (WIN32)
 
 ENDIF (WIN32)
 
-add_executable(uniproxy ${uniproxy_SOURCES})
+add_executable(${PROJECT_NAME} ${uniproxy_SOURCES})
 
 IF (WIN32)
 	# VS2012
-	target_link_libraries (uniproxy libcppcms libbooster SSLeay32MDd libeay32MDd zlib pcre dbghelp )
+	target_link_libraries (${PROJECT_NAME} libcppcms libbooster SSLeay32MDd libeay32MDd zlib pcre dbghelp )
 
 	# Mingw the order of libraries are important
 	#target_link_libraries (uniproxy  libcppcms libbooster pcre boost_system-mgw47-mt-1_49 boost_regex-mgw47-mt-1_49 boost_filesystem-mgw47-mt-1_49 ssleay32 crypto ws2_32 wsock32 mswsock zlib m)
@@ -124,9 +126,7 @@ ELSE (WIN32)
 	#-Wl,--whole-archive -lpthread -Wl,--no-while-archive
 	ADD_DEFINITIONS( -Wl,--whole-archive -Wl,--no-while-archive )
 
-	target_link_libraries(uniproxy boost_filesystem-mt.a boost_system-mt.a boost_chrono-mt.a boost_regex-mt.a boost_date_time-mt.a boost_iostreams-mt.a cppcms.a booster.a pthread pcre.a icuuc.a icui18n.a icudata.a icuuc.a gcrypt.a gpg-error.a dl z.a ssl.a crypto.a rt.a c)
-	#target_link_libraries(uniproxy boost_filesystem-mt.a boost_system-mt.a boost_chrono-mt.a boost_regex-mt.a boost_date_time-mt.a boost_iostreams-mt.a cppcms.a booster.a pthread pcre.a icuuc.a icui18n.a icudata.a icuuc.a gcrypt dl z ssl.a crypto.a rt.a c)
-	#target_link_libraries(uniproxy boost_filesystem-mt.a boost_system-mt.a boost_chrono-mt.a boost_regex-mt.a boost_date_time-mt.a boost_iostreams-mt.a cppcms.a booster.a pthread pcre icuuc icui18n icudata gcrypt dl z ssl.a crypto.a rt.a)
+	target_link_libraries(${PROJECT_NAME} boost_filesystem.a boost_system.a boost_chrono.a boost_regex.a boost_date_time.a boost_iostreams.a cppcms.a booster.a pthread pcre.a icuuc.a icui18n.a icudata.a icuuc.a gcrypt.a gpg-error.a dl z.a ssl.a crypto.a rt.a c)
 
 	INSTALL(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/)
 	INSTALL(DIRECTORY DESTINATION /var/lib/uniproxy)
