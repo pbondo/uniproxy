@@ -90,10 +90,16 @@ bool proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 		cppcms::json::array ar = obj["clients"].array();
 		for ( auto iter1 = ar.begin(); iter1 != ar.end(); iter1++ )
 		{
+			int help;
 			auto &item1 = *iter1;
 			bool active = cppcms::utils::check_bool( item1, "active", true, false );
 			int client_port = check_int( item1, "port", -1, true );
 			bool provider = cppcms::utils::check_bool( item1, "provider", false, false );
+			boost::posix_time::time_duration read_timeout = boost::posix_time::minutes(5);
+			if (cppcms::utils::check_int( item1, "timeout", help ) && help > 0)
+			{
+				read_timeout = boost::posix_time::minutes(help);
+			}
 			int max_connections = check_int( item1, "max_connections", 1, false );
 			std::vector<ProxyEndpoint> proxy_endpoints, provider_endpoints;
 			if ( item1["remotes"].type() == cppcms::json::is_array )
@@ -147,7 +153,7 @@ bool proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 			else if ( active && proxy_endpoints.size() > 0 )
 			{
 				// NB!! Search for the correct plugin version
-				baseclient_ptr local_ptr( new LocalHost( active, client_port, proxy_endpoints, max_connections, standard_plugin ) );
+				baseclient_ptr local_ptr( new LocalHost( active, client_port, proxy_endpoints, max_connections, standard_plugin, read_timeout ) );
 				this->localclients.push_back( local_ptr );
 			} // NB!! What else if one of them is empty
 		}

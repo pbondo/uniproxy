@@ -21,6 +21,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
+#include <boost/asio/deadline_timer.hpp>
 
 #include "baseclient.h"
 
@@ -52,7 +53,7 @@ class LocalHost : public BaseClient
 {
 public:
 
-	LocalHost(bool _active, int _local_port, const std::vector<ProxyEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin);
+	LocalHost(bool _active, int _local_port, const std::vector<ProxyEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin, const boost::posix_time::time_duration &_read_timeout);
 
 	void start();
 	void stop();
@@ -73,6 +74,8 @@ public:
 
 	std::vector<std::string> local_hostnames() const;
 
+	void check_deadline();
+
 protected:
 
 	std::vector<std::shared_ptr<LocalHostSocket> > m_local_sockets; // Elements are inserted here, once they have been accepted.
@@ -80,6 +83,8 @@ protected:
 	// These are used for RAII handling. They do not own anything and should not be assigned by new.
 	boost::asio::io_service *mp_io_service;
 	boost::asio::ip::tcp::acceptor *mp_acceptor;
+	boost::asio::deadline_timer *m_pdeadline;
+	boost::posix_time::time_duration m_read_timeout;
 	int m_write_count;
 
 	bool m_local_connected;

@@ -22,7 +22,7 @@
 #include "proxy_global.h"
 
 using boost::asio::ip::tcp;
-
+using boost::asio::deadline_timer;
 
 LocalHostSocket::LocalHostSocket(LocalHost &_host, boost::asio::ip::tcp::socket *_socket)
 : m_host(_host)
@@ -44,10 +44,12 @@ boost::asio::ip::tcp::socket &LocalHostSocket::socket()
 }
 
 
-LocalHost::LocalHost( bool _active, int _local_port, const std::vector<ProxyEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin )
+LocalHost::LocalHost( bool _active, int _local_port, const std::vector<ProxyEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin, const boost::posix_time::time_duration &_read_timeout )
 :	BaseClient(_active, _local_port, _proxy_endpoints, _max_connections, _plugin),
 	mp_io_service( nullptr ),
-	mp_acceptor( nullptr )
+	mp_acceptor( nullptr ),
+	m_pdeadline( nullptr ),
+	m_read_timeout(_read_timeout)
 {
 	this->m_local_connected = false; 
 }
@@ -214,6 +216,8 @@ void LocalHost::handle_local_write( boost::asio::ip::tcp::socket *_socket, const
 	}
 	if ( this->m_write_count == 0 && this->m_local_sockets.size() > 0 )
 	{
+		this->m_pdeadline->expires_from_now(this->m_read_timeout);
+
 		this->remote_socket().async_read_some( boost::asio::buffer( this->m_remote_data, max_length), boost::bind(&LocalHost::handle_remote_read, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
 	}
 	if ( this->m_local_sockets.size() == 0 )
@@ -286,6 +290,30 @@ void LocalHost::handle_accept( boost::asio::ip::tcp::socket *_socket, const boos
 }
 
 
+// Read from the remote socket did timeout.
+// Oddly this is also called whenever a succesfull read was performed.
+void LocalHost::check_deadline()
+{
+	std::lock_guard<std::mutex> l(this->m_mutex);
+	if (this->m_pdeadline == nullptr || this->m_pdeadline->expires_at() <= deadline_timer::traits_type::now())
+	{
+		DERR("Timeout read from remote socket");
+		if (this->m_pdeadline != nullptr)
+		{
+			this->m_pdeadline->expires_at(boost::posix_time::pos_infin);
+		}
+		boost::system::error_code ec;
+		this->remote_socket().shutdown(ec);
+		this->remote_socket().lowest_layer().close();
+	}
+	// Put the actor back to sleep.
+	if (this->m_pdeadline != nullptr)
+	{
+		this->m_pdeadline->async_wait(boost::bind(&LocalHost::check_deadline, this));
+	}
+}
+
+
 void LocalHost::threadproc()
 {	
 	for ( ; this->m_thread.check_run() ; )
@@ -298,6 +326,8 @@ void LocalHost::threadproc()
 			DOUT(__FUNCTION__ << ":" << __LINE__);
 			boost::asio::io_service io_service;
 			mylib::protect_pointer<boost::asio::io_service> p_io_service( this->mp_io_service, io_service, this->m_mutex );
+			boost::asio::deadline_timer deadline(io_service);
+			mylib::protect_pointer<boost::asio::deadline_timer> p_deadline( this->m_pdeadline, deadline, this->m_mutex );
 
 			boost::asio::ssl::context ssl_context( io_service, boost::asio::ssl::context::sslv23);
 
@@ -350,7 +380,6 @@ void LocalHost::threadproc()
 			}
 */
 			this->dolog("Connected to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) + " Attempting SSL handshake" );
-
 			DOUT( "handles: " << remote_socket.next_layer().native_handle() << " / " << remote_socket.lowest_layer().native_handle() );
 
 			remote_socket.handshake( boost::asio::ssl::stream_base::client );
@@ -359,6 +388,9 @@ void LocalHost::threadproc()
 			boost::asio::socket_set_keepalive_to( *local_socket, std::chrono::seconds(20) );
 			boost::asio::socket_set_keepalive_to( remote_socket.lowest_layer(), std::chrono::seconds(20) );
 
+			DOUT("Prepare timeout at: " << this->m_read_timeout)
+			deadline.async_wait(boost::bind(&LocalHost::check_deadline, this));
+			deadline.expires_from_now(this->m_read_timeout);
 			local_socket->async_read_some( boost::asio::buffer( m_local_data, max_length), boost::bind(&LocalHostSocket::handle_local_read, p.get(), boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred) );
 			remote_socket.async_read_some( boost::asio::buffer( m_remote_data, max_length), boost::bind(&LocalHost::handle_remote_read, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred) );
 
@@ -368,6 +400,8 @@ void LocalHost::threadproc()
 
 			// Now let the io_service handle the session.
 			io_service.run();
+
+			deadline.cancel();
 		}
 		catch( std::exception &exc )
 		{
