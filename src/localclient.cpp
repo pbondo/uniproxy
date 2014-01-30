@@ -294,7 +294,7 @@ void LocalHost::handle_accept( boost::asio::ip::tcp::socket *_socket, const boos
 // Oddly this is also called whenever a succesfull read was performed.
 void LocalHost::check_deadline()
 {
-	std::lock_guard<std::mutex> l(this->m_mutex);
+	stdt::lock_guard<stdt::mutex> l(this->m_mutex);
 	if (this->m_pdeadline == nullptr || this->m_pdeadline->expires_at() <= deadline_timer::traits_type::now())
 	{
 		DERR("Timeout read from remote socket");
