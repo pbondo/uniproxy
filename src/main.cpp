@@ -58,7 +58,9 @@ std::string config_filename = "uniproxy.json";
 proxy_app::proxy_app(cppcms::service &srv) : cppcms::application(srv)
 {
 	dispatcher().assign("^/command/client/activate/name=(.*)&id=(.*)&dummy=(.*)$",&proxy_app::client_activate,this,1,2);
+	dispatcher().assign("^/command/client/active/name=(.*)&id=(.*)&check=(.*)&dummy=(.*)$",&proxy_app::client_active,this,1,2,3);
 	dispatcher().assign("^/command/host/activate/name=(.*)&dummy=(.*)$",&proxy_app::host_activate,this,1);
+	dispatcher().assign("^/command/host/active/name=(.*)&id=(.*)&check=(.*)&dummy=(.*)$",&proxy_app::host_active,this,1,2,3);
 	dispatcher().assign("^/command/client/delete/name=(.*)&dummy=(.*)$",&proxy_app::certificate_delete,this,1);
 	dispatcher().assign("^/command/host/delete/name=(.*)&dummy=(.*)$",&proxy_app::certificate_delete,this,1);
 	dispatcher().assign("^/command/stop/(.*)$",&proxy_app::shutdown,this);
@@ -143,6 +145,38 @@ void proxy_app::host_activate(const std::string _param)
 			{
 				p->m_activate_stamp = boost::get_system_time() + boost::posix_time::seconds( 60 );
 				p->m_activate_name = _param;
+			}
+		}
+	}
+}
+
+
+void proxy_app::host_active(const std::string _param, const std::string _id, const std::string _checked)
+{
+	DOUT(__FUNCTION__ << ": " << _param << " Checked: " << _checked);
+
+	for ( auto iter = global.remotehosts.begin(); iter != global.remotehosts.end(); iter++ )
+	{
+		RemoteProxyHost *p = iter->get();
+		int id;
+		if (p->m_id == mylib::from_string(_id,id) )
+		{
+			for ( auto iter = p->m_remote_ep.begin(); iter != p->m_remote_ep.end(); iter++ )
+			{
+				RemoteEndpoint &ep = *iter;
+				if ( ep.m_name == _param )
+				{
+					ep.m_active = (_checked == "true") ? true : false;
+					if (ep.m_active)
+					{
+						p->start(); // NB!! This is NOT correct.
+					}
+					else
+					{
+						p->stop();
+					}
+					DOUT("Updated active state for: " << _param << " new value: " << ep.m_active);
+				}
 			}
 		}
 	}
@@ -264,7 +298,7 @@ void proxy_app::shutdown()
 void proxy_app::client_activate(const std::string _param, const std::string _id)
 {
 	DOUT(__FUNCTION__ << ": " << _param << " ID: " << _id);
-	
+
 	for ( auto iter = global.localclients.begin(); iter != global.localclients.end(); iter++ )
 	{
 		BaseClient *p = iter->get();
@@ -285,6 +319,32 @@ void proxy_app::client_activate(const std::string _param, const std::string _id)
 					break;
 				}
 			}
+		}
+	}
+}
+
+
+void proxy_app::client_active(const std::string _param, const std::string _id, const std::string _checked)
+{
+	DOUT(__FUNCTION__ << ": " << _param << " ID: " << _id << " Checked: " << _checked);
+
+	for ( auto iter = global.localclients.begin(); iter != global.localclients.end(); iter++ )
+	{
+		BaseClient *p = iter->get();
+		int id;
+		if (p->m_id == mylib::from_string(_id,id) )
+		{
+			p->m_active = (_checked == "true") ? true : false;
+			if (p->m_active)
+			{
+				p->start();
+			}
+			else
+			{
+				p->stop();
+			}
+			DOUT("Updated active state for: " << _param << " new value: " << p->m_active);
+			return;
 		}
 	}
 }

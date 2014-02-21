@@ -64,7 +64,9 @@ public:
 	void index();
 	void script(const std::string);
 	void client_activate(const std::string, const std::string _id);
+	void client_active(const std::string _param, const std::string _id, const std::string _checked);
 	void host_activate(const std::string);
+	void host_active(const std::string _param, const std::string _id, const std::string _checked);
 	void certificate_delete(const std::string);
 
 	static void setup_config( cppcms::json::value &_settings );
