@@ -63,7 +63,6 @@ void ProviderClient::interrupt()
 			boost::system::error_code ec;
 			this->mp_local_socket->lowest_layer().shutdown( boost::asio::socket_base::shutdown_both, ec );
 		}
-
 		if ( this->mp_remote_socket != nullptr )
 		{
 			boost::system::error_code ec;

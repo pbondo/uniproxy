@@ -192,7 +192,7 @@ Status.prototype.on_status_update1 = function( data )
 	sz_html = ""; 
 	if ( json_data.clients )
 	{
-		sz_html = "<h3>Clients</h3><table border='1'><tr><th>Port</th><th>Name</th><th>Hostname</th><th>Data in [B/min]</th><th>Data out [B/min]</th><th>Certificate</th><th>Status</th></tr>";
+		sz_html = "<h3>Clients</h3><table border='1'><tr><th>Port</th><th>Name</th><th>Hostname</th><th>Data in [B/min]</th><th>Data out [B/min]</th><th>Certificate</th><th>Active</th><th>Status</th></tr>";
 		$.each(json_data.clients, function(idata,client_data) 
 		{
 			var localhosts = ' ';
@@ -215,6 +215,14 @@ Status.prototype.on_status_update1 = function( data )
 			linest += "<td></td>";
 			linest += "<td></td>";
 			linest += "<td></td>";
+
+			linest += "<td><input type=\"checkbox\"";
+			if (client_data.active)
+			{
+				linest += " checked=\"yes\" ";
+			}
+			linest += " onclick=\"status1.on_client_active(this," + client_data.id + ", '" + "')\" /></td>";
+
 			linest += "<td>" + (( client_data.log ) ? client_data.log : "&nbsp;" ) + "</td>";
 			linest += "</tr>";
 
@@ -251,6 +259,7 @@ Status.prototype.on_status_update1 = function( data )
 					}
 				}
 				linest += "</td>";
+				linest += "<td></td>";
 				if (remote_data.connected_remote)
 				{
 					linest += "<td>" + localhosts + "</td>";
@@ -269,32 +278,11 @@ Status.prototype.on_status_update1 = function( data )
 	console.log(sz_html);
 	$("#clients").html( sz_html );
 
-/*
-	// ---- THE PROVIDERS PART ----
-	sz_html = ""; 
-	if ( json_data.providers )
-	{
-		sz_html = "<h3>Providers</h3><table border='1'><tr><th>Port</th><th>Name</th><th>Hostname</th><th>Data in [B/min]</th><th>Data out [B/min]</th><th>Certificate</th><th>Status</th></tr>";
-		$.each(json_data.providers, function(idata,provider_data) 
-		{
-			var linest = "<tr><td></td>";
-			linest += that.connection_string( true, provider_data.connected_local, provider_data.local_port );
-			
-			linest += "<td>Hello</td>";
-			linest += "<td>" + (( client_data.log ) ? client_data.log : "&nbsp;" ) + "</td>";
-			linest += "</tr>";
-			sz_html += linest;
-		} );
-	}
-	console.log(sz_html);
-	$("#providers").html( sz_html );
-
-*/
 	// ---- THE HOST PART ----
 	sz_html = "";
 	if ( json_data.hosts )
 	{
-		sz_html = "<h3>Hosts</h3><table border='1'><tr><th>Port</th><th>Name</th><th>Remote</th><th>Local</th><th>Data in [B/min]</th><th>Data out [B/min]</th><th>Certificate</th><th>Status</th></tr>";
+		sz_html = "<h3>Hosts</h3><table border='1'><tr><th>Port</th><th>Name</th><th>Remote</th><th>Local</th><th>Data in [B/min]</th><th>Data out [B/min]</th><th>Certificate</th><th>Active</th><th>Status</th></tr>";
 		json_data.hosts.forEach( function(host_data)
 		{
 			var linest = "<tr><td>" + host_data.port + "</td>";
@@ -323,6 +311,15 @@ Status.prototype.on_status_update1 = function( data )
 					}
 				}
 				linest += "</td>";
+
+				linest += "<td><input type=\"checkbox\"";
+				if (remote_data.active)
+				{
+					linest += " checked=\"yes\" ";
+				}
+				//linest += " /></td>";
+				linest += " onclick=\"status1.on_host_active(this," + host_data.id + ", '" + remote_data.name + "')\" /></td>";
+
 				linest += "<td>" + ( ( remote_data.log ) ? remote_data.log : "&nbsp;" ) + "</td>";
 				linest += "</tr>";
 			} );
@@ -380,6 +377,19 @@ Status.prototype.on_client_activate = function( id, name )
 		this.reload(200);
 	}
 }
+
+
+Status.prototype.on_client_active = function( cb, id, name )
+{
+	console.log( "on_client_active: " + name );
+	if (confirm("(De)Active for: " + name + " ?. Please notice this is NOT stored persistent, so it will be reset after next restart" ))
+	{
+		jQuery.ajax({ url: '/json/command/client/active/name=' + name + '&id=' + id + '&check=' + cb.checked + '&dummy=' + this.cache_count++ });
+		this.reload(200);
+	}
+}
+
+
 ///
 
 Status.prototype.on_client_delete = function( name )
@@ -401,6 +411,17 @@ Status.prototype.on_host_activate = function( name )
 		jQuery.ajax({ url: '/json/command/host/activate/name=' + name + '&dummy=' + this.cache_count++ });
 	}
 	this.reload(100);
+}
+
+
+Status.prototype.on_host_active = function( cb, id, name )
+{
+	console.log( "on_host_active: " + name );
+	if (confirm("(De)Active for: " + name + " ?. Please notice this is NOT stored persistent, so it will be reset after next restart" ))
+	{
+		jQuery.ajax({ url: '/json/command/host/active/name=' + name + '&id=' + id + '&check=' + cb.checked + '&dummy=' + this.cache_count++ });
+		this.reload(200);
+	}
 }
 
 

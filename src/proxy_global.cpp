@@ -138,7 +138,8 @@ bool proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 						}
 					}
 				}
-				if ( active && provider_endpoints.size() > 0 )
+				if ( //active && 
+					provider_endpoints.size() > 0 )
 				{
 					baseclient_ptr local_ptr( new ProviderClient( active, provider_endpoints, proxy_endpoints, standard_plugin ) );
 					//local_ptr->m_proxy_endpoints = proxy_endpoints;
