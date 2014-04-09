@@ -1,16 +1,24 @@
 #
 # cmake configuration file
 #
-# c:\lang\cmake\bin\cmake -G "Visual Studio 10" ..
 #
 cmake_minimum_required(VERSION 2.4)
 
 project(uniproxy)
 
+IF (WIN32)
+	SET(VC 11)
+	SET(LANG c:/lang)
+	SET(BOOST d:/lang/boost_1_55_0)
+ENDIF()
+
+
 include_directories(. src/ libs/ ${HOME}/lang/third/include/)
 
 # This command assemble the cppcms templates
 IF (WIN32)
+
+
 add_custom_command(
   OUTPUT views.cpp
   COMMAND python /lang/w32/bin/cppcms_tmpl_cc.py ../webserver/master.tmpl ../webserver/view_config.tmpl ../webserver/view_status.tmpl -o views.cpp
@@ -87,10 +95,6 @@ IF (WIN32)
 		../src/win_util.cpp
 		../src/win_util.h
 		)
-
-	SET(VC 11)
-	SET(LANG c:/lang)
-	SET(BOOST d:/lang/boost_1_55_0)
 
 
 	# VS2012

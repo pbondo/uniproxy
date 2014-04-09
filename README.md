@@ -75,6 +75,9 @@ cd build
 cmake -G "Visual Studio 11 Win64" ..
 make
 
+Also boost process
+http://www.highscore.de/boost/process.zip
+
 
 Contributers:
 -------------
