@@ -78,7 +78,7 @@ void proxy_app::index()
 {
 	auto &data = global.get_session_data( this->session() );
 	//DOUT( "proxy_app::main: " << url << " resetting for id: " << data.m_id);
-	data.m_read_index = 0; // reset			
+	data.m_logger_read_index = 0; // reset			
 	content::content_status c;
 	c.title = "Maritime UniProxy";
 	this->render( "status", c );
@@ -94,15 +94,17 @@ void proxy_app::config_reload()
 
 void proxy_app::logger_get()
 {
-	stdt::lock_guard<stdt::mutex> l(global.m_session_data_mutex); // A long lock. Should perhaps be more fine grained.
-
-	int log_write_index = log().m_log.size();
+	int log_write_index = log().count();
 	auto &data = global.get_session_data( this->session() );
-	for ( int index = data.m_read_index; index < log_write_index; index++ )
+	for ( int index = data.m_logger_read_index; index < log_write_index; index++ )
 	{
-		this->response().out() << log().m_log[index] << std::endl;
+		std::string text = log().get(index);
+		if (!text.empty())
+		{
+			this->response().out() << text << std::endl;
+		}
 	}
-	data.m_read_index = log_write_index;
+	data.m_logger_read_index = log_write_index;
 }
 
 
@@ -438,7 +440,7 @@ void proxy_app::main(std::string url)
 session_data::session_data( int _id )
 {
 	this->m_id = _id;
-	this->m_read_index = 0;
+	this->m_logger_read_index = 0;
 	this->update_timestamp();
 }
 
@@ -479,6 +481,7 @@ int main(int argc,char ** argv)
 	{
 		try
 		{
+			srand(time(NULL));
 			new (&global)proxy_global();
 			cppcms::signal::reset_reload();
 			std::string certificate_common_name;

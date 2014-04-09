@@ -75,7 +75,7 @@ public:
 
 	boost::posix_time::ptime m_timestamp;
 	int m_id;
-	int m_read_index;
+	int m_logger_read_index;
 };
 
 
@@ -113,11 +113,9 @@ public:
 	// Own name to be used for generating own certifcate.
 	std::string m_name;
 
+	// The returned value here can be used for the duration of this transaction without being removed or moved.
 	session_data &get_session_data( cppcms::session_interface &_session );
-
-	int m_session_id_counter;
-	stdt::mutex m_session_data_mutex;
-	std::vector< std::shared_ptr<session_data>> m_sessions;
+	void clean_session();
 
 	// (common) Names from the certificates loaded from the imported certs.pem file.
 	stdt::mutex m_mutex_certificates;
@@ -126,6 +124,11 @@ public:
 	std::error_code SetupCertificates( boost::asio::ip::tcp::socket &_remote_socket, const std::string &_connection_name, bool _server, std::error_code& ec );
 
 	bool certificate_available( const std::string &_cert_name);
+
+protected:
+
+	stdt::mutex m_session_data_mutex;
+	std::vector< std::shared_ptr<session_data>> m_sessions;
 
 };
 

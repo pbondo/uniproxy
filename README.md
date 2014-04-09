@@ -13,6 +13,11 @@ The documentation ie. the requirement specification is available but will not be
 Log:
 ========
 
+9/4-2014 PBondo
+---------------
+Fix various log issues. Main one being that a large log would overload the client.
+
+
 12/12-2013 PBondo
 -----------------
 Fix TCP keep alive bug on Windows.

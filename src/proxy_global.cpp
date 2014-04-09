@@ -29,7 +29,6 @@ proxy_global::proxy_global()
 	this->m_port = 8085; // Default
 	this->m_ip4_mask = "0.0.0.0";
 	this->m_debug = false;	
-	this->m_session_id_counter = 0;
 }
 
 //-----------------------------------
@@ -417,17 +416,19 @@ std::string proxy_global::save_json_config( bool readable )
 
 session_data &proxy_global::get_session_data( cppcms::session_interface &_session )
 {
+	stdt::lock_guard<stdt::mutex> l(this->m_session_data_mutex);
 	int id;
+	//long pid = (long)(&_session);
 	if ( _session.is_set( "id" ) )
 	{
 		id = mylib::from_string(_session.get( "id" ),id);
-//		DOUT("Session coockie id: " << id );
+		//DOUT("Session coockie id: " << id );
 	}
 	else
 	{
-		id = ++this->m_session_id_counter;
+		id = rand();
 		_session.set( "id", mylib::to_string(id) );
-		DOUT("New Session coockie id: " << id );
+		//DOUT("New Session coockie id: " << id);
 	}
 
 	for ( int index = 0; index < this->m_sessions.size(); index++ )
@@ -443,6 +444,13 @@ session_data &proxy_global::get_session_data( cppcms::session_interface &_sessio
 	auto p = std::make_shared<session_data>( id );
 	this->m_sessions.push_back( p );
 	return *p;
+}
+
+
+void proxy_global::clean_session()
+{
+	stdt::lock_guard<stdt::mutex> l(this->m_session_data_mutex);
+
 }
 
 

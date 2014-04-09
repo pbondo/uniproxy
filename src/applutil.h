@@ -347,13 +347,21 @@ public:
 
 	void clear();
 	
-	std::string peek();
+	std::string peek() const;
 
-	std::vector<std::string> m_log;
+	std::string get(int _index) const;
 
-	stdt::mutex m_mutex;
-	std::string m_name;
+	size_t count() const;
+
 	std::ofstream m_logfile;
+
+protected:
+
+	std::vector<std::pair<int,std::string>> m_log;
+
+	mutable stdt::mutex m_mutex;
+	std::string m_name;
+	std::atomic<int> m_write_index;
 };
 
 proxy_log &log();

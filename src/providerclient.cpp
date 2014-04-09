@@ -96,9 +96,9 @@ void ProviderClient::threadproc()
 		// On start and after each lost connection we end up here.
 		try
 		{
-			if (timeout < 30000)
+			if (timeout < 60000)
 			{
-				timeout += 2000;
+				timeout += 5000;
 			}
 			this->m_thread.sleep( timeout );
 
@@ -121,16 +121,17 @@ void ProviderClient::threadproc()
 
 			boost::asio::io_service::work session_work(io_service);
 
-			this->dolog("Provider connecting to remote host");
+			//this->dolog("Provider connecting to remote host");
 
 			boost::asio::ip::tcp::socket local_socket(io_service);
 			mylib::protect_pointer<boost::asio::ip::tcp::socket> p1( this->mp_local_socket, local_socket, this->m_mutex );
+			std::string ep;
 			for ( int index = 0; index < this->m_local_endpoints.size(); index++ )
 			{
-				std::string ep = this->m_local_endpoints[index].m_hostname + ":" + mylib::to_string(this->m_local_endpoints[index].m_port);
+				ep = this->m_local_endpoints[index].m_hostname + ":" + mylib::to_string(this->m_local_endpoints[index].m_port);
 				try
 				{
-					this->dolog("Performing local connection to: " + ep );
+					this->dolog("Provider connecting to local: " + ep );
 					boost::asio::sockect_connect( local_socket, io_service, this->m_local_endpoints[index].m_hostname, this->m_local_endpoints[index].m_port );
 					this->m_local_connected_index = index;
 					break;
@@ -140,7 +141,7 @@ void ProviderClient::threadproc()
 					DOUT(  __FUNCTION__ << ":" << __LINE__ << " Failed connection to: " << ep << " " << exc.what() );
 				}
 			}
-			ASSERTE(this->is_local_connected(), uniproxy::error::socket_invalid,"Provider failed connection to local host");
+			ASSERTE(this->is_local_connected(), uniproxy::error::socket_invalid,"Provider failed connection to local host: " + ep);
 
 
 			boost::asio::ssl::context ssl_context( io_service, boost::asio::ssl::context::sslv23);
@@ -153,7 +154,7 @@ void ProviderClient::threadproc()
 			ssl_socket remote_socket( io_service, ssl_context );
 			mylib::protect_pointer<ssl_socket> p2( this->mp_remote_socket, remote_socket, this->m_mutex );
 
-			this->dolog("Connecting to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) );
+			this->dolog("Provider local: " + ep + " connecting to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) );
 			for ( int index = 0; index < this->m_proxy_endpoints.size(); index++ )
 			{
 				if (global.certificate_available(this->m_proxy_endpoints[index].m_name))
@@ -173,7 +174,6 @@ void ProviderClient::threadproc()
 				}
 			}
 			ASSERTE(this->is_remote_connected(), uniproxy::error::socket_invalid,"Provider failed connection to remote host");
-			timeout = 5000;
 
 			this->dolog("Provider connected to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) + " Attempting SSL handshake" );
 			remote_socket.handshake(boost::asio::ssl::stream_base::client);
@@ -196,6 +196,8 @@ void ProviderClient::threadproc()
 					// The plugin is allowed to modify the buffer, thus we need to recalculate size
 					length = remote_socket.write_some( boost::asio::buffer( buffer.m_buffer, buffer.m_size ) );
 					this->m_count_out.add(length);
+
+					timeout = 10000; // This is just to only reset the timeout once data has been exchanged.
 				}
 			}
 		}

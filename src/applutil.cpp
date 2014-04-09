@@ -407,28 +407,52 @@ std::string check_ip4( const std::string &_input )
 
 proxy_log::proxy_log(const std::string&_name)
 {
+	this->m_write_index = 0;
 	this->m_name = _name;
 	this->m_logfile.open("uniproxy.log",std::ios::app|std::ios::ate);
 }
 
-std::string proxy_log::peek()
+std::string proxy_log::peek() const
 {
 	stdt::lock_guard<stdt::mutex> l(this->m_mutex);
-	std::string sz = "&nbsp;";
+	std::string sz; // = "&nbsp;";
 	if ( this->m_log.size() > 0)
 	{
-		sz = this->m_log.back();
+		sz = this->m_log.back().second;
 	}
 	return sz;
 }
 
 
+std::string proxy_log::get(int index) const
+{
+	stdt::lock_guard<stdt::mutex> l(this->m_mutex);
+	std::string sz; // = "&nbsp;";
+	auto iter = std::find_if(this->m_log.begin(),this->m_log.end(), [&](const std::pair<int,std::string> &_){return _.first == index;});
+	if (iter != this->m_log.end()) return iter->second;
+	return sz;
+}
+
+
+size_t proxy_log::count() const
+{
+	//stdt::lock_guard<stdt::mutex> l(this->m_mutex);
+	// m_write_index declared atomic
+	return this->m_write_index;
+}
+
+
 void proxy_log::add( const std::string &_value )
 {
+	if (_value.empty()) return; // Don't bother with empty log lines.
 	DOUT("Log: " << this->m_name << ": " << _value );
 	stdt::lock_guard<stdt::mutex> l(this->m_mutex);
-	this->m_log.push_back( mylib::time_stamp() + ": " + _value);
+	this->m_log.push_back(std::make_pair(this->m_write_index++, mylib::time_stamp() + ": " + _value));
 	this->m_logfile << mylib::time_stamp() << ": " << _value << std::endl;
+	while (this->m_log.size() > 40)
+	{
+		this->m_log.erase(this->m_log.begin());
+	}
 }
 
 
