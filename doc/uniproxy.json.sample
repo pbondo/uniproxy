@@ -5,14 +5,38 @@
 			"remotes" : [
 				{ "name" : "remote_certificate", "hostname" : "remote_hostname.com", "port":8750 }
 			]
+		},
+		{
+			"port" : 1241,
+			"timeout" : 1,
+			"type" : "GHP",
+			"remotes" : [
+				{ "name" : "thehostsite", "hostname" : "server1.somewhere.com", "port":8751 },
+				{ "name" : "thehostsite", "hostname" : "server2.somewhere.com", "port":8751 }
+			]
+		},
+		{
+			"port" : 0,
+			"provider" : true,
+			"locals" : [ { "hostname" : "localhost", "port" : 2000 } ],
+			"remotes" : [
+				{ "name" : "thehostsite", "hostname" : "server1.somewhere.com", "port":8752 },
+				{ "name" : "anotherhostsite", "hostname" : "server2.elsewhere.com", "port":8752 }
+			]
 		}
 	],
 	"hosts" : [
         	{
-			"port" : "8750",
+			"port" : 8750,
 			"locals" : [ { "hostname" : "localhost", "port" : 2000 } ],
 			"remotes" : [ { "name" : "remote_certificate" } ]
-	        }
+        },
+        {
+		   "type" : "GHP"
+			"port" : 8751,
+			"locals" : [ { "hostname" : "localhost", "port" : 2001 } ],
+			"remotes" : [ { "name" : "remote_certificate" }, { "name" : "some_other_certificate", "ip" : "1.2.3.4", "username":"username", "password" : "secret2" } ]
+	       }
 	],
 	"config" : { "name" : "my_certificate" }
 }

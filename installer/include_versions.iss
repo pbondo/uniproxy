@@ -5,6 +5,6 @@
 ; WARNING! All changes made in this file will be lost!
 ;============================================================================
 
-#define BUILDNUMBER "128"
-#define VERSIONNUMBER "v0.3.2"
+#define BUILDNUMBER "1"
+#define VERSIONNUMBER "v0.3.3"
 

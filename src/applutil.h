@@ -31,6 +31,7 @@
 
 #include <fstream>
 #include <chrono>
+#include <atomic>
 
 #define DOUT( xx ) { mylib::dout() << mylib::time_stamp() << " id:"  << std::this_thread::get_id() << " " << xx << std::endl; }
 #define DERR( xx ) { mylib::derr() << mylib::time_stamp() << " "  << xx << std::endl; }
