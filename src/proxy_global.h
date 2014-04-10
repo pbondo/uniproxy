@@ -87,6 +87,7 @@ public:
 	void lock();
 	void unlock();
 	void stop( const std::string &_name );
+	void stopall(); // Make a hard stop of all.
 
 	typedef enum 
 	{
@@ -97,9 +98,15 @@ public:
 		all		= hosts|clients|web|config
 	} json_acl;
 
-	bool populate_json( cppcms::json::value &obj, int _json_acl );
+	// These may throw exceptions.
+	void populate_json(cppcms::json::value &obj, int _json_acl);
+	void unpopulate_json(cppcms::json::value &obj);
+
 	std::string save_json_status( bool readable );
 	std::string save_json_config( bool readable );
+
+	//
+	bool load_configuration();
 
 	// lists with associated mutex
 	stdt::mutex m_mutex_list;
@@ -109,8 +116,9 @@ public:
 	int m_port;
 	std::string m_ip4_mask;
 	bool m_debug;
+	cppcms::json::value m_current_setup; // Stop and start services to match this.
 
-	// Own name to be used for generating own certifcate.
+	// Own name to be used for generating own certificate.
 	std::string m_name;
 
 	// The returned value here can be used for the duration of this transaction without being removed or moved.
@@ -124,6 +132,7 @@ public:
 	std::error_code SetupCertificates( boost::asio::ip::tcp::socket &_remote_socket, const std::string &_connection_name, bool _server, std::error_code& ec );
 
 	bool certificate_available( const std::string &_cert_name);
+	bool execute_openssl();
 
 protected:
 

@@ -24,11 +24,13 @@
 PluginHandler standard_plugin("");
 proxy_global global;
 
+
+
 proxy_global::proxy_global()
 {
 	this->m_port = 8085; // Default
 	this->m_ip4_mask = "0.0.0.0";
-	this->m_debug = false;	
+	this->m_debug = false;
 }
 
 //-----------------------------------
@@ -57,6 +59,11 @@ void proxy_global::lock()
 
 void proxy_global::unlock()
 {
+}
+
+
+void proxy_global::stopall()
+{
 	stdt::lock_guard<stdt::mutex> l(this->m_mutex_list);
 	DOUT("sockethandler.StopAll()");
 	for ( auto iter = this->remotehosts.begin(); iter != this->remotehosts.end(); iter++ )
@@ -76,11 +83,42 @@ void proxy_global::unlock()
 }
 
 
+void proxy_global::unpopulate_json( cppcms::json::value &obj )
+{
+	stdt::lock_guard<stdt::mutex> l(this->m_mutex_list);
+
+	for ( auto iter = this->localclients.begin(); iter != this->localclients.end(); )
+	{
+		bool keep = false;
+		if ( obj["clients"].type() == cppcms::json::is_array )
+		{
+			cppcms::json::array clients = obj["clients"].array();
+			for ( auto &client : clients )
+			{
+				int client_port = check_int( client, "port", -1, true );
+				if ( (*iter)->port() == client_port )
+				{
+					keep = true; // Do some other checking as well.
+				}
+			}
+		}
+		if (keep)
+		{
+			iter++;
+		}
+		else
+		{
+			DOUT("Stopping and removing client on port: " << (*iter)->port() );
+			(*iter)->stop();
+			iter = this->localclients.erase(iter);
+		}
+	}
+}
 
 
 // The function will check for each of the main entries. If a main entry exists, then it is will overwrite, i.e. destroy any existing information.
 // NB!! This should not be called while threads are active.
-bool proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
+void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 {
 	stdt::lock_guard<stdt::mutex> l(this->m_mutex_list);
 	if ( (_json_acl & clients) > 0 && obj["clients"].type() == cppcms::json::is_array )
@@ -226,7 +264,6 @@ bool proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 		cppcms::utils::check_string( config_obj, "name", this->m_name );
 		cppcms::utils::check_bool( config_obj, "debug", this->m_debug );
 	}
-	return true;
 }
 
 	
@@ -346,6 +383,126 @@ std::string proxy_global::save_json_status( bool readable )
 	std::ostringstream os;
 	glob.save( os, readable );
 	return os.str();
+}
+
+
+bool proxy_global::execute_openssl()
+{
+	std::string params;
+#ifdef _WIN32
+	params = " -config openssl.cnf ";
+#endif
+	int res = process::execute_process( "openssl", " req " + params + "-x509 -nodes -days 10000 -subj /C=DK/ST=Denmark/L=GateHouse/CN=" + this->m_name + " -newkey rsa:1024 -keyout my_private_key.pem -out my_public_cert.pem "
+	, [&](const std::string &_out) { DOUT(_out); }
+	, [&](const std::string &_err) { DERR(_err); }
+	);
+	DOUT("Execute openssl result: " << res);
+	return res == 0;
+}
+
+
+//
+bool proxy_global::load_configuration()
+{
+	static int openssl_count = 0;
+	std::string certificate_common_name;
+	try
+	{
+		{
+			int line = 0;
+			cppcms::json::value my_object;
+			std::ifstream ifs( config_filename );
+			ASSERTE(my_object.load( ifs, false, &line ), uniproxy::error::parse_file_failed, config_filename + " on line: " + mylib::to_string(line));
+			this->populate_json(my_object,proxy_global::config|proxy_global::web);
+		}
+		ASSERTE(!this->m_name.empty(),uniproxy::error::certificate_name_unknown, config_filename + " should contain \"config\" : { \"name\" : \"own_certificate_name\" }" );
+
+		// NB!! For these we should not overwrite any existing files. If the files exist, but there is an error in them we need to get user interaction ??
+		bool load_private = false;
+		bool load_public = false;
+		{
+			std::ifstream ifs( my_private_key_name );
+			if ( ifs.good() )
+			{
+				boost::system::error_code ec1,ec2;
+				boost::asio::ssl::context ctx(boost::asio::ssl::context_base::sslv23);
+				ctx.use_private_key_file(my_private_key_name,boost::asio::ssl::context_base::file_format::pem,ec1);
+				ctx.use_certificate_file(my_public_cert_name,boost::asio::ssl::context_base::file_format::pem,ec2);
+				load_private = !ec1 && !ec2;
+				DOUT("Private handling: " << load_private << " 1:" << ec1 << " " << (ec1) << " " << !ec1 << " 2:" << ec2 << " " << (ec2) << " " << !ec2 );
+				if (!load_private)
+				{
+					log().add("Found private file which does NOT contain a valid private key. Delete file: " + my_private_key_name + " and try again");
+				}
+			}
+		}
+		{
+			std::vector<certificate_type> certs;
+			load_public = load_certificates_file( my_public_cert_name, certs ) && certs.size() > 0;
+			if ( load_public )
+			{
+				certificate_common_name = get_common_name(certs[0]);
+				DOUT("Found own private certificate with name: \"" << certificate_common_name + "\"" );
+				if ( this->m_name == certificate_common_name )
+				{
+					DOUT("Certificate do match own name");
+				}
+				else
+				{
+					log().add("Own name \"" + this->m_name + "\" does not match own certificate \"" + certificate_common_name + "\"");
+					//throw std::runtime_error("Own name \"" + this->m_name + "\" does not match own certificate \"" + certificate_common_name + "\"" );
+				}
+			}
+		}
+		if ( ! (load_private && load_public) )
+		{
+			if ( this->m_name.length() == 0 )
+			{
+				throw std::runtime_error("certificate files not found and cannot be generated because the name is not specified in the configuration json file" );
+			}
+			if ( this->execute_openssl() )
+			{
+				// NB!! We should now be ready to try once again. Can we end up in an endless loop here ? Guard anyway.
+				if ( ++openssl_count < 3 )
+				{
+					log().add("Succesfully executed the initial OpenSSL command");
+					throw mylib::reload_exception();
+				}
+				log().add("Unkown fatal error, possibly endless loop!");
+			}
+			else
+			{
+				log().add("Failed to execute initial OpenSSL command. Is OpenSSL properly installed and available in the path");
+			}
+		}
+		{	// Sort of a safe create if not exist
+			std::ifstream ifs( my_certs_name );
+			if ( !ifs.good() )
+			{
+				std::ofstream ofs( my_certs_name );
+			}
+		}
+
+		// 
+		if ( this->m_name.length() > 0 && this->m_name == certificate_common_name )
+		{
+			int line;
+			cppcms::json::value my_object;
+			std::ifstream ifs( config_filename );
+			if (!my_object.load( ifs, false, &line ) )
+			{
+				log().add("Failed to load and parse configuration file: " + config_filename + " on line: " + mylib::to_string(line));
+			}
+			this->populate_json(my_object,proxy_global::all);
+		}
+		this->load_certificate_names( my_certs_name );
+	}
+	catch( std::exception exc )
+	{
+		
+		return false;
+	}
+	return true;
 }
 
 

@@ -34,12 +34,12 @@ ENDIF (WIN32)
 
 set( uniproxy_cpp_SOURCES
 	../src/main.cpp
+	../src/proxy_global.cpp
 	../src/baseclient.cpp
 	../src/localclient.cpp
 	../src/remoteclient.cpp
 	../src/providerclient.cpp
 	../src/applutil.cpp
-	../src/proxy_global.cpp
 	../libs/gatehouse/pghpplugin.cpp
 	../libs/gatehouse/pghpstartdatarequest.cpp
 	../libs/gatehouse/pghpproxyfilter.cpp

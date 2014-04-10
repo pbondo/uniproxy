@@ -49,7 +49,6 @@ cppcms::service *signal::m_psrv = NULL;
 std::vector<PluginHandler*> *PluginHandler::m_plugins = NULL;
 class cppcms::form c;
 
-std::string config_filename = "uniproxy.json";
 
 
 
@@ -384,21 +383,6 @@ void proxy_app::setup_config( cppcms::json::value &settings_object )
 }
 
 
-bool proxy_app::execute_openssl()
-{
-	std::string params;
-#ifdef _WIN32
-	params = " -config openssl.cnf ";
-#endif
-	int res = process::execute_process( "openssl", " req " + params + "-x509 -nodes -days 10000 -subj /C=DK/ST=Denmark/L=GateHouse/CN=" + global.m_name + " -newkey rsa:1024 -keyout my_private_key.pem -out my_public_cert.pem "
-	, [&](const std::string &_out) { DOUT(_out); }
-	, [&](const std::string &_err) { DERR(_err); }
-	);
-	DOUT("Execute openssl result: " << res);
-	return res == 0;
-}
-
-
 void proxy_app::main(std::string url)
 {
 	try
@@ -460,8 +444,6 @@ const char help_text[] = "Usage: uniproxy [-l/--working-dir=<working directory>]
 
 int main(int argc,char ** argv)
 {
-	int openssl_count = 0;
-
 	if (check_arg( argc, argv, 'h', "help"))
 	{
 		std::cout << help_text << std::endl;
@@ -479,12 +461,11 @@ int main(int argc,char ** argv)
 #endif
 	do
 	{
-		try
+		try // Outer loop for reload exceptions.
 		{
 			srand(time(NULL));
-			new (&global)proxy_global();
+			//new (&global)proxy_global();
 			cppcms::signal::reset_reload();
-			std::string certificate_common_name;
 			log().clear();
 			DOUT( std::string("UniProxy starting in path: ") << boost::filesystem::current_path() << " with parameters:");
 			for (int index = 0; index < argc; index++)
@@ -498,105 +479,10 @@ int main(int argc,char ** argv)
 			{
 				DOUT("Plugin loaded: " << PluginHandler::plugins()[index]->m_type );
 			}
-
+			if (!global.load_configuration())
 			{
-				int line = 0;
-				cppcms::json::value my_object;
-				std::ifstream ifs( config_filename );
-				if ( ! my_object.load( ifs, false, &line ) || !global.populate_json(my_object,proxy_global::config|proxy_global::web) )
-				{
-					log().add("Failed to load and parse configuration file: " + config_filename + " on line: " + mylib::to_string(line) );
-				}
+				log().add("Failed to load configuration"); // Written in global exception handler...?
 			}
-
-			if ( global.m_name.length() > 0 ) // We have a "possibly" valid name.
-			{
-				// NB!! For these we should not overwrite any existing files. If the files exist, but there is an error in them we need to get user interaction ??
-				bool load_private = false, load_public = false;
-				{
-					std::ifstream ifs( my_private_key_name );
-					if ( ifs.good() )
-					{
-						boost::system::error_code ec1,ec2;
-						boost::asio::ssl::context ctx(boost::asio::ssl::context_base::sslv23);
-						ctx.use_private_key_file(my_private_key_name,boost::asio::ssl::context_base::file_format::pem,ec1);
-						ctx.use_certificate_file(my_public_cert_name,boost::asio::ssl::context_base::file_format::pem,ec2);
-						load_private = !ec1 && !ec2;
-						DOUT("Private handling: " << load_private << " 1:" << ec1 << " " << (ec1) << " " << !ec1 << " 2:" << ec2 << " " << (ec2) << " " << !ec2 );
-						if (!load_private)
-						{
-							DOUT("Found private file which does NOT contain a valid private key. Delete file: " << my_private_key_name);
-						}
-					}
-				}
-				{
-					std::vector<certificate_type> certs;
-					load_public = load_certificates_file( my_public_cert_name, certs ) && certs.size() > 0;
-					if ( load_public )
-					{
-						certificate_common_name = get_common_name(certs[0]);
-						DOUT("Found own private certificate with name: \"" << certificate_common_name + "\"" );
-						if ( global.m_name == certificate_common_name )
-						{
-							DOUT("Certificate do match own name");
-						}
-						else
-						{
-							log().add("Own name \"" + global.m_name + "\" does not match own certificate \"" + certificate_common_name + "\"");
-   						//throw std::runtime_error("Own name \"" + global.m_name + "\" does not match own certificate \"" + certificate_common_name + "\"" );
-						}
-					}
-				}
-				if ( ! (load_private && load_public) )
-				{
-					if ( global.m_name.length() == 0 )
-					{
-						throw std::runtime_error("certificate files not found and cannot be generated because the name is not specified in the configuration json file" );
-					}
-					if ( proxy_app::execute_openssl() )
-					{
-						// NB!! We should now be ready to try once again. Can we end up in an endless loop here ? Guard anyway.
-						if ( ++openssl_count < 3 )
-						{
-							log().add("Succesfully executed the initial OpenSSL command");
-							throw mylib::reload_exception();
-						}
-						log().add("Unkown fatal error, possibly endless loop!");
-					}
-					else
-					{
-						log().add("Failed to execute initial OpenSSL command. Is OpenSSL properly installed and available in the path");
-					}
-				}
-				{
-					std::ifstream ifs( my_certs_name );
-					if ( !ifs.good() )
-					{
-						std::ofstream ofs( my_certs_name );
-					}
-				}
-			}
-			else
-			{
-				log().add( "Failed to load own name from configuration file at: global : { name : value }");
-			}
-
-			// 
-			if ( global.m_name.length() > 0 && global.m_name == certificate_common_name )
-			{
-				int line;
-				cppcms::json::value my_object;
-				std::ifstream ifs( config_filename );
-				if (!my_object.load( ifs, false, &line ) )
-				{
-					log().add("Failed to load and parse configuration file: " + config_filename + " on line: " + mylib::to_string(line));
-				}
-				if (!global.populate_json(my_object,proxy_global::all))
-				{
-					log().add("Failed to populate configuration");
-				}
-			}
-			global.load_certificate_names( my_certs_name );
 			stdt::lock_guard<proxy_global> lock(global);
 
 			DOUT( "Loaded config: " << global.save_json_config( true ) );
@@ -626,6 +512,8 @@ int main(int argc,char ** argv)
 		}
 	}
 	while( cppcms::signal::reload() );
+	DOUT( "Stop all connections" );
+	global.stopall();
 	DOUT( "Application stopping" );
 	return 0;
 }

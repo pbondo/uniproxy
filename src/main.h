@@ -70,9 +70,9 @@ public:
 	void certificate_delete(const std::string);
 
 	static void setup_config( cppcms::json::value &_settings );
-	static bool execute_openssl();
 
 };
+
 
 namespace cppcms
 {

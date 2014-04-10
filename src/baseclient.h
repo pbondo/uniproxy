@@ -60,6 +60,8 @@ public:
 	bool m_active;
 	ssl_socket *mp_remote_socket;
 	data_flow m_count_in, m_count_out;
+	
+	int port() const { return this->m_local_port; }
 
 protected:
 
