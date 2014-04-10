@@ -309,9 +309,10 @@ typedef boost::asio::ssl::stream<boost::asio::ip::tcp::socket> ssl_socket;
 
 #define TRY_CATCH( xxx ) try { xxx; } catch ( std::exception &exc ) { DOUT("Exception:" << exc.what()); }
 
-const char my_public_cert_name[] = "my_public_cert.pem";
-const char my_private_key_name[] = "my_private_key.pem";
-const char my_certs_name[] = "certs.pem";
+const std::string my_public_cert_name = "my_public_cert.pem";
+const std::string my_private_key_name = "my_private_key.pem";
+const std::string my_certs_name = "certs.pem";
+const std::string config_filename = "uniproxy.json";
 
 class data_flow
 {

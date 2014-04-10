@@ -108,7 +108,7 @@ Status.prototype.do_add_lines = function( text )
 	{
 		if (this.line_count > 30)
 		{
-			for( ; this.line_count - this.erase_count > 900; this.erase_count++)
+			for( ; this.line_count - this.erase_count > 100; this.erase_count++)
 			{
 				// Dont use this one. It takes a long time. jQuery('div').remove('#a' + erase_count);
 				jQuery('div.#a' + this.erase_count ).remove();

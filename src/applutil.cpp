@@ -449,7 +449,7 @@ void proxy_log::add( const std::string &_value )
 	stdt::lock_guard<stdt::mutex> l(this->m_mutex);
 	this->m_log.push_back(std::make_pair(this->m_write_index++, mylib::time_stamp() + ": " + _value));
 	this->m_logfile << mylib::time_stamp() << ": " << _value << std::endl;
-	while (this->m_log.size() > 40)
+	while (this->m_log.size() > 50)
 	{
 		this->m_log.erase(this->m_log.begin());
 	}
