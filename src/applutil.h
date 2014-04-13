@@ -68,9 +68,9 @@ public:
 std::error_code make_error_code(uniproxy::error::error_t e);
 std::error_condition make_error_condition(uniproxy::error::error_t e);
 
-
 namespace mylib
 {
+typedef unsigned short port_type;
 	
 std::ostream &dout();
 std::ostream &derr();
@@ -156,11 +156,18 @@ public:
 		}
 	}
 
+	~thread()
+	{
+		if ( this->m_thread.joinable() )
+		{
+			this->m_thread.join();
+		}
+	}
+
 	// Notice we cannot restart a thread even if it has terminated.
-	//
+	// _conditional indicates that we should ignore threads already running.
 	void start( std::function<void()> _thread_function )
 	{
-		//ASSERTD( !this->m_thread.joinable(), "Attempting to restart a thread, this cannot be done." );
 		ASSERTE( !this->m_thread.joinable(), uniproxy::error::thread_already_running, "" );
 		this->m_stop = false;
 		this->m_thread_function = _thread_function;
@@ -172,7 +179,7 @@ public:
 	{
 		this->m_stop = true;
 		// NB!! Check if we are self threading. then we should simply call check_run
-		if ( this->m_interrupt_function != NULL )
+		if ( this->m_interrupt_function != nullptr )
 		{
 			this->m_interrupt_function();
 		}
@@ -195,7 +202,13 @@ public:
 
 	void sleep( int millisec )
 	{
-		this->check_run();
+		const int SLEEP = 5000;
+		while(millisec >= SLEEP)
+		{
+			this->check_run();
+			msleep(SLEEP);
+			millisec -= SLEEP;
+		}
 		msleep(millisec);
 		this->check_run();
 	}
@@ -217,7 +230,7 @@ public:
 		}
 		#else
 			//NB!! #warning "thread::is_running is Not Implemented"
-
+XX XX
 		#endif
 		return result;
 	}
@@ -404,19 +417,25 @@ class ProxyEndpoint
 {
 public:
 
-	ProxyEndpoint( bool _active, const std::string &_name, const std::string &_hostname, int _port )
-	: m_active(_active), m_name(_name), m_hostname(_hostname), m_port(_port)
+	ProxyEndpoint( //bool _active, 
+		const std::string &_name, const std::string &_hostname, int _port )
+	: //m_active(_active), 
+		m_name(_name), m_hostname(_hostname), m_port(_port)
 	{
 	}
+	
+	ProxyEndpoint();
 
-	bool m_active;
+	//bool m_active = true;
 	std::string m_name;
 	std::string m_hostname;
-	int m_port;
+	mylib::port_type m_port = 0;
 
+	bool load(cppcms::json::value &obj);
+	
 };
 
-
+bool operator == (const ProxyEndpoint &ep1, const ProxyEndpoint &ep2);
 
 class Buffer
 {
@@ -506,8 +525,8 @@ private:
 };
 
 
-int check_int( cppcms::json::value &_input_obj, const std::string &_inputname, const int _default_value, bool _required );
-std::string check_string( cppcms::json::value &_input_obj, const std::string &_inputname, const std::string & _default_value, bool _required );
+//int check_int( cppcms::json::value &_input_obj, const std::string &_inputname, const int _default_value, bool _required );
+//std::string check_string( cppcms::json::value &_input_obj, const std::string &_inputname, const std::string & _default_value, bool _required );
 int check_int( const char *_input);
 std::string check_ip4( const std::string &_input );
 

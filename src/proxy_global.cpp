@@ -59,6 +59,9 @@ void proxy_global::lock()
 
 void proxy_global::unlock()
 {
+	DOUT(__FUNCTION__ << ":" << __LINE__);
+	this->unpopulate_json(this->m_new_setup);
+	DOUT(__FUNCTION__ << ":" << __LINE__);
 }
 
 
@@ -83,6 +86,62 @@ void proxy_global::stopall()
 }
 
 
+bool proxy_global::is_provider(const BaseClient &client) const
+{
+	return dynamic_cast<const ProviderClient*>(&client) != nullptr;
+}
+
+bool has_array(const cppcms::json::value &obj, const std::string &name)
+{
+	cppcms::json::value res = obj.find( name );
+	return res.type() == cppcms::json::is_array;
+}
+
+
+bool proxy_global::is_same( const BaseClient &client, cppcms::json::value &obj1, bool &param_changed, bool &remotes_changed ) const
+{
+	param_changed = false;
+	remotes_changed = false;
+	mylib::port_type client_port = 0;
+	cppcms::utils::check_port( obj1, "port", client_port );
+	if ( client.port() != client_port ) return false;
+	if ( client_port > 0 || (client_port == 0 && this->is_provider(client)))
+	{
+		remotes_changed = true;
+		cppcms::json::value res = obj1.find( "remotes" );
+		if (res.type() == cppcms::json::is_array)
+		{
+			int i1 = res.array().size();
+			if ( i1 == client.m_proxy_endpoints.size())
+			{
+				remotes_changed = false;
+				for (int index = 0; index < client.m_proxy_endpoints.size(); index++)
+				{				
+					ProxyEndpoint ep;
+					if (!ep.load(res[index]) || !(ep == client.m_proxy_endpoints[index]) )
+					{
+						remotes_changed = true;
+					}
+				}
+			}
+		}
+		// param_changes, we should set.
+		if (! (client.m_active == cppcms::utils::check_bool(obj1,"active",true,false)))
+		{
+			param_changed = true;
+		}
+		return true;
+	}
+	return false;
+}
+
+
+bool proxy_global::is_same( const RemoteProxyHost &host, cppcms::json::value &obj, bool &param_changes, bool &connection_changes ) const
+{
+	return false;
+}
+
+
 void proxy_global::unpopulate_json( cppcms::json::value &obj )
 {
 	stdt::lock_guard<stdt::mutex> l(this->m_mutex_list);
@@ -95,15 +154,17 @@ void proxy_global::unpopulate_json( cppcms::json::value &obj )
 			cppcms::json::array clients = obj["clients"].array();
 			for ( auto &client : clients )
 			{
-				int client_port = check_int( client, "port", -1, true );
-				if ( (*iter)->port() == client_port )
+				bool param = false;
+				bool connections = false;
+				if (this->is_same(*(*iter),client,param,connections))
 				{
-					keep = true; // Do some other checking as well.
+					keep = !(param || connections);
 				}
 			}
 		}
 		if (keep)
 		{
+			DOUT("keeping client on port: " << (*iter)->port() );
 			iter++;
 		}
 		else
@@ -113,6 +174,14 @@ void proxy_global::unpopulate_json( cppcms::json::value &obj )
 			iter = this->localclients.erase(iter);
 		}
 	}
+	for ( auto iter = this->remotehosts.begin(); iter != this->remotehosts.end(); iter++ )
+	{
+		DOUT("remotehost.Stop()");
+		remotehost_ptr p = *iter;
+		RemoteProxyHost* p2 = p.get();
+		p2->stop();
+	}
+	this->remotehosts.clear();
 }
 
 
@@ -123,21 +192,29 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 	stdt::lock_guard<stdt::mutex> l(this->m_mutex_list);
 	if ( (_json_acl & clients) > 0 && obj["clients"].type() == cppcms::json::is_array )
 	{
-		this->localclients.clear();
+		DOUT(__FUNCTION__ << " populating clients");
+		//this->localclients.clear();
 		cppcms::json::array ar = obj["clients"].array();
 		for ( auto iter1 = ar.begin(); iter1 != ar.end(); iter1++ )
 		{
-			int help;
 			auto &item1 = *iter1;
 			bool active = cppcms::utils::check_bool( item1, "active", true, false );
-			int client_port = check_int( item1, "port", -1, true );
+			mylib::port_type client_port = cppcms::utils::check_int( item1, "port", 0, true );
+			auto iter_cur = std::find_if(this->localclients.begin(),this->localclients.end(),[&](const baseclient_ptr& client){ return client_port == client->port();});
+			if (iter_cur != this->localclients.end())
+			{
+				DOUT("Found existing running client on port: " << client_port);
+				continue;
+			}
+
+			int help;
 			bool provider = cppcms::utils::check_bool( item1, "provider", false, false );
 			boost::posix_time::time_duration read_timeout = boost::posix_time::minutes(5);
 			if (cppcms::utils::check_int( item1, "timeout", help ) && help > 0)
 			{
 				read_timeout = boost::posix_time::minutes(help);
 			}
-			int max_connections = check_int( item1, "max_connections", 1, false );
+			int max_connections = cppcms::utils::check_int( item1, "max_connections", 1, false );
 			std::vector<ProxyEndpoint> proxy_endpoints, provider_endpoints;
 			if ( item1["remotes"].type() == cppcms::json::is_array )
 			{
@@ -145,12 +222,14 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 				for ( auto iter2 = ar2.begin(); iter2 != ar2.end(); iter2++ )
 				{
 					auto &item2 = *iter2;
-					ProxyEndpoint ep( cppcms::utils::check_bool( item2, "active", true, false ), 
+					ProxyEndpoint ep;
+					/*( //cppcms::utils::check_bool( item2, "active", true, false ), 
 										check_string( item2, "name", "", true ), 
 										check_string( item2, "hostname", "", true),
 										check_int(item2,"port",-1,true) 
-										);
-					if (ep.m_active)
+										);*/
+					//if (ep.m_active)
+					if (ep.load(item2))
 					{
 						proxy_endpoints.push_back( ep );
 					}
@@ -164,12 +243,13 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 					for ( auto iter2 = ar2.begin(); iter2 != ar2.end(); iter2++ )
 					{
 						auto &item2 = *iter2;
-						ProxyEndpoint ep( cppcms::utils::check_bool( item2, "active", true, false ), 
+						ProxyEndpoint ep; /*( //cppcms::utils::check_bool( item2, "active", true, false ), 
 											check_string( item2, "name", "", false ), 
 											check_string( item2, "hostname", "", true),
 											check_int(item2,"port",-1,true) 
-											);
-						if (ep.m_active)
+											);*/
+						//if (ep.m_active)
+						if (ep.load(item2))
 						{
 							provider_endpoints.push_back( ep );
 						}
@@ -204,7 +284,7 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 		{
 			auto &item1 = *iter1;
 			// We must have a port number and at least one local address and one remote address
-			int host_port = check_int( item1, "port", -1, true );
+			mylib::port_type host_port = cppcms::utils::check_int( item1, "port", 0, true );
 			std::vector<Address> local_endpoints;
 			if ( item1["locals"].type() == cppcms::json::is_array )
 			{
@@ -212,8 +292,8 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 				for ( auto iter2 = ar2.begin(); iter2 != ar2.end(); iter2++ )
 				{
 					auto &item2 = *iter2;
-					Address addr( 	check_string( item2, "hostname", "", true ), 
-									check_int( item2, "port", -1, true ) );
+					Address addr( cppcms::utils::check_string( item2, "hostname", "", true ), 
+									cppcms::utils::check_int( item2, "port", 0, true ) );
 					local_endpoints.push_back( addr );
 				}
 			}
@@ -225,16 +305,16 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 				{
 					auto &item2 = *iter2;
 					RemoteEndpoint ep( cppcms::utils::check_bool( item2, "active", true, false ), 
-										check_string( item2, "name", "", false ), 
-										check_string( item2, "hostname", "", true),
-										check_string( item2, "username", "", false), 
-										check_string( item2, "password", "", false ) );						
+										cppcms::utils::check_string( item2, "name", "", false ), 
+										cppcms::utils::check_string( item2, "hostname", "", true),
+										cppcms::utils::check_string( item2, "username", "", false), 
+										cppcms::utils::check_string( item2, "password", "", false ) );						
 					remote_endpoints.push_back( ep );
 				}
 			}
 			// Check size > 0
 			PluginHandler *plugin = &standard_plugin;
-			std::string plugin_type = check_string( item1, "type", "", false );
+			std::string plugin_type = cppcms::utils::check_string( item1, "type", "", false );
 			if ( plugin_type.length() > 0 )
 			{
 				for ( auto iter3 = PluginHandler::plugins().begin(); iter3 != PluginHandler::plugins().end(); iter3++ )
@@ -256,7 +336,7 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 	if ( (_json_acl & web) > 0 && obj["web"].type() == cppcms::json::is_object )
 	{
 		cppcms::json::value &web_obj( obj["web"] );
-		cppcms::utils::check_int( web_obj, "port", this->m_port );
+		cppcms::utils::check_port( web_obj, "port", this->m_port );
 	}
 	if ( (_json_acl & config) > 0 && obj["config"].type() == cppcms::json::is_object )
 	{
@@ -487,13 +567,13 @@ bool proxy_global::load_configuration()
 		if ( this->m_name.length() > 0 && this->m_name == certificate_common_name )
 		{
 			int line;
-			cppcms::json::value my_object;
+			this->m_new_setup.null(); // Reset to ensure we don't have undefined behaviour.
 			std::ifstream ifs( config_filename );
-			if (!my_object.load( ifs, false, &line ) )
+			if (!this->m_new_setup.load( ifs, false, &line ) )
 			{
 				log().add("Failed to load and parse configuration file: " + config_filename + " on line: " + mylib::to_string(line));
 			}
-			this->populate_json(my_object,proxy_global::all);
+			this->populate_json(this->m_new_setup,proxy_global::all);
 		}
 		this->load_certificate_names( my_certs_name );
 	}

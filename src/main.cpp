@@ -313,8 +313,6 @@ void proxy_app::client_activate(const std::string _param, const std::string _id)
 				{
 					p->m_activate_stamp = boost::get_system_time() + boost::posix_time::seconds( 60 );
 					p->m_proxy_index = index;
-					//global.m_thread.stop();
-					//global.m_thread.start( p->m_local_port );
 					p->stop_activate();
 					p->start_activate(index);
 					break;

@@ -27,13 +27,13 @@ class Address
 {
 public:
 
-	Address( const std::string &_hostname, const int _port )
+	Address( const std::string &_hostname, const mylib::port_type _port )
 	: m_hostname( _hostname ), m_port( _port )
 	{
 	}
 
 	std::string m_hostname;
-	int m_port;
+	mylib::port_type m_port;
 
 };
 
@@ -96,7 +96,7 @@ class RemoteProxyHost
 {
 public:
 
-	RemoteProxyHost( unsigned short _local_port, std::vector<RemoteEndpoint> &_remote_ep, std::vector<Address> &_local_ep, PluginHandler &_plugin ); //= NULL );
+	RemoteProxyHost( mylib::port_type _local_port, std::vector<RemoteEndpoint> &_remote_ep, std::vector<Address> &_local_ep, PluginHandler &_plugin ); //= NULL );
 
 	void handle_accept( RemoteProxyClient* new_session, const boost::system::error_code& error);
 
@@ -123,7 +123,7 @@ public:
 
 	boost::posix_time::ptime m_activate_stamp;
 	std::string m_activate_name;
-	int m_local_port;
+	mylib::port_type m_local_port;
 
 protected:
 

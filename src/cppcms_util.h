@@ -25,7 +25,7 @@ namespace cppcms {
 
 class utils
 {
-public:
+	public:
 
 
 static bool check_int( cppcms::json::value &_input_obj, const std::string &_inputname, int &result )
@@ -49,7 +49,18 @@ static bool check_int( cppcms::json::value &_input_obj, const std::string &_inpu
 	}
 	return false;
 }
-	
+
+
+static bool check_port( cppcms::json::value &_input_obj, const std::string &_inputname, unsigned short &result )
+{
+	int value;
+	if (check_int(_input_obj,_inputname,value))
+	{
+		result = value;
+		return true;
+	}
+	return false;
+}
 
 static int check_int( cppcms::json::value &_input_obj, const std::string &_inputname, const int _default_value, bool _required )
 {

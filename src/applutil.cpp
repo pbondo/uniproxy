@@ -17,6 +17,7 @@
 // mailto:gh@gatehouse.dk
 //====================================================================
 #include "applutil.h"
+#include "cppcms_util.h"
 #include <fstream>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string/regex.hpp>
@@ -722,3 +723,32 @@ int process::execute_process( const std::string& _command, const std::string& _p
 	exit_code = bp::wait_for_exit(*pc);
 	return exit_code;
 }
+
+
+//------------------------------
+
+ProxyEndpoint::ProxyEndpoint()
+{
+}
+
+
+bool ProxyEndpoint::load(cppcms::json::value &obj)
+{
+	if (obj.type() == cppcms::json::is_object)
+	{
+		cppcms::utils::check_port(obj,"port",this->m_port);
+		//cppcms::utils::check_bool(obj,"active",this->m_active);
+		cppcms::utils::check_string(obj,"hostname",this->m_hostname);
+		cppcms::utils::check_string(obj,"name",this->m_name);
+		return true;
+	}
+	return false;
+}
+
+
+bool operator == (const ProxyEndpoint &ep1, const ProxyEndpoint &ep2)
+{
+	return ep1.m_port == ep2.m_port //&& ep1.m_active == ep2.m_active 
+		&& ep1.m_name == ep2.m_name && ep1.m_hostname == ep2.m_hostname;
+}
+
