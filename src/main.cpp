@@ -171,25 +171,6 @@ void proxy_app::host_active(const std::string _param, const std::string _id, con
 				p->stop();
 			}
 			DOUT("Updated active state for: " << id << " new value: " << _checked);
-/*			
-			for ( auto iter = p->m_remote_ep.begin(); iter != p->m_remote_ep.end(); iter++ )
-			{
-				RemoteEndpoint &ep = *iter;
-				if ( ep.m_name == _param )
-				{
-					ep.m_active = (_checked == "true") ? true : false;
-					if (ep.m_active)
-					{
-						p->start(); // NB!! This is NOT correct.
-					}
-					else
-					{
-						p->stop();
-					}
-					DOUT("Updated active state for: " << _param << " new value: " << ep.m_active);
-				}
-			}
-*/
 		}
 	}
 }
@@ -233,7 +214,7 @@ bool check_remove_substr( const std::string &_input, const std::string &_pattern
 
 bool check_url( const std::string &_input, const std::string &_pattern, std::string & _output )
 {
-	boost::regex re; re = _pattern; //(char*)_pattern.c_str();
+	boost::regex re; re = _pattern;
 	boost::cmatch matches;
 	if ( boost::regex_match(_input.c_str(), matches, re) )
 	{
@@ -473,7 +454,6 @@ int main(int argc,char ** argv)
 		try // Outer loop for reload exceptions.
 		{
 			srand(time(NULL));
-			//new (&global)proxy_global();
 			cppcms::signal::reset_reload();
 			log().clear();
 			DOUT( std::string("UniProxy starting in path: ") << boost::filesystem::current_path() << " with parameters:");

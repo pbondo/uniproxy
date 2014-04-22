@@ -117,7 +117,7 @@ bool proxy_global::is_same( const BaseClient &client, cppcms::json::value &obj1,
 				remotes_changed = false;
 				for (int index = 0; index < client.m_proxy_endpoints.size(); index++)
 				{				
-					ProxyEndpoint ep;
+					RemoteEndpoint ep;
 					if (!ep.load(res[index]) || !(ep == client.m_proxy_endpoints[index]) )
 					{
 						remotes_changed = true;
@@ -175,7 +175,7 @@ bool proxy_global::is_same( const RemoteProxyHost &host, cppcms::json::value &ob
 				locals_changed = false;
 				for (int index = 0; index < host.m_local_ep.size(); index++)
 				{
-					Address ep;
+					LocalEndpoint ep;
 					if (!ep.load(res[index]) || !(ep == host.m_local_ep[index]) )
 					{
 						locals_changed = true;
@@ -292,14 +292,15 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 				read_timeout = boost::posix_time::minutes(help);
 			}
 			int max_connections = cppcms::utils::check_int( item1, "max_connections", 1, false );
-			std::vector<ProxyEndpoint> proxy_endpoints, provider_endpoints;
+			std::vector<RemoteEndpoint> proxy_endpoints;
+			std::vector<LocalEndpoint> provider_endpoints;
 			if ( item1["remotes"].type() == cppcms::json::is_array )
 			{
 				auto ar2 = item1["remotes"].array();
 				for ( auto iter2 = ar2.begin(); iter2 != ar2.end(); iter2++ )
 				{
 					auto &item2 = *iter2;
-					ProxyEndpoint ep;
+					RemoteEndpoint ep;
 					/*( //cppcms::utils::check_bool( item2, "active", true, false ), 
 										check_string( item2, "name", "", true ), 
 										check_string( item2, "hostname", "", true),
@@ -320,7 +321,7 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 					for ( auto iter2 = ar2.begin(); iter2 != ar2.end(); iter2++ )
 					{
 						auto &item2 = *iter2;
-						ProxyEndpoint ep; /*( //cppcms::utils::check_bool( item2, "active", true, false ), 
+						LocalEndpoint ep; /*( //cppcms::utils::check_bool( item2, "active", true, false ), 
 											check_string( item2, "name", "", false ), 
 											check_string( item2, "hostname", "", true),
 											check_int(item2,"port",-1,true) 
@@ -362,16 +363,16 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 			auto &item1 = *iter1;
 			// We must have a port number and at least one local address and one remote address
 			mylib::port_type host_port = cppcms::utils::check_int( item1, "port", 0, true );
-			std::vector<Address> local_endpoints;
+			std::vector<LocalEndpoint> local_endpoints;
 			if ( item1["locals"].type() == cppcms::json::is_array )
 			{
 				auto ar2 = item1["locals"].array();
 				for ( auto iter2 = ar2.begin(); iter2 != ar2.end(); iter2++ )
 				{
 					auto &item2 = *iter2;
-					Address addr( cppcms::utils::check_string( item2, "hostname", "", true ), 
-									cppcms::utils::check_int( item2, "port", 0, true ) );
-					local_endpoints.push_back( addr );
+					LocalEndpoint addr; //( cppcms::utils::check_string( item2, "hostname", "", true ), 
+									//cppcms::utils::check_int( item2, "port", 0, true ) );
+					if (addr.load(item2)) local_endpoints.push_back( addr );
 				}
 			}
 			std::vector<RemoteEndpoint> remote_endpoints;
@@ -381,12 +382,12 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 				for ( auto iter2 = ar2.begin(); iter2 != ar2.end(); iter2++ )
 				{
 					auto &item2 = *iter2;
-					RemoteEndpoint ep( //cppcms::utils::check_bool( item2, "active", true, false ), 
-										cppcms::utils::check_string( item2, "name", "", false ), 
-										cppcms::utils::check_string( item2, "hostname", "", true),
-										cppcms::utils::check_string( item2, "username", "", false), 
-										cppcms::utils::check_string( item2, "password", "", false ) );						
-					remote_endpoints.push_back( ep );
+					RemoteEndpoint ep; //( //cppcms::utils::check_bool( item2, "active", true, false ), 
+										//cppcms::utils::check_string( item2, "name", "", false ), 
+										//cppcms::utils::check_string( item2, "hostname", "", true),
+										//cppcms::utils::check_string( item2, "username", "", false), 
+										//cppcms::utils::check_string( item2, "password", "", false ) );						
+					if (ep.load(item2)) remote_endpoints.push_back( ep );
 				}
 			}
 			// Check size > 0

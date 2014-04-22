@@ -23,7 +23,7 @@
 using boost::asio::ip::tcp;
 
 
-ProviderClient::ProviderClient(bool _active, const std::vector<ProxyEndpoint> &_local_endpoints, const std::vector<ProxyEndpoint> &_proxy_endpoints, PluginHandler &_plugin)
+ProviderClient::ProviderClient(bool _active, const std::vector<LocalEndpoint> &_local_endpoints, const std::vector<RemoteEndpoint> &_proxy_endpoints, PluginHandler &_plugin)
 :	BaseClient(_active, 0, _proxy_endpoints, 1, _plugin),
 	m_local_connected_index(0),
 	mp_local_socket( nullptr )

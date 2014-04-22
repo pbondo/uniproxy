@@ -382,21 +382,21 @@ proxy_log &log();
 
 
 
-class Address
+class LocalEndpoint
 {
 public:
 
-	Address( const std::string &_hostname, const mylib::port_type _port )
+	LocalEndpoint( const std::string &_hostname, const mylib::port_type _port )
 	: m_hostname( _hostname ), m_port( _port )
 	{
 	}
 	
-	Address();
+	LocalEndpoint();
 
 	bool load(cppcms::json::value &obj);
 	cppcms::json::value save() const;
 
-	friend bool operator == (const Address &a1, const Address &a2);
+	friend bool operator == (const LocalEndpoint &a1, const LocalEndpoint &a2);
 
 	std::string m_hostname;
 	mylib::port_type m_port = 0;
@@ -413,19 +413,17 @@ public:
 class RemoteEndpoint
 {
 public:
-
-	RemoteEndpoint( //bool _active, 
-		const std::string &_name, const std::string &_remote_hostname, const std::string &_username, const std::string &_password )
-	: //m_active(_active), 
-		m_name(_name), m_hostname( _remote_hostname ), m_username(_username), m_password(_password)
+/*
+	RemoteEndpoint( const std::string &_name, const std::string &_remote_hostname, const std::string &_username, const std::string &_password )
+	: m_name(_name), m_hostname( _remote_hostname ), m_username(_username), m_password(_password)
 	{
 	}
-
+*/
 	RemoteEndpoint()
 	{
 	}
 
-	//bool m_active;
+	mylib::port_type m_port = 0;
 	std::string m_name;
 	std::string m_hostname;
 	std::string m_username;
@@ -438,7 +436,7 @@ public:
 
 };
 
-
+/*
 // Used for describing the remote proxy when defining local clients.
 class ProxyEndpoint
 {
@@ -464,7 +462,7 @@ public:
 	cppcms::json::value save() const;
 	
 };
-
+*/
 
 class Buffer
 {

@@ -36,7 +36,7 @@ public:
 
 	ssl_socket::lowest_layer_type& socket();
 
-	void start( std::vector<Address> &_local_ep );
+	void start( std::vector<LocalEndpoint> &_local_ep );
 	void stop();
 
 	// When terminating these threads e.g. due to lost connections, just leave them as zoombies
@@ -69,7 +69,7 @@ protected:
 	bool m_local_connected, m_remote_connected;
 
 	mylib::thread m_remote_thread, m_local_thread;
-	std::vector<Address> m_local_ep;
+	std::vector<LocalEndpoint> m_local_ep;
 	boost::asio::io_service& m_io_service;
 
 	RemoteProxyHost &m_host;
@@ -82,7 +82,7 @@ class RemoteProxyHost
 {
 public:
 
-	RemoteProxyHost( mylib::port_type _local_port, std::vector<RemoteEndpoint> &_remote_ep, std::vector<Address> &_local_ep, PluginHandler &_plugin ); //= NULL );
+	RemoteProxyHost( mylib::port_type _local_port, std::vector<RemoteEndpoint> &_remote_ep, std::vector<LocalEndpoint> &_local_ep, PluginHandler &_plugin );
 
 	void handle_accept( RemoteProxyClient* new_session, const boost::system::error_code& error);
 
@@ -104,7 +104,7 @@ public:
 	stdt::mutex m_mutex;
 	std::vector<RemoteProxyClient*> m_clients; // NB!! This should be some shared_ptr or so ??
 	std::vector<RemoteEndpoint> m_remote_ep;
-	std::vector<Address> m_local_ep;
+	std::vector<LocalEndpoint> m_local_ep;
 	PluginHandler &m_plugin;
 
 	boost::posix_time::ptime m_activate_stamp;

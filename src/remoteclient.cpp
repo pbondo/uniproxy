@@ -97,7 +97,7 @@ ssl_socket::lowest_layer_type& RemoteProxyClient::socket()
 }
 
 
-void RemoteProxyClient::start( std::vector<Address> &_local_ep )
+void RemoteProxyClient::start( std::vector<LocalEndpoint> &_local_ep )
 {
 	this->m_local_ep = _local_ep;
 	this->m_remote_thread.start( [&]{ this->remote_threadproc(); } );
@@ -299,7 +299,7 @@ void RemoteProxyClient::remote_threadproc()
 }
 
 
-RemoteProxyHost::RemoteProxyHost( unsigned short _local_port, std::vector<RemoteEndpoint> &_remote_ep, std::vector<Address> &_local_ep, PluginHandler &_plugin )
+RemoteProxyHost::RemoteProxyHost( unsigned short _local_port, std::vector<RemoteEndpoint> &_remote_ep, std::vector<LocalEndpoint> &_local_ep, PluginHandler &_plugin )
 :	m_io_service(),
 	m_context(m_io_service, boost::asio::ssl::context::sslv23),
 	m_acceptor(m_io_service),
