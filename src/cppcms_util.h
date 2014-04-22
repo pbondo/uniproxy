@@ -189,6 +189,24 @@ static std::string check_string( cppcms::json::value &_input_obj, const std::str
 	return result;
 }
 
+
+static void set_value(cppcms::json::value &obj, const std::string &name, const std::string &value)
+{
+	if (!value.empty())
+	{
+		obj[name] = value;
+	}
+}
+
+
+static void set_value(cppcms::json::value &obj, const std::string &name, const mylib::port_type &value)
+{
+	if (value > 0)
+	{
+		obj[name] = value;
+	}
+}
+
 };
 } // namespaces
 

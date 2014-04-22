@@ -162,6 +162,16 @@ void proxy_app::host_active(const std::string _param, const std::string _id, con
 		int id;
 		if (p->m_id == mylib::from_string(_id,id) )
 		{
+			if (_checked == "true")
+			{
+				p->start();
+			}
+			else
+			{
+				p->stop();
+			}
+			DOUT("Updated active state for: " << id << " new value: " << _checked);
+/*			
 			for ( auto iter = p->m_remote_ep.begin(); iter != p->m_remote_ep.end(); iter++ )
 			{
 				RemoteEndpoint &ep = *iter;
@@ -179,6 +189,7 @@ void proxy_app::host_active(const std::string _param, const std::string _id, con
 					DOUT("Updated active state for: " << _param << " new value: " << ep.m_active);
 				}
 			}
+*/
 		}
 	}
 }

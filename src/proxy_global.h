@@ -137,7 +137,7 @@ public:
 	bool is_provider(const BaseClient &client) const;
 
 	bool is_same( const BaseClient &client, cppcms::json::value &obj, bool &param_changes, bool &client_changes ) const;
-	bool is_same( const RemoteProxyHost &host, cppcms::json::value &obj, bool &param_changes, bool &client_changes ) const;
+	bool is_same( const RemoteProxyHost &host, cppcms::json::value &obj, bool &param_changes, bool &client_changes, bool &locals_changed ) const;
 
 
 protected:

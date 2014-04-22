@@ -42,7 +42,7 @@ void proxy_global::lock()
 	for ( auto iter = this->remotehosts.begin(); iter != this->remotehosts.end(); iter++ )
 	{
 		remotehost_ptr p = *iter;
-		DOUT("Starting remotehost at: " << p->m_local_port ); //m_acceptor.local_endpoint() );
+		DOUT("Starting remotehost at: " << p->port() ); //m_acceptor.local_endpoint() );
 		p->start();
 	}
 	for ( auto iter = this->localclients.begin(); iter != this->localclients.end(); iter++ )
@@ -136,8 +136,61 @@ bool proxy_global::is_same( const BaseClient &client, cppcms::json::value &obj1,
 }
 
 
-bool proxy_global::is_same( const RemoteProxyHost &host, cppcms::json::value &obj, bool &param_changes, bool &connection_changes ) const
+bool proxy_global::is_same( const RemoteProxyHost &host, cppcms::json::value &obj, bool &param_changed, bool &remotes_changed, bool &locals_changed ) const
 {
+	param_changed = false;
+	remotes_changed = false;
+	locals_changed = false;
+	mylib::port_type host_port = 0;
+	cppcms::utils::check_port( obj, "port", host_port );
+	if ( host.port() != host_port ) return false;
+	if ( host_port > 0)
+	{
+		remotes_changed = true;
+		cppcms::json::value res = obj.find( "remotes" );
+		if (res.type() == cppcms::json::is_array)
+		{
+			int i1 = res.array().size();
+			if ( i1 == host.m_remote_ep.size())
+			{
+				remotes_changed = false;
+				for (int index = 0; index < host.m_remote_ep.size(); index++)
+				{
+					RemoteEndpoint ep;
+					if (!ep.load(res[index]) || !(ep == host.m_remote_ep[index]) )
+					{
+						remotes_changed = true;
+					}
+				}
+			}
+		}
+		// Check for local connection changes.
+		locals_changed = true;
+		res = obj.find( "locals" );
+		if (res.type() == cppcms::json::is_array)
+		{
+			int i1 = res.array().size();
+			if (i1 == host.m_local_ep.size())
+			{
+				locals_changed = false;
+				for (int index = 0; index < host.m_local_ep.size(); index++)
+				{
+					Address ep;
+					if (!ep.load(res[index]) || !(ep == host.m_local_ep[index]) )
+					{
+						locals_changed = true;
+					}
+				}
+			}
+		}
+
+		// param_changes, we should set.
+		if (! (host.m_plugin.m_type == cppcms::utils::check_string(obj,"type","",false)))
+		{
+			param_changed = true;
+		}
+		return true;
+	}
 	return false;
 }
 
@@ -174,14 +227,38 @@ void proxy_global::unpopulate_json( cppcms::json::value &obj )
 			iter = this->localclients.erase(iter);
 		}
 	}
-	for ( auto iter = this->remotehosts.begin(); iter != this->remotehosts.end(); iter++ )
+	for ( auto iter = this->remotehosts.begin(); iter != this->remotehosts.end(); )
 	{
+		bool keep = false;
+		if ( obj["hosts"].type() == cppcms::json::is_array )
+		{
+			cppcms::json::array hosts = obj["hosts"].array();
+			for ( auto &host : hosts )
+			{
+				bool param = false;
+				bool remote_changes = false;
+				bool local_changes = false;
+				if (this->is_same(*(*iter),host,param,remote_changes,local_changes))
+				{
+					keep = !(param || remote_changes || local_changes); // Currently any kind of changes resets
+				}
+			}
+		}
+		if (keep)
+		{
+			DOUT("keeping host on port: " << (*iter)->port() );
+			iter++;
+		}
+		else
+		{
+			DOUT("Stopping and removing host on port: " << (*iter)->port() );
+			remotehost_ptr p = *iter;
+			RemoteProxyHost* p2 = p.get();
+			p2->stop();
+			iter = this->remotehosts.erase(iter);
+		}
 		DOUT("remotehost.Stop()");
-		remotehost_ptr p = *iter;
-		RemoteProxyHost* p2 = p.get();
-		p2->stop();
 	}
-	this->remotehosts.clear();
 }
 
 
@@ -304,7 +381,7 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 				for ( auto iter2 = ar2.begin(); iter2 != ar2.end(); iter2++ )
 				{
 					auto &item2 = *iter2;
-					RemoteEndpoint ep( cppcms::utils::check_bool( item2, "active", true, false ), 
+					RemoteEndpoint ep( //cppcms::utils::check_bool( item2, "active", true, false ), 
 										cppcms::utils::check_string( item2, "name", "", false ), 
 										cppcms::utils::check_string( item2, "hostname", "", true),
 										cppcms::utils::check_string( item2, "username", "", false), 
@@ -409,14 +486,14 @@ std::string proxy_global::save_json_status( bool readable )
 		RemoteProxyHost &host( *this->remotehosts[index] );
 		cppcms::json::object obj_host;
 		obj_host["id"] = host.m_id;
-		obj_host["port"] = host.m_local_port;
+		obj_host["port"] = host.port();
 		obj_host["type"] = host.m_plugin.m_type;
 
 		// Loop through each remote proxy
 		for ( int index2 = 0; index2 < host.m_remote_ep.size(); index2++ )
 		{
 			cppcms::json::object obj;
-			obj["active"] = host.m_remote_ep[index2].m_active;
+			//obj["active"] = host.m_remote_ep[index2].m_active;
 			obj["name"] = host.m_remote_ep[index2].m_name;
 			if (this->certificate_available(host.m_remote_ep[index2].m_name))
 			{
@@ -610,7 +687,7 @@ std::string proxy_global::save_json_config( bool readable )
 		RemoteProxyHost &host( *this->remotehosts[index] );
 		cppcms::json::object obj_host;
 		obj_host["id"] = host.m_id;
-		obj_host["port"] = host.m_local_port; // .m_acceptor.local_endpoint().port();
+		obj_host["port"] = host.port(); // .m_acceptor.local_endpoint().port();
 		obj_host["type"] = host.m_plugin.m_type;
 		for ( int index2 = 0; index2 < host.m_local_ep.size(); index2++ )
 		{
@@ -623,7 +700,7 @@ std::string proxy_global::save_json_config( bool readable )
 		{
 			cppcms::json::object obj;
 			obj["name"] = host.m_remote_ep[index2].m_name;
-			obj["active"] = host.m_remote_ep[index2].m_active;
+			//obj["active"] = host.m_remote_ep[index2].m_active;
 			obj["hostname"] = host.m_remote_ep[index2].m_hostname;
 			obj["username"] = host.m_remote_ep[index2].m_username;
 			obj["password"] = host.m_remote_ep[index2].m_password;
@@ -655,24 +732,20 @@ session_data &proxy_global::get_session_data( cppcms::session_interface &_sessio
 {
 	stdt::lock_guard<stdt::mutex> l(this->m_session_data_mutex);
 	int id;
-	//long pid = (long)(&_session);
 	if ( _session.is_set( "id" ) )
 	{
 		id = mylib::from_string(_session.get( "id" ),id);
-		//DOUT("Session coockie id: " << id );
 	}
 	else
 	{
 		id = rand();
 		_session.set( "id", mylib::to_string(id) );
-		//DOUT("New Session coockie id: " << id);
 	}
 
 	for ( int index = 0; index < this->m_sessions.size(); index++ )
 	{
 		if ( this->m_sessions[index]->m_id == id )
 		{
-			//DOUT("Found session for id: " << id );
 			this->m_sessions[index]->update_timestamp();
 			return *this->m_sessions[index];
 		}

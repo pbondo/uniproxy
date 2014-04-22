@@ -23,20 +23,6 @@
 
 class RemoteProxyHost;
 	
-class Address
-{
-public:
-
-	Address( const std::string &_hostname, const mylib::port_type _port )
-	: m_hostname( _hostname ), m_port( _port )
-	{
-	}
-
-	std::string m_hostname;
-	mylib::port_type m_port;
-
-};
-
 
 //
 // This class handles connection from remote proxy clients
@@ -123,9 +109,11 @@ public:
 
 	boost::posix_time::ptime m_activate_stamp;
 	std::string m_activate_name;
-	mylib::port_type m_local_port;
+
+	mylib::port_type port() const { return this->m_local_port; }
 
 protected:
+	mylib::port_type m_local_port;
 
 	mylib::thread m_thread;
 

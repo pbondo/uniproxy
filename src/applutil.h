@@ -380,17 +380,44 @@ protected:
 
 proxy_log &log();
 
+
+
+class Address
+{
+public:
+
+	Address( const std::string &_hostname, const mylib::port_type _port )
+	: m_hostname( _hostname ), m_port( _port )
+	{
+	}
+	
+	Address();
+
+	bool load(cppcms::json::value &obj);
+	cppcms::json::value save() const;
+
+	friend bool operator == (const Address &a1, const Address &a2);
+
+	std::string m_hostname;
+	mylib::port_type m_port = 0;
+
+};
+
+
+
 // The configured data for each remote connection. Handles each of the "remotes" in the list below.
 //	{	port : 8750, type : "GHP"
-//		locals : [ { ip4 : "127.0.0.1", port : 1234 }, { ip4 : "127.0.0.1", port : 1235 } ], 
-//		remotes : [ { name : "UK", ip4 : "1.2.3.4", username : "uk", password : "cheers" }, { name : "Finland", ip4 : "2.3.4.5", username : "hytli", password : "sauna" } ]
+//		locals : [ { hostname : "127.0.0.1", port : 1234 }, { hostname : "127.0.0.1", port : 1235 } ], 
+//		remotes : [ { name : "UK", name : "1.2.3.4", username : "uk", password : "cheers" }, { name : "Finland", username : "hytli", password : "sauna" } ]
 //	}
 class RemoteEndpoint
 {
 public:
 
-	RemoteEndpoint( bool _active, const std::string &_name, const std::string &_remote_hostname, const std::string &_username, const std::string &_password )
-	: m_active(_active), m_name(_name), m_hostname( _remote_hostname ), m_username(_username), m_password(_password)
+	RemoteEndpoint( //bool _active, 
+		const std::string &_name, const std::string &_remote_hostname, const std::string &_username, const std::string &_password )
+	: //m_active(_active), 
+		m_name(_name), m_hostname( _remote_hostname ), m_username(_username), m_password(_password)
 	{
 	}
 
@@ -398,16 +425,16 @@ public:
 	{
 	}
 
-	bool m_active;
+	//bool m_active;
 	std::string m_name;
 	std::string m_hostname;
 	std::string m_username;
 	std::string m_password;
 
-	friend bool operator==( const RemoteEndpoint &ep1, const RemoteEndpoint &ep2 )
-	{
-		return ep1.m_name == ep2.m_name && ep1.m_hostname == ep2.m_hostname && ep1.m_password == ep2.m_password && ep1.m_username == ep2.m_username;
-	}
+	friend bool operator==( const RemoteEndpoint &ep1, const RemoteEndpoint &ep2 );
+
+	bool load(cppcms::json::value &obj);
+	cppcms::json::value save() const;
 
 };
 
@@ -426,16 +453,18 @@ public:
 	
 	ProxyEndpoint();
 
+	friend bool operator == (const ProxyEndpoint &ep1, const ProxyEndpoint &ep2);
+
 	//bool m_active = true;
 	std::string m_name;
 	std::string m_hostname;
 	mylib::port_type m_port = 0;
 
 	bool load(cppcms::json::value &obj);
+	cppcms::json::value save() const;
 	
 };
 
-bool operator == (const ProxyEndpoint &ep1, const ProxyEndpoint &ep2);
 
 class Buffer
 {
