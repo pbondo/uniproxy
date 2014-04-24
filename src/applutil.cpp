@@ -83,7 +83,7 @@ bool thread::is_thread_running(stdt::thread &th)
 	if (th.joinable())
 	{
 #ifdef __linux__
-		int ret = pthread_kill(this->m_thread.native_handle(), 0);
+		int ret = pthread_kill(th.native_handle(), 0);
 		if (ret == ESRCH)
 		{
 			return false;
