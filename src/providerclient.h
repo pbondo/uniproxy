@@ -30,8 +30,8 @@ class ProviderClient : public BaseClient
 public:
 
 	ProviderClient(bool _active, 
-			const std::vector<ProxyEndpoint> &_local_endpoints, // Local data provider
-			const std::vector<ProxyEndpoint> &_proxy_endpoints, // Remote proxy
+			const std::vector<LocalEndpoint> &_local_endpoints, // Local data provider
+			const std::vector<RemoteEndpoint> &_proxy_endpoints, // Remote proxy
 			PluginHandler &_plugin);
 
 	void start();
@@ -51,7 +51,7 @@ public:
 
 protected:
 
-	std::vector<ProxyEndpoint> m_local_endpoints; // The list of local data providers to connect to in a round robin fashion.
+	std::vector<LocalEndpoint> m_local_endpoints; // The list of local data providers to connect to in a round robin fashion.
 	int m_local_connected_index;
 
 	boost::asio::ip::tcp::socket *mp_local_socket;

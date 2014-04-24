@@ -22,7 +22,7 @@
 
 static int static_local_id = 0;
 
-BaseClient::BaseClient(bool _active, int _local_port, const std::vector<ProxyEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin)
+BaseClient::BaseClient(bool _active, mylib::port_type _local_port, const std::vector<RemoteEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin)
 :	m_proxy_index(0),
 	m_active(_active),
 	mp_remote_socket( nullptr ),
@@ -114,7 +114,7 @@ void BaseClient::threadproc_activate(int index)
 			boost::asio::sockect_connect( remote_socket.lowest_layer(), io_service, this->m_proxy_endpoints[index].m_hostname, this->m_proxy_endpoints[index].m_port );
 			this->m_proxy_index = index;
 
-			ProxyEndpoint &ep = this->m_proxy_endpoints[index];
+			RemoteEndpoint &ep = this->m_proxy_endpoints[index];
 			std::error_code err;
 			this->dolog("Activate Attempting to perform certificate exchange with " + ep.m_name );
 			this->m_activate_stamp = boost::get_system_time(); // Reset to current time to avoid double attempts.

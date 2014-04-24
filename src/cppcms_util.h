@@ -25,7 +25,7 @@ namespace cppcms {
 
 class utils
 {
-public:
+	public:
 
 
 static bool check_int( cppcms::json::value &_input_obj, const std::string &_inputname, int &result )
@@ -49,7 +49,18 @@ static bool check_int( cppcms::json::value &_input_obj, const std::string &_inpu
 	}
 	return false;
 }
-	
+
+
+static bool check_port( cppcms::json::value &_input_obj, const std::string &_inputname, unsigned short &result )
+{
+	int value;
+	if (check_int(_input_obj,_inputname,value))
+	{
+		result = value;
+		return true;
+	}
+	return false;
+}
 
 static int check_int( cppcms::json::value &_input_obj, const std::string &_inputname, const int _default_value, bool _required )
 {
@@ -176,6 +187,24 @@ static std::string check_string( cppcms::json::value &_input_obj, const std::str
 		throw std::runtime_error("Failed to validate JSON input for value " + _inputname + " which is required");
 	}
 	return result;
+}
+
+
+static void set_value(cppcms::json::value &obj, const std::string &name, const std::string &value)
+{
+	if (!value.empty())
+	{
+		obj[name] = value;
+	}
+}
+
+
+static void set_value(cppcms::json::value &obj, const std::string &name, const mylib::port_type &value)
+{
+	if (value > 0)
+	{
+		obj[name] = value;
+	}
 }
 
 };

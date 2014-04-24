@@ -13,6 +13,11 @@ The documentation ie. the requirement specification is available but will not be
 Log:
 ========
 
+24/4-2014 PBondo
+----------------
+Released new version with OpenSSL upgraded for heartbleed potential.
+
+
 9/4-2014 PBondo
 ---------------
 Fix various log issues. Main one being that a large log would overload the client.

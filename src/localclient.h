@@ -53,7 +53,7 @@ class LocalHost : public BaseClient
 {
 public:
 
-	LocalHost(bool _active, int _local_port, const std::vector<ProxyEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin, const boost::posix_time::time_duration &_read_timeout);
+	LocalHost(bool _active, mylib::port_type _local_port, const std::vector<RemoteEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin, const boost::posix_time::time_duration &_read_timeout);
 
 	void start();
 	void stop();

@@ -24,6 +24,8 @@
 using boost::asio::ip::tcp;
 using boost::asio::deadline_timer;
 
+#define DEBUG_LINE() DOUT(__FILE__ << ":" << __FUNCTION__ << ":" << __LINE__ )
+
 LocalHostSocket::LocalHostSocket(LocalHost &_host, boost::asio::ip::tcp::socket *_socket)
 : m_host(_host)
 {
@@ -44,7 +46,7 @@ boost::asio::ip::tcp::socket &LocalHostSocket::socket()
 }
 
 
-LocalHost::LocalHost( bool _active, int _local_port, const std::vector<ProxyEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin, const boost::posix_time::time_duration &_read_timeout )
+LocalHost::LocalHost( bool _active, mylib::port_type _local_port, const std::vector<RemoteEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin, const boost::posix_time::time_duration &_read_timeout )
 :	BaseClient(_active, _local_port, _proxy_endpoints, _max_connections, _plugin),
 	mp_io_service( nullptr ),
 	mp_acceptor( nullptr ),
@@ -87,12 +89,18 @@ std::vector<std::string> LocalHost::local_hostnames() const
 
 void LocalHost::start()
 {
+	if (this->m_thread.is_running())
+	{
+		DOUT("LocalHost already running on port: " << this->port());
+		return;
+	}
 	this->m_thread.start( [this]{ this->threadproc(); } );
 }
 
 
 void LocalHost::stop()
 {
+	this->stop_activate();
 	this->m_thread.stop();
 }
 
@@ -109,7 +117,7 @@ void LocalHost::cleanup()
 			TRY_CATCH( this->m_local_sockets.front()->socket().close(ec) );
 			this->m_local_sockets.erase( this->m_local_sockets.begin() ); // Since we use shared_ptr it should autodelete.
 		}
-		DOUT(__FUNCTION__ << ":" << __LINE__ );
+		DEBUG_LINE();
 	
 		this->mp_acceptor = NULL;
 	}
@@ -117,7 +125,7 @@ void LocalHost::cleanup()
 	{
 		this->dolog( exc.what() );
 	}
-	DOUT(__FUNCTION__ << ":" << __LINE__ );
+	DEBUG_LINE();
 }
 
 
@@ -127,7 +135,7 @@ void LocalHost::interrupt()
 	try
 	{
 		{
-			DOUT(__FUNCTION__ << ":" << __LINE__ );
+			DEBUG_LINE();
 			stdt::lock_guard<stdt::mutex> l(this->m_mutex);
 			if ( this->mp_acceptor != nullptr )
 			{
@@ -137,7 +145,7 @@ void LocalHost::interrupt()
 			}
 		}
 		{
-			DOUT(__FUNCTION__ << ":" << __LINE__ );
+			DEBUG_LINE();
 			stdt::lock_guard<stdt::mutex> l(this->m_mutex);
 
 			for ( int index = 0; index < this->m_local_sockets.size(); index++ )
@@ -148,7 +156,7 @@ void LocalHost::interrupt()
 		}
 		{
 			stdt::lock_guard<stdt::mutex> l(this->m_mutex);
-			DOUT(__FUNCTION__ << ":" << __LINE__ );
+			DEBUG_LINE();
 			if ( this->mp_remote_socket != nullptr )
 			{
 				boost::system::error_code ec;
@@ -160,7 +168,7 @@ void LocalHost::interrupt()
 	{
 		this->dolog( exc.what() );
 	}
-	DOUT(__FUNCTION__ << ":" << __LINE__ );
+	DEBUG_LINE();
 }
 
 

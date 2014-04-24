@@ -23,8 +23,8 @@
 using boost::asio::ip::tcp;
 
 
-ProviderClient::ProviderClient(bool _active, const std::vector<ProxyEndpoint> &_local_endpoints, const std::vector<ProxyEndpoint> &_proxy_endpoints, PluginHandler &_plugin)
-:	BaseClient(_active, -1, _proxy_endpoints, 1, _plugin),
+ProviderClient::ProviderClient(bool _active, const std::vector<LocalEndpoint> &_local_endpoints, const std::vector<RemoteEndpoint> &_proxy_endpoints, PluginHandler &_plugin)
+:	BaseClient(_active, 0, _proxy_endpoints, 1, _plugin),
 	m_local_connected_index(0),
 	mp_local_socket( nullptr )
 {
@@ -41,12 +41,18 @@ bool ProviderClient::is_local_connected() const
 
 void ProviderClient::start()
 {
+	if (this->m_thread.is_running())
+	{
+		DOUT("Provider client is already running on port: " << this->port());
+		return;
+	}
 	this->m_thread.start( [this]{ this->threadproc(); } );
 }
 
 
 void ProviderClient::stop()
 {
+	this->stop_activate();
 	this->m_thread.stop();
 }
 

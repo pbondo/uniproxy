@@ -38,7 +38,7 @@ public:
 	{
 	}
 
-	void start( int _port )
+	void start( mylib::port_type _port )
 	{
 		this->mylib::thread::start( [this,_port]( ){this->thread_proc(_port);} );
 	}
@@ -113,10 +113,10 @@ public:
 	std::vector<remotehost_ptr> remotehosts;
 	std::vector<baseclient_ptr> localclients;
 
-	int m_port;
+	mylib::port_type m_port;
 	std::string m_ip4_mask;
 	bool m_debug;
-	cppcms::json::value m_current_setup; // Stop and start services to match this.
+	cppcms::json::value m_new_setup; // Stop and start services to match this.
 
 	// Own name to be used for generating own certificate.
 	std::string m_name;
@@ -133,6 +133,12 @@ public:
 
 	bool certificate_available( const std::string &_cert_name);
 	bool execute_openssl();
+
+	bool is_provider(const BaseClient &client) const;
+
+	bool is_same( const BaseClient &client, cppcms::json::value &obj, bool &param_changes, bool &client_changes ) const;
+	bool is_same( const RemoteProxyHost &host, cppcms::json::value &obj, bool &param_changes, bool &client_changes, bool &locals_changed ) const;
+
 
 protected:
 

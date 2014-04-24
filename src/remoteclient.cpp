@@ -97,7 +97,7 @@ ssl_socket::lowest_layer_type& RemoteProxyClient::socket()
 }
 
 
-void RemoteProxyClient::start( std::vector<Address> &_local_ep )
+void RemoteProxyClient::start( std::vector<LocalEndpoint> &_local_ep )
 {
 	this->m_local_ep = _local_ep;
 	this->m_remote_thread.start( [&]{ this->remote_threadproc(); } );
@@ -265,7 +265,6 @@ void RemoteProxyClient::remote_threadproc()
 		{		
 			throw std::runtime_error("Failed plugin connect_handler for type: " + this->m_host.m_plugin.m_type );
 		}
-		//this->dolog().clear();
 		this->m_local_thread.start( [&]{this->local_threadproc(); } );
 		boost::asio::socket_set_keepalive_to( this->m_remote_socket.lowest_layer(), std::chrono::seconds(20) );
 		for ( ; this->m_remote_thread.check_run(); )
@@ -273,7 +272,7 @@ void RemoteProxyClient::remote_threadproc()
 			int length = this->m_remote_socket.read_some( boost::asio::buffer( this->m_remote_read_buffer, this->m_host.m_plugin.max_buffer_size() ) );
 			this->m_remote_read_buffer[length] = 0;
 			Buffer buffer( this->m_remote_read_buffer, length );
-			if ( this->m_host.m_plugin.message_filter_remote2local( buffer ) ) // , false ) )
+			if ( this->m_host.m_plugin.message_filter_remote2local( buffer ) )
 			{
 				length = this->m_local_socket.write_some( boost::asio::buffer( buffer.m_buffer, buffer.m_size ) );
 				this->m_count_in.add(length);
@@ -288,7 +287,6 @@ void RemoteProxyClient::remote_threadproc()
 	catch( boost::system::system_error &boost_error )
 	{
 		std::ostringstream oss; oss << "SSL: " << boost_error.code() << " what: " << boost_error.what();
-		//error_code
 		this->dolog( oss.str() );
 	}
 	catch( std::exception &exc )
@@ -301,7 +299,7 @@ void RemoteProxyClient::remote_threadproc()
 }
 
 
-RemoteProxyHost::RemoteProxyHost( unsigned short _local_port, std::vector<RemoteEndpoint> &_remote_ep, std::vector<Address> &_local_ep, PluginHandler &_plugin )
+RemoteProxyHost::RemoteProxyHost( unsigned short _local_port, std::vector<RemoteEndpoint> &_remote_ep, std::vector<LocalEndpoint> &_local_ep, PluginHandler &_plugin )
 :	m_io_service(),
 	m_context(m_io_service, boost::asio::ssl::context::sslv23),
 	m_acceptor(m_io_service),
@@ -346,6 +344,11 @@ std::string RemoteProxyHost::get_password() const
 
 void RemoteProxyHost::start()
 {
+	if (this->m_thread.is_running())
+	{
+		DOUT("RemoteProxyHost already running on port: " << this->m_local_port);
+		return;
+	}
 	// We do the following because we want it done in the main thread, so exceptions during start are propagated through.
 	this->dolog( std::string("opening connection on port: ") + mylib::to_string( this->m_local_port ) );
 	boost::asio::ip::tcp::endpoint ep(boost::asio::ip::tcp::v4(), this->m_local_port);

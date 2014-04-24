@@ -27,7 +27,7 @@ class BaseClient
 {
 public:
 
-	BaseClient(bool _active, int _local_port, const std::vector<ProxyEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin);
+	BaseClient(bool _active, mylib::port_type _local_port, const std::vector<RemoteEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin);
 
 	virtual void start() = 0;
 	virtual void stop() = 0;
@@ -53,7 +53,7 @@ public:
 	void stop_activate();
 	void ssl_prepare(boost::asio::ssl::context &_ctx) const;
 
-	std::vector<ProxyEndpoint> m_proxy_endpoints; // The list of remote proxies to connect to in a round robin fashion.
+	std::vector<RemoteEndpoint> m_proxy_endpoints; // The list of remote proxies to connect to in a round robin fashion.
 
 	int m_id;
 	int m_proxy_index;
@@ -61,11 +61,11 @@ public:
 	ssl_socket *mp_remote_socket;
 	data_flow m_count_in, m_count_out;
 	
-	int port() const { return this->m_local_port; }
+	mylib::port_type port() const { return this->m_local_port; }
 
 protected:
 
-	int m_local_port;
+	mylib::port_type m_local_port;
 
 public:
 

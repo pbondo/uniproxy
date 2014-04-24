@@ -17,6 +17,7 @@
 // mailto:gh@gatehouse.dk
 //====================================================================
 #include "applutil.h"
+#include "cppcms_util.h"
 #include <fstream>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string/regex.hpp>
@@ -73,6 +74,32 @@ void msleep(int millisec)
 
 #endif
 }
+
+
+bool thread::is_thread_running(stdt::thread &th)
+{
+	// With pthread we are ensured the thread handle is not reused while the thread is joinable.
+	// According to the Internet :-)
+	if (th.joinable())
+	{
+#ifdef __linux__
+		int ret = pthread_kill(this->m_thread.native_handle(), 0);
+		if (ret == ESRCH)
+		{
+			return false;
+		}
+		return true;
+#else
+		DWORD dwStatus = 0;
+		if (GetExitCodeThread(th.native_handle(), &dwStatus))
+		{
+			return dwStatus == STILL_ACTIVE;
+		}
+#endif
+	}
+	return false;
+}
+
 
 }
 
@@ -407,9 +434,10 @@ std::string check_ip4( const std::string &_input )
 
 proxy_log::proxy_log(const std::string&_name)
 {
+	this->m_log_file_index = 0;
 	this->m_write_index = 0;
 	this->m_name = _name;
-	this->m_logfile.open("uniproxy.log",std::ios::app|std::ios::ate);
+	this->m_logfile.open("uniproxy0.log");//,std::ios::app|std::ios::ate);
 }
 
 std::string proxy_log::peek() const
@@ -448,11 +476,18 @@ void proxy_log::add( const std::string &_value )
 	DOUT("Log: " << this->m_name << ": " << _value );
 	stdt::lock_guard<stdt::mutex> l(this->m_mutex);
 	this->m_log.push_back(std::make_pair(this->m_write_index++, mylib::time_stamp() + ": " + _value));
-	this->m_logfile << mylib::time_stamp() << ": " << _value << std::endl;
 	while (this->m_log.size() > 50)
 	{
 		this->m_log.erase(this->m_log.begin());
 	}
+	// Check and write to log file.
+	if ((this->m_write_index % 1000) == 0) // cycle the log.
+	{
+		this->m_log_file_index = !this->m_log_file_index;
+		this->m_logfile.close();
+		this->m_logfile.open("uniproxy" + mylib::to_string(this->m_log_file_index)+".log"); //,std::ios::app|std::ios::ate);
+	}
+	this->m_logfile << mylib::time_stamp() << ": " << _value << std::endl;
 }
 
 
@@ -722,3 +757,163 @@ int process::execute_process( const std::string& _command, const std::string& _p
 	exit_code = bp::wait_for_exit(*pc);
 	return exit_code;
 }
+
+
+//------------------------------
+
+
+
+bool LocalEndpoint::load(cppcms::json::value &obj)
+{
+	if (obj.type() == cppcms::json::is_object)
+	{
+		cppcms::utils::check_port(obj,"port",this->m_port);
+		cppcms::utils::check_string(obj,"hostname",this->m_hostname);
+		return this->m_port > 0; // At least a valid port must be configured. Default hostname is localhost.
+	}
+	return false;
+}
+
+
+cppcms::json::value LocalEndpoint::save() const
+{
+	cppcms::json::value obj;
+	cppcms::utils::set_value(obj,"port",this->m_port);
+	cppcms::utils::set_value(obj,"hostname",this->m_hostname);
+	return obj;
+}
+
+
+bool operator == (const LocalEndpoint &a1, const LocalEndpoint &a2)
+{
+	return a1.m_hostname == a2.m_hostname && a1.m_port == a2.m_port;
+}
+
+
+//------------------------------
+
+/*
+ProxyEndpoint::ProxyEndpoint()
+{
+}
+
+
+bool ProxyEndpoint::load(cppcms::json::value &obj)
+{
+	if (obj.type() == cppcms::json::is_object)
+	{
+		cppcms::utils::check_port(obj,"port",this->m_port);
+		//cppcms::utils::check_bool(obj,"active",this->m_active);
+		cppcms::utils::check_string(obj,"hostname",this->m_hostname);
+		cppcms::utils::check_string(obj,"name",this->m_name);
+		return true;
+	}
+	return false;
+}
+
+
+cppcms::json::value ProxyEndpoint::save() const
+{
+	cppcms::json::value obj;
+	cppcms::utils::set_value(obj,"port",this->m_port);
+	cppcms::utils::set_value(obj,"hostname",this->m_hostname);
+	cppcms::utils::set_value(obj,"name",this->m_name);
+	return obj;
+}
+
+
+bool operator == (const ProxyEndpoint &ep1, const ProxyEndpoint &ep2)
+{
+	return ep1.m_port == ep2.m_port //&& ep1.m_active == ep2.m_active 
+		&& ep1.m_name == ep2.m_name && ep1.m_hostname == ep2.m_hostname;
+}
+*/
+
+//------------------------------
+
+
+bool operator==( const RemoteEndpoint &ep1, const RemoteEndpoint &ep2 )
+{
+	return ep1.m_name == ep2.m_name && ep1.m_hostname == ep2.m_hostname && ep1.m_password == ep2.m_password && ep1.m_username == ep2.m_username;
+}
+
+
+bool RemoteEndpoint::load(cppcms::json::value &obj)
+{
+	if (obj.type() == cppcms::json::is_object)
+	{
+		cppcms::utils::check_port(obj,"port",this->m_port);
+		cppcms::utils::check_string(obj,"hostname",this->m_hostname);
+		cppcms::utils::check_string(obj,"name",this->m_name);
+		cppcms::utils::check_string(obj,"username",this->m_username);
+		cppcms::utils::check_string(obj,"password",this->m_password);
+		return !this->m_name.empty(); // At least the name must contain a value.
+	}
+	return false;
+}
+
+
+cppcms::json::value RemoteEndpoint::save() const
+{
+	cppcms::json::value obj;
+	cppcms::utils::set_value(obj,"port",this->m_port);
+	cppcms::utils::set_value(obj,"hostname",this->m_hostname);
+	cppcms::utils::set_value(obj,"name",this->m_name);
+	cppcms::utils::set_value(obj,"username",this->m_username);
+	cppcms::utils::set_value(obj,"password",this->m_password);
+	return obj;
+}
+
+
+//------------------------------
+
+
+bool load_endpoints(const cppcms::json::value &obj, const std::string &key, std::vector<LocalEndpoint> &eps)
+{
+	bool result = false;
+	cppcms::json::value o = obj.find( key );
+	if ( o.type() == cppcms::json::is_array )
+	{
+		for (auto &item : o.array())
+		{
+			LocalEndpoint ep;
+			if (ep.load(item))
+			{
+				eps.push_back(ep);
+				result = true;
+			}
+			else
+			{
+				return false;
+			}
+		}
+	}
+	return result;
+}
+
+
+bool load_endpoints(const cppcms::json::value &obj, const std::string &key, std::vector<RemoteEndpoint> &eps)
+{
+	bool result = false;
+	cppcms::json::value o = obj.find( key );
+	if ( o.type() == cppcms::json::is_array )
+	{
+		for (auto &item : o.array())
+		{
+			RemoteEndpoint ep;
+			if (ep.load(item))
+			{
+				eps.push_back(ep);
+				result = true;
+			}
+			else
+			{
+				return false;
+			}
+		}
+	}
+	return result;
+}
+
+
+//------------------------------

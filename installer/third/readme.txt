@@ -14,4 +14,4 @@ From  http://www.gzip.org/zlib/
 From netcat ?
 * nc.exe
 
-And vcredist_x86.exe matching the version of Visual Studio you are using.
+And vcredist_x64-vc9.exe (for openssl) and vcredist_x64-vc11.exe (for uniproxy) matching the version of Visual Studio you are using.
