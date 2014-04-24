@@ -60,7 +60,8 @@ void proxy_global::lock()
 void proxy_global::unlock()
 {
 	DOUT(__FUNCTION__ << ":" << __LINE__);
-	this->unpopulate_json(this->m_new_setup);
+	//this->unpopulate_json(this->m_new_setup);
+	this->stopall();
 	DOUT(__FUNCTION__ << ":" << __LINE__);
 }
 
@@ -195,12 +196,15 @@ bool proxy_global::is_same( const RemoteProxyHost &host, cppcms::json::value &ob
 }
 
 
+// obj represents the new setup. So anything running that doesn't match the new object must be stopped and removed.
 void proxy_global::unpopulate_json( cppcms::json::value &obj )
 {
 	stdt::lock_guard<stdt::mutex> l(this->m_mutex_list);
 
 	for ( auto iter = this->localclients.begin(); iter != this->localclients.end(); )
 	{
+		std::vector<RemoteEndpoint> rep;
+		std::vector<LocalEndpoint> lec;
 		bool keep = false;
 		if ( obj["clients"].type() == cppcms::json::is_array )
 		{
@@ -230,6 +234,7 @@ void proxy_global::unpopulate_json( cppcms::json::value &obj )
 	for ( auto iter = this->remotehosts.begin(); iter != this->remotehosts.end(); )
 	{
 		bool keep = false;
+		cppcms::json::value kobj;
 		if ( obj["hosts"].type() == cppcms::json::is_array )
 		{
 			cppcms::json::array hosts = obj["hosts"].array();
@@ -240,13 +245,30 @@ void proxy_global::unpopulate_json( cppcms::json::value &obj )
 				bool local_changes = false;
 				if (this->is_same(*(*iter),host,param,remote_changes,local_changes))
 				{
-					keep = !(param || remote_changes || local_changes); // Currently any kind of changes resets
+					kobj = host;
+					keep = !(param || local_changes); // || remote_changes  Currently any kind of changes resets
 				}
 			}
 		}
 		if (keep)
 		{
-			DOUT("keeping host on port: " << (*iter)->port() );
+			DOUT("keeping host on port: " << (*iter)->port() << " Checking and removing any cancelled remote connections" );
+			std::vector<RemoteEndpoint> eps;
+			load_endpoints(kobj,"remotes",eps); // If we fail to read, we will get an empty and stop all.
+			for (auto it2 = (*iter)->m_clients.begin(); it2 != (*iter)->m_clients.end(); )
+			{
+				if (std::find_if(eps.begin(),eps.end(), [&](const RemoteEndpoint &ep){ return ep.m_name == (*it2)->m_endpoint.m_name; } ) == eps.end())
+				{
+					// It was not in the list of next round of valid names, so we should remove.
+					DOUT("On port: " << (*iter)->port() << " Stop client with name: " << (*it2)->m_endpoint.m_name );
+					(*it2)->stop();
+					it2 = (*iter)->m_clients.erase(it2);
+				}
+				else
+				{
+					it2++;
+				}
+			}
 			iter++;
 		}
 		else
@@ -270,7 +292,7 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 	if ( (_json_acl & clients) > 0 && obj["clients"].type() == cppcms::json::is_array )
 	{
 		DOUT(__FUNCTION__ << " populating clients");
-		//this->localclients.clear();
+
 		cppcms::json::array ar = obj["clients"].array();
 		for ( auto iter1 = ar.begin(); iter1 != ar.end(); iter1++ )
 		{

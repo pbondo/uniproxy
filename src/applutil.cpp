@@ -408,9 +408,10 @@ std::string check_ip4( const std::string &_input )
 
 proxy_log::proxy_log(const std::string&_name)
 {
+	this->m_log_file_index = 0;
 	this->m_write_index = 0;
 	this->m_name = _name;
-	this->m_logfile.open("uniproxy.log",std::ios::app|std::ios::ate);
+	this->m_logfile.open("uniproxy0.log");//,std::ios::app|std::ios::ate);
 }
 
 std::string proxy_log::peek() const
@@ -449,11 +450,18 @@ void proxy_log::add( const std::string &_value )
 	DOUT("Log: " << this->m_name << ": " << _value );
 	stdt::lock_guard<stdt::mutex> l(this->m_mutex);
 	this->m_log.push_back(std::make_pair(this->m_write_index++, mylib::time_stamp() + ": " + _value));
-	this->m_logfile << mylib::time_stamp() << ": " << _value << std::endl;
 	while (this->m_log.size() > 50)
 	{
 		this->m_log.erase(this->m_log.begin());
 	}
+	// Check and write to log file.
+	if ((this->m_write_index % 1000) == 0) // cycle the log.
+	{
+		this->m_log_file_index = !this->m_log_file_index;
+		this->m_logfile.close();
+		this->m_logfile.open("uniproxy" + mylib::to_string(this->m_log_file_index)+".log"); //,std::ios::app|std::ios::ate);
+	}
+	this->m_logfile << mylib::time_stamp() << ": " << _value << std::endl;
 }
 
 
@@ -836,3 +844,53 @@ cppcms::json::value RemoteEndpoint::save() const
 
 //------------------------------
 
+
+bool load_endpoints(const cppcms::json::value &obj, const std::string &key, std::vector<LocalEndpoint> &eps)
+{
+	bool result = false;
+	cppcms::json::value o = obj.find( key );
+	if ( o.type() == cppcms::json::is_array )
+	{
+		for (auto &item : o.array())
+		{
+			LocalEndpoint ep;
+			if (ep.load(item))
+			{
+				eps.push_back(ep);
+				result = true;
+			}
+			else
+			{
+				return false;
+			}
+		}
+	}
+	return result;
+}
+
+
+bool load_endpoints(const cppcms::json::value &obj, const std::string &key, std::vector<RemoteEndpoint> &eps)
+{
+	bool result = false;
+	cppcms::json::value o = obj.find( key );
+	if ( o.type() == cppcms::json::is_array )
+	{
+		for (auto &item : o.array())
+		{
+			RemoteEndpoint ep;
+			if (ep.load(item))
+			{
+				eps.push_back(ep);
+				result = true;
+			}
+			else
+			{
+				return false;
+			}
+		}
+	}
+	return result;
+}
+
+
+//------------------------------

@@ -376,6 +376,7 @@ protected:
 	mutable stdt::mutex m_mutex;
 	std::string m_name;
 	std::atomic<int> m_write_index;
+	int m_log_file_index;
 };
 
 proxy_log &log();
@@ -435,6 +436,11 @@ public:
 	cppcms::json::value save() const;
 
 };
+
+
+bool load_endpoints(const cppcms::json::value &obj, const std::string &key, std::vector<LocalEndpoint> &ep);
+bool load_endpoints(const cppcms::json::value &obj, const std::string &key, std::vector<RemoteEndpoint> &ep);
+
 
 /*
 // Used for describing the remote proxy when defining local clients.
