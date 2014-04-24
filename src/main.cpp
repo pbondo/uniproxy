@@ -164,16 +164,37 @@ void proxy_app::host_active(const std::string _param, const std::string _id, con
 		{
 			if (_checked == "true")
 			{
+				p->m_active = true;
 				p->start();
 			}
 			else
 			{
+				p->m_active = false;
 				p->stop();
 			}
-			DOUT("Updated active state for: " << id << " new value: " << _checked);
+			DOUT("Updated active state for host: " << id << " new value: " << _checked);
 		}
 	}
 }
+/*
+for (auto iter = p->m_remote_ep.begin(); iter != p->m_remote_ep.end(); iter++)
+{
+RemoteEndpoint &ep = *iter;
+if (ep.m_name == _param)
+{
+ep.m_active = (_checked == "true") ? true : false;
+if (ep.m_active)
+{
+p->start(); // NB!! This is NOT correct.
+}
+else
+{
+p->stop();
+}
+DOUT("Updated active state for: " << _param << " new value: " << ep.m_active);
+}
+}
+*/
 
 
 void proxy_app::certificate_delete(const std::string _param)

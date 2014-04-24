@@ -423,13 +423,8 @@ public:
 class RemoteEndpoint
 {
 public:
-/*
-	RemoteEndpoint( const std::string &_name, const std::string &_remote_hostname, const std::string &_username, const std::string &_password )
-	: m_name(_name), m_hostname( _remote_hostname ), m_username(_username), m_password(_password)
-	{
-	}
-*/
-	RemoteEndpoint() : m_port(0)
+
+	RemoteEndpoint() : m_port(0) //, m_active(true)
 	{
 	}
 
@@ -438,6 +433,7 @@ public:
 	std::string m_hostname;
 	std::string m_username;
 	std::string m_password;
+	//bool m_active; // This is not stored.
 
 	friend bool operator==( const RemoteEndpoint &ep1, const RemoteEndpoint &ep2 );
 

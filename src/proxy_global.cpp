@@ -511,6 +511,7 @@ std::string proxy_global::save_json_status( bool readable )
 		obj_host["id"] = host.m_id;
 		obj_host["port"] = host.port();
 		obj_host["type"] = host.m_plugin.m_type;
+		obj_host["active"] = host.m_active;
 
 		// Loop through each remote proxy
 		for ( int index2 = 0; index2 < host.m_remote_ep.size(); index2++ )
@@ -712,7 +713,8 @@ std::string proxy_global::save_json_config( bool readable )
 		obj_host["id"] = host.m_id;
 		obj_host["port"] = host.port(); // .m_acceptor.local_endpoint().port();
 		obj_host["type"] = host.m_plugin.m_type;
-		for ( int index2 = 0; index2 < host.m_local_ep.size(); index2++ )
+		obj_host["active"] = host.m_active;
+		for (int index2 = 0; index2 < host.m_local_ep.size(); index2++)
 		{
 			cppcms::json::object obj;
 			obj["hostname"] = host.m_local_ep[index2].m_hostname;
@@ -723,7 +725,7 @@ std::string proxy_global::save_json_config( bool readable )
 		{
 			cppcms::json::object obj;
 			obj["name"] = host.m_remote_ep[index2].m_name;
-			//obj["active"] = host.m_remote_ep[index2].m_active;
+//			obj["active"] = host.m_remote_ep[index2].m_active;
 			obj["hostname"] = host.m_remote_ep[index2].m_hostname;
 			obj["username"] = host.m_remote_ep[index2].m_username;
 			obj["password"] = host.m_remote_ep[index2].m_password;

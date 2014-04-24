@@ -109,10 +109,15 @@ public:
 
 	boost::posix_time::ptime m_activate_stamp;
 	std::string m_activate_name;
+	bool m_active;
 
 	mylib::port_type port() const { return this->m_local_port; }
 
+	void lock();
+	void unlock();
+
 protected:
+
 	mylib::port_type m_local_port;
 
 	mylib::thread m_thread;

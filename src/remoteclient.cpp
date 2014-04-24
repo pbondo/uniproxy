@@ -307,6 +307,7 @@ RemoteProxyHost::RemoteProxyHost( unsigned short _local_port, std::vector<Remote
 	m_local_port(_local_port),
 	m_thread( [&](){this->interrupt(); } )
 {
+	this->m_active = true;
 	this->m_id = ++static_remote_count;
 	this->m_remote_ep = _remote_ep;
 	this->m_local_ep = _local_ep;
@@ -360,6 +361,19 @@ void RemoteProxyHost::start()
 }
 
 
+void RemoteProxyHost::lock()
+{
+
+}
+
+
+void RemoteProxyHost::unlock()
+{
+	this->m_acceptor.cancel();
+	this->m_acceptor.close();
+}
+
+
 void RemoteProxyHost::threadproc()
 {
 	try
@@ -405,8 +419,15 @@ void RemoteProxyHost::interrupt()
 
 void RemoteProxyHost::stop()
 {
-	DOUT("RemoteProxyHost::stop()");
+	DOUT("RemoteProxyHost::stop() stopping port: " << this->port());
 	this->m_thread.stop();
+	stdt::lock_guard<stdt::mutex> l(this->m_mutex);
+	// Clean up the current client list and remove any non active clients.
+	for (auto item : this->m_clients)
+	{
+		item->stop();
+	}
+	DOUT("RemoteProxyHost::stop() stopped all on port: " << this->port());
 }
 
 
