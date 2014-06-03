@@ -1,6 +1,10 @@
 #!/bin/bash
 
+rootdir=/var/lib/uniproxy
+
 service uniproxy status
 [ $? -eq 0 ] && service uniproxy stop
+
+useradd -d ${rootdir} -g users -s /bin/bash -m --system uniproxy
 
 exit 0

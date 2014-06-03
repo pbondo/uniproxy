@@ -249,45 +249,54 @@ bool check_url( const std::string &_input, const std::string &_pattern, std::str
 }
 
 
-
-
 void proxy_app::config_upload()
 {
 	try
 	{
 		DOUT( __FUNCTION__);
-		cppcms::widgets::file image;
 		if(request().request_method()=="POST")
 		{
 			std::string filename = "upload.json";
-			image.name( filename );
-			image.load(context());
-			image.name( filename );
-			if(image.validate())
+			if (context().request().files().size() > 0) // Indicates a file has been uploaded
 			{
-				DOUT("Saving configuration file as " << filename );
+				DOUT("Saving configuration from file as " << filename );
+				cppcms::widgets::file image;
+				image.name( filename );
+				image.load(context());
+				image.name( filename );
+				ASSERTE(image.validate(), uniproxy::error::parse_file_failed, filename );
 				image.value()->save_to( filename );
 				image.clear();
-				// NB!! Here we should validate and reload configuration.
-
-				int line = 0;
-				std::ifstream ifs( filename );
-				cppcms::json::value my_object;
-				ASSERTE( my_object.load( ifs, false, &line ), uniproxy::error::parse_file_failed, filename );
-				boost::system::error_code ec;
-				
-				if ( boost::filesystem::exists(config_filename) )
-				{
-					boost::filesystem::copy_file( config_filename, config_filename + ".backup", boost::filesystem::copy_option::overwrite_if_exists, ec );
-					ASSERTE( ec == boost::system::errc::success, uniproxy::error::file_failed_copy, config_filename  + " to " + config_filename + ".backup" );
-				}
-				boost::filesystem::copy_file( filename, config_filename, boost::filesystem::copy_option::overwrite_if_exists, ec );
-				ASSERTE( ec == boost::system::errc::success, uniproxy::error::file_failed_copy, filename + " to " + config_filename );
-
-				//this->config_reload();
-				this->response().set_redirect_header("/");
-				throw mylib::reload_exception();
+				DOUT("Saved configuration file as " << filename );
 			}
+			else
+			{
+				DOUT("Saving configuration from json data");
+				cppcms::http::request::form_type ft = context().request().post();
+				ASSERTE(ft.begin() != ft.end(), uniproxy::error::parse_file_failed, filename );
+				std::ofstream ofs(filename);
+				ofs << (*ft.begin()).second;
+				ofs.close();
+				DOUT("Saved configuration file as " << filename );
+			}
+			// NB!! Here we should validate and reload configuration.
+			int line = 0;
+			std::ifstream ifs( filename );
+			cppcms::json::value my_object;
+			ASSERTE( my_object.load( ifs, false, &line ), uniproxy::error::parse_file_failed, filename );
+
+			boost::system::error_code ec;
+			if ( boost::filesystem::exists(config_filename) )
+			{
+				boost::filesystem::copy_file( config_filename, config_filename + ".backup", boost::filesystem::copy_option::overwrite_if_exists, ec );
+				ASSERTE( ec == boost::system::errc::success, uniproxy::error::file_failed_copy, config_filename  + " to " + config_filename + ".backup" );
+			}
+			boost::filesystem::copy_file( filename, config_filename, boost::filesystem::copy_option::overwrite_if_exists, ec );
+			ASSERTE( ec == boost::system::errc::success, uniproxy::error::file_failed_copy, filename + " to " + config_filename );
+
+			//this->config_reload();
+			this->response().set_redirect_header("/");
+			throw mylib::reload_exception();
 		}
 	}
 	catch( std::system_error &exc1 )
