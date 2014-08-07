@@ -143,6 +143,10 @@ Status.prototype.connection_string = function(active, condition, _value )
 		{
 			result = "<td><div class='connection_ok'>"+ value +"</div></td>";
 		}
+		else if ( condition === undefined )
+		{
+			result = "<td><div>"+ value +"</div></td>";
+		}
 		else
 		{
 			result = "<td><div class='connection_error'>"+ value +"</div></td>";

@@ -34,33 +34,15 @@ class client_certificate_exchange : public mylib::thread
 {
 public:
 
-	client_certificate_exchange( ) : mylib::thread( [](){} )
-	{
-	}
+	client_certificate_exchange( );
 
-	void start( mylib::port_type _port )
-	{
-		this->mylib::thread::start( [this,_port]( ){this->thread_proc(_port);} );
-	}
+	void start( const std::vector<LocalEndpoint> &eps );
 
-	void thread_proc( int _port )
-	{
-		try
-		{
-			boost::asio::io_service io_service;
-			boost::asio::ip::tcp::socket local_socket(io_service);
-			boost::asio::ip::tcp::endpoint endpoint( boost::asio::ip::address::from_string( "127.0.0.1" ), _port );
-			DOUT( __FUNCTION__ << " connect to " << endpoint );
-			local_socket.connect( endpoint );
+	void lock();
+	void unlock();
 
-			const int buffer_size = 100;
-			char buffer[buffer_size]; //
-			local_socket.read_some( boost::asio::buffer( buffer, buffer_size ) );
-		}
-		catch(...)
-		{
-		}
-	}
+	// Since this is a thread we want our own copy.
+	void thread_proc( const std::vector<LocalEndpoint> eps );
 
 };
 
@@ -112,11 +94,13 @@ public:
 	stdt::mutex m_mutex_list;
 	std::vector<remotehost_ptr> remotehosts;
 	std::vector<baseclient_ptr> localclients;
+	std::vector<LocalEndpoint> uniproxies;
 
 	mylib::port_type m_port;
 	std::string m_ip4_mask;
 	bool m_debug;
 	cppcms::json::value m_new_setup; // Stop and start services to match this.
+	int m_certificate_timeout;
 
 	// Own name to be used for generating own certificate.
 	std::string m_name;

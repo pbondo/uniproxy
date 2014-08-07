@@ -48,6 +48,7 @@ set( uniproxy_cpp_SOURCES
 	../src/remoteclient.cpp
 	../src/providerclient.cpp
 	../src/applutil.cpp
+	../src/httpclient.cpp
 	../libs/gatehouse/pghpplugin.cpp
 	../libs/gatehouse/pghpstartdatarequest.cpp
 	../libs/gatehouse/pghpproxyfilter.cpp
@@ -87,6 +88,7 @@ set( uniproxy_SOURCES
 	../src/platform.h
 	../src/remoteclient.h
 	../src/error_codes.h
+	../src/httpclient.h
 )
 
 IF (WIN32)

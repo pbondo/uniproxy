@@ -32,6 +32,7 @@
 #include <webserver/content.h>
 #include <boost/process.hpp>
 #include "proxy_global.h"
+#include "httpclient.h"
 
 #ifdef _WIN32
 #include "win_util.h"
@@ -68,6 +69,7 @@ proxy_app::proxy_app(cppcms::service &srv) : cppcms::application(srv)
 	dispatcher().assign("^/script/(.*)$",&proxy_app::script,this,1);
 	dispatcher().assign("^/status/(.*)$",&proxy_app::status_get,this);
 	dispatcher().assign("^/logger/(.*)$",&proxy_app::logger_get,this);
+	dispatcher().assign("^/command/certificate/get/(.*)$",&proxy_app::get_certificates,this,1);
 	dispatcher().assign("^/$",&proxy_app::index,this);
 	//dispatcher().assign("^//(.*)$",&proxy_app::,this);
 }
@@ -132,6 +134,14 @@ void proxy_app::script(const std::string)
 }
 
 
+void proxy_app::get_certificates(const std::string _param)
+{
+	//DOUT(__FUNCTION__ << ": " << _param);
+	std::string certs = readfile( my_certs_name );
+	//DOUT("Read certs: " << certs);
+	this->response().out() << certs;
+}
+
 
 void proxy_app::host_activate(const std::string _param)
 {
@@ -144,7 +154,7 @@ void proxy_app::host_activate(const std::string _param)
 			RemoteEndpoint &ep = *iter;
 			if ( ep.m_name == _param )
 			{
-				p->m_activate_stamp = boost::get_system_time() + boost::posix_time::seconds( 60 );
+				p->m_activate_stamp = boost::get_system_time() + boost::posix_time::seconds( global.m_certificate_timeout );
 				p->m_activate_name = _param;
 			}
 		}
@@ -333,7 +343,7 @@ void proxy_app::client_activate(const std::string _param, const std::string _id)
 				auto &r = p->m_proxy_endpoints[index];
 				if ( r.m_name == _param )
 				{
-					p->m_activate_stamp = boost::get_system_time() + boost::posix_time::seconds( 60 );
+					p->m_activate_stamp = boost::get_system_time() + boost::posix_time::seconds( 60 ); // The client should timeout quickly
 					p->m_proxy_index = index;
 					p->stop_activate();
 					p->start_activate(index);
@@ -464,6 +474,15 @@ const char help_text[] = "Usage: uniproxy [-l/--working-dir=<working directory>]
 
 int main(int argc,char ** argv)
 {
+	if (check_arg( argc, argv, 0, "httpclient"))
+	{
+		std::string output;
+		bool result = httpclient::sync("localhost:8085", "/json/command/certificate/get/",output);
+		std::cout << "Result: " << result << " " << output << std::endl;
+		return 0;
+	}
+	
+	
 	if (check_arg( argc, argv, 'h', "help"))
 	{
 		std::cout << help_text << std::endl;
@@ -503,6 +522,12 @@ int main(int argc,char ** argv)
 				log().add("Failed to load configuration"); // Written in global exception handler...?
 			}
 			stdt::lock_guard<proxy_global> lock(global);
+			client_certificate_exchange cert_exch;
+			stdt::lock_guard<client_certificate_exchange> certificate_exchange_lock(cert_exch);
+			if (!global.uniproxies.empty())
+			{
+				cert_exch.start(global.uniproxies);
+			}
 
 			DOUT( "Loaded config: " << global.save_json_config( true ) );
 			// Create settings object data

@@ -100,8 +100,27 @@ bool thread::is_thread_running(stdt::thread &th)
 	return false;
 }
 
-
+std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems)
+{
+   std::stringstream ss(s);
+   std::string item;
+   while(std::getline(ss, item, delim))
+   {
+      elems.push_back(item);
+   }
+   return elems;
 }
+
+
+std::vector<std::string> split(const std::string &s, char delim)
+{
+   std::vector<std::string> elems;
+   return split(s, delim, elems);
+}
+
+
+
+} // namespace mylib
 
 
 namespace boost {
@@ -260,7 +279,7 @@ std::string get_common_name( const certificate_type &_cert )
 		{
 			common_name = result[1];
 		}
-		DOUT("Received certificate CN= " << common_name );
+		//DOUT("Received certificate CN= " << common_name );
 	}
 	return common_name;
 }
@@ -309,7 +328,7 @@ bool load_certificates_file( const std::string &_filename, std::vector<certifica
 	bool result = false;
 	FILE *file;
 	file = fopen( _filename.c_str(), "r" );
-	DOUT( __FUNCTION__ << " file: " << _filename << " ok: " << (file != NULL) );
+	//DOUT( __FUNCTION__ << " file: " << _filename << " ok: " << (file != NULL) );
 	if ( file != NULL )
 	{
 		X509 * cert;
@@ -317,7 +336,7 @@ bool load_certificates_file( const std::string &_filename, std::vector<certifica
 		{
 			std::shared_ptr<X509> scert( cert, do_clear );
 			_certs.push_back( scert );
-			DOUT("Read certificate");
+			//DOUT("Read certificate");
 		}
 		result = true;
 		fclose( file );
@@ -329,7 +348,7 @@ bool load_certificates_file( const std::string &_filename, std::vector<certifica
 bool load_certificates_string( const std::string &_certificate_string, std::vector<certificate_type> &_certs )
 {
 	std::string tmpname = boost::filesystem::unique_path().string();
-	DOUT("Using temp filename: " << tmpname );
+	//DOUT("Using temp filename: " << tmpname );
 	std::ofstream ofs( tmpname );
 	ofs << _certificate_string;
 	ofs.close();
@@ -344,7 +363,7 @@ bool save_certificates_file( const std::string &_filename, const std::vector<cer
 	bool result = false;
 	FILE *file;
 	file = fopen( _filename.c_str(), "w" );
-	DOUT( __FUNCTION__ << " file: " << _filename << " ok: " << (file != NULL) );
+	//DOUT( __FUNCTION__ << " file: " << _filename << " ok: " << (file != NULL) );
 	if ( file != NULL )
 	{
 		for ( int index = 0; index < _certs.size(); index++ )
@@ -649,24 +668,6 @@ bool operator==( boost::asio::ip::tcp::socket &p1, boost::asio::ip::tcp::socket 
 }
 
 
-std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems)
-{
-   std::stringstream ss(s);
-   std::string item;
-   while(std::getline(ss, item, delim))
-   {
-      elems.push_back(item);
-   }
-   return elems;
-}
-
-
-std::vector<std::string> split(const std::string &s, char delim)
-{
-   std::vector<std::string> elems;
-   return split(s, delim, elems);
-}
-
 
 bool check_arg(int argc, char *argv[], char _short_argument, const char *_long_argument)
 {
@@ -701,7 +702,7 @@ bool check_arg( int argc, char *argv[], char _short_argument, const char *_long_
       }
       if ( _long_argument && std::string(argv[index]).find("--") == 0 )
       {
-         std::vector<std::string> strs = split(argv[index], '=');
+         std::vector<std::string> strs = mylib::split(argv[index], '=');
          if ( strs.size() >= 2 && std::string( "--" ) + std::string(_long_argument) == strs[0])
          {			
             result = strs[1];

@@ -79,6 +79,8 @@ std::string time_stamp();
 
 void msleep(int millisec);
 
+std::vector<std::string> split(const std::string &s, char delim);
+
 template <class T> inline std::string to_string (const T& t)
 {
 	std::stringstream ss;

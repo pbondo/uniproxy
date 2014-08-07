@@ -19,7 +19,7 @@
 #include "proxy_global.h"
 #include "cppcms_util.h"
 #include <cppcms/view.h>
-
+#include "httpclient.h"
 
 PluginHandler standard_plugin("");
 proxy_global global;
@@ -31,6 +31,7 @@ proxy_global::proxy_global()
 	this->m_port = 8085; // Default
 	this->m_ip4_mask = "0.0.0.0";
 	this->m_debug = false;
+	this->m_certificate_timeout = 60;
 }
 
 //-----------------------------------
@@ -443,10 +444,24 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 		cppcms::json::value &config_obj( obj["config"] );
 		cppcms::utils::check_string( config_obj, "name", this->m_name );
 		cppcms::utils::check_bool( config_obj, "debug", this->m_debug );
+		cppcms::json::value proxies = config_obj.find( "uniproxies" );
+		cppcms::utils::check_int( config_obj, "certificate.timeout", this->m_certificate_timeout );
+		
+		if ( proxies.type() == cppcms::json::is_array )
+		{
+			for (auto &item : proxies.array())
+			{
+				LocalEndpoint ep;
+				if (ep.load(item))
+				{
+					this->uniproxies.push_back(ep);
+				}
+			}
+		}
 	}
 }
 
-	
+
 std::string proxy_global::save_json_status( bool readable )
 {
 	stdt::lock_guard<stdt::mutex> l(this->m_mutex_list);
@@ -474,6 +489,14 @@ std::string proxy_global::save_json_status( bool readable )
 			}
 		}
 
+		bool remote_conn = false;
+		for ( int index2 = 0; index2 < local.m_proxy_endpoints.size(); index2++ )
+		{
+			if ( local.is_remote_connected(index2) )
+			{
+				remote_conn = true;
+			}
+		}
 		for ( int index2 = 0; index2 < local.m_proxy_endpoints.size(); index2++ )
 		{
 			auto &r = local.m_proxy_endpoints[index2];
@@ -481,11 +504,14 @@ std::string proxy_global::save_json_status( bool readable )
 			obj2["name"] = r.m_name;
 			obj2["hostname"] = r.m_hostname;
 			obj2["port"] = r.m_port;
-			obj2["connected_remote"] = local.is_remote_connected(index2);
-			if ( local.is_remote_connected(index2) )
+			if ((local.is_local_connected() && local.is_remote_connected(index2)) || !remote_conn)
 			{
-				obj2["count_in"] = local.m_count_in.get();
-				obj2["count_out"] = local.m_count_out.get();
+				obj2["connected_remote"] = local.is_remote_connected(index2);
+				if ( local.is_remote_connected(index2) )
+				{
+					obj2["count_in"] = local.m_count_in.get();
+					obj2["count_out"] = local.m_count_out.get();
+				}
 			}
 			if (this->certificate_available(r.m_name))
 			{
@@ -494,7 +520,7 @@ std::string proxy_global::save_json_status( bool readable )
 			if ( local.m_proxy_index == index2 && local.m_activate_stamp > boost::get_system_time())
 			{				
 				auto div = local.m_activate_stamp - boost::get_system_time();
-				obj2["activate"] = div.seconds();
+				obj2["activate"] = div.total_seconds();
 			}
 
 			obj["remotes"][index2] = obj2;
@@ -527,7 +553,7 @@ std::string proxy_global::save_json_status( bool readable )
 			if ( host.m_remote_ep[index2].m_name == host.m_activate_name && host.m_activate_stamp > boost::get_system_time() )
 			{
 				auto div = host.m_activate_stamp - boost::get_system_time();
-				obj["activate"] = div.seconds();
+				obj["activate"] = div.total_seconds();
 			}
 			for ( auto iter3 = host.m_clients.begin(); iter3 != host.m_clients.end(); iter3++ )
 			{
@@ -680,7 +706,6 @@ bool proxy_global::load_configuration()
 	}
 	catch( std::exception exc )
 	{
-		
 		return false;
 	}
 	return true;
@@ -864,6 +889,7 @@ std::error_code proxy_global::SetupCertificates( boost::asio::ip::tcp::socket &_
 	catch( std::exception &exc )
 	{
 		DOUT( __FUNCTION__ << " exception: " << exc.what() );
+		log().add(exc.what());
 	}
 	return ec;
 }
@@ -873,5 +899,90 @@ bool proxy_global::certificate_available( const std::string &_cert_name)
 {
 	stdt::lock_guard<stdt::mutex> lock(this->m_mutex_certificates);
 	return std::find(this->m_cert_names.begin(), this->m_cert_names.end(), _cert_name ) != this->m_cert_names.end();
+}
+
+
+
+
+
+
+client_certificate_exchange::client_certificate_exchange( ) : mylib::thread( [](){} )
+{
+}
+
+void client_certificate_exchange::lock()
+{
+}
+
+
+void client_certificate_exchange::unlock()
+{
+	this->mylib::thread::stop();
+}
+
+
+void client_certificate_exchange::start( const std::vector<LocalEndpoint> &eps )
+{
+	this->mylib::thread::start( [this,eps]( ){this->thread_proc(eps);} );
+}
+
+
+void client_certificate_exchange::thread_proc( const std::vector<LocalEndpoint> eps )
+{
+	DOUT("Certificates thread started with params: " << eps.size());
+	for (auto ep : eps)
+	{
+		DOUT(": " << ep.m_hostname << ":" << ep.m_port);
+	}
+	while (this->check_run())
+	{
+		this->sleep(60000);
+		for (auto &ep : eps)
+		{
+			try
+			{
+				std::string host = ep.m_hostname + ":" + mylib::to_string(ep.m_port);
+				std::string output;
+				DOUT("Get certificate from: " << host);
+				bool result = httpclient::sync(host,"/json/command/certificate/get/",output);
+				if (result)
+				{
+					//DOUT("Read certificates: " << output);
+					std::vector<certificate_type> own,remotes;
+					ASSERTE(load_certificates_string(output, remotes) && !remotes.empty(), uniproxy::error::parse_file_failed, "Failed to load certificates from remote host" );
+
+					load_certificates_file(my_certs_name,own);
+					int ownsize = own.size();
+					for (auto rem : remotes)
+					{
+						bool ok = false;
+						for (auto cert : own)
+						{
+							if (get_common_name(cert) == get_common_name(rem))
+							{
+								ok = true;
+								// NB!! Check if cert are otherwise equal.
+							}
+						}
+						if (!ok)
+						{
+							DOUT("Adding cert: " << get_common_name(rem));
+							own.push_back(rem);
+						}
+					}
+					if (ownsize != own.size())
+					{
+						save_certificates_file(my_certs_name,own);
+						global.load_certificate_names( my_certs_name );
+					}
+				}
+			}
+			catch (std::exception exc)
+			{
+				DERR(__FUNCTION__ << " failed to exchange certificates with " << ep.m_hostname);
+			}
+		}
+		this->sleep(4*60000);
+	}
 }
 

@@ -68,6 +68,7 @@ public:
 	void host_activate(const std::string);
 	void host_active(const std::string _param, const std::string _id, const std::string _checked);
 	void certificate_delete(const std::string);
+	void get_certificates(const std::string _param);
 
 	static void setup_config( cppcms::json::value &_settings );
 
