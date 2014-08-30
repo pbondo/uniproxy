@@ -82,13 +82,14 @@ public:
 
 	// These may throw exceptions.
 	void populate_json(cppcms::json::value &obj, int _json_acl);
-	void unpopulate_json(cppcms::json::value &obj);
+	void unpopulate_json(cppcms::json::value obj);
 
 	std::string save_json_status( bool readable );
 	std::string save_json_config( bool readable );
 
 	//
 	bool load_configuration();
+	bool is_new_configuration(cppcms::json::value &obj) const;
 
 	// lists with associated mutex
 	stdt::mutex m_mutex_list;
@@ -121,8 +122,8 @@ public:
 	bool is_provider(const BaseClient &client) const;
 
 	bool is_same( const BaseClient &client, cppcms::json::value &obj, bool &param_changes, bool &client_changes ) const;
-	bool is_same( const RemoteProxyHost &host, cppcms::json::value &obj, bool &param_changes, bool &client_changes, bool &locals_changed ) const;
-
+	bool is_same(const RemoteProxyHost &host, cppcms::json::value &obj, bool &param_changed, bool &locals_changed, std::vector<RemoteEndpoint> &rem_added, std::vector<RemoteEndpoint> &rem_removed) const;
+	//bool is_same( const RemoteProxyHost &host, cppcms::json::value &obj, bool &param_changes, bool &locals_changed, std::vector<RemoteEndpoint> &rem_added, std::vector<RemoteEndpoint> &rem_removed ) const;
 
 protected:
 

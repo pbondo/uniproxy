@@ -409,6 +409,7 @@ public:
 	cppcms::json::value save() const;
 
 	friend bool operator == (const LocalEndpoint &a1, const LocalEndpoint &a2);
+	friend std::ostream &operator << (std::ostream &os, const LocalEndpoint &a);
 
 	std::string m_hostname;
 	mylib::port_type m_port;

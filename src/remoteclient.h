@@ -82,7 +82,10 @@ class RemoteProxyHost
 {
 public:
 
-	RemoteProxyHost( mylib::port_type _local_port, std::vector<RemoteEndpoint> &_remote_ep, std::vector<LocalEndpoint> &_local_ep, PluginHandler &_plugin );
+	RemoteProxyHost( mylib::port_type _local_port, const std::vector<RemoteEndpoint> &_remote_ep, const std::vector<LocalEndpoint> &_local_ep, PluginHandler &_plugin );
+	
+	void add_remotes(const std::vector<RemoteEndpoint> &_remote_ep);
+	void remove_remotes(const std::vector<RemoteEndpoint> &_remote_ep);
 
 	void handle_accept( RemoteProxyClient* new_session, const boost::system::error_code& error);
 

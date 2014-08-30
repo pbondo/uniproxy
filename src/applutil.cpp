@@ -791,6 +791,13 @@ bool operator == (const LocalEndpoint &a1, const LocalEndpoint &a2)
 }
 
 
+std::ostream &operator << (std::ostream &os, const LocalEndpoint &ep)
+{
+	os << ep.m_hostname << ":" << ep.m_port;
+	return os;
+}
+
+
 //------------------------------
 
 /*

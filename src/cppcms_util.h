@@ -33,8 +33,8 @@ static bool check_int( cppcms::json::value &_input_obj, const std::string &_inpu
 	if ( _inputname.length() > 0 )
 	{
 		cppcms::json::value value = _input_obj.find( _inputname );
-		int type1 = value.type();
-		DOUT("Type: " << type1 );
+		//int type1 = value.type();
+		//DOUT("Type: " << type1 );
 		if ( value.type() == cppcms::json::is_number )
 		{
 			result = value.get_value<int>( );
@@ -68,8 +68,8 @@ static int check_int( cppcms::json::value &_input_obj, const std::string &_input
 	if ( _inputname.length() > 0 )
 	{
 		cppcms::json::value value = _input_obj.find( _inputname );
-		int type1 = value.type();
-		DOUT("Type: " << type1 );
+		//int type1 = value.type();
+		//DOUT("Type: " << type1 );
 		if ( value.type() == cppcms::json::is_number )
 		{
 			result = value.get_value<int>( );

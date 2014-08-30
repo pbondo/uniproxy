@@ -292,8 +292,8 @@ void proxy_app::config_upload()
 			// NB!! Here we should validate and reload configuration.
 			int line = 0;
 			std::ifstream ifs( filename );
-			cppcms::json::value my_object;
-			ASSERTE( my_object.load( ifs, false, &line ), uniproxy::error::parse_file_failed, filename );
+			cppcms::json::value newobj;
+			ASSERTE( newobj.load( ifs, false, &line ), uniproxy::error::parse_file_failed, filename );
 
 			boost::system::error_code ec;
 			if ( boost::filesystem::exists(config_filename) )
@@ -305,8 +305,29 @@ void proxy_app::config_upload()
 			ASSERTE( ec == boost::system::errc::success, uniproxy::error::file_failed_copy, filename + " to " + config_filename );
 
 			//this->config_reload();
-			this->response().set_redirect_header("/");
-			throw mylib::reload_exception();
+
+			// Check if configuration has changed to warrant a restart.
+
+			if (global.is_new_configuration(newobj))
+			{
+				DOUT("Configuration changed sufficiently to warrant a restart. All connections will be closed");
+				throw mylib::reload_exception();
+			}
+			else
+			{
+				try
+				{
+					global.unpopulate_json(newobj);
+					global.populate_json(newobj, proxy_global::json_acl::all);
+					DOUT("Updated configuration without restart");
+				}
+				catch(std::exception exc)
+				{
+					DOUT("Configuration update failed to warrant a restart. All connections will be closed");
+					throw mylib::reload_exception();
+				}
+			}
+			//this->response().set_redirect_header("/");
 		}
 	}
 	catch( std::system_error &exc1 )
@@ -474,6 +495,7 @@ const char help_text[] = "Usage: uniproxy [-l/--working-dir=<working directory>]
 
 int main(int argc,char ** argv)
 {
+/*
 	if (check_arg( argc, argv, 0, "httpclient"))
 	{
 		std::string output;
@@ -481,13 +503,13 @@ int main(int argc,char ** argv)
 		std::cout << "Result: " << result << " " << output << std::endl;
 		return 0;
 	}
-	
-	
+*/
 	if (check_arg( argc, argv, 'h', "help"))
 	{
 		std::cout << help_text << std::endl;
 		return 0;
 	}
+/*	
 	std::string workdir;
 	if (check_arg( argc, argv, 'w', "working-dir", workdir) && workdir.length() > 0)
 	{
@@ -495,6 +517,7 @@ int main(int argc,char ** argv)
 		boost::system::error_code ec;
 		boost::filesystem::current_path(workdir,ec);
 	}
+*/
 #ifdef _WIN32
    EnableFirewallRule();
 #endif
@@ -506,10 +529,12 @@ int main(int argc,char ** argv)
 			cppcms::signal::reset_reload();
 			log().clear();
 			DOUT( std::string("UniProxy starting in path: ") << boost::filesystem::current_path() << " with parameters:");
+/*
 			for (int index = 0; index < argc; index++)
 			{
 				DOUT("Arg: " << index << " value: " << argv[index]);
 			}
+*/
 			log().add( std::string("UniProxy starting" ) );
 
 			DOUT("Loading plugins count: " << PluginHandler::plugins().size() );

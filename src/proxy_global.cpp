@@ -73,7 +73,7 @@ void proxy_global::stopall()
 	DOUT("sockethandler.StopAll()");
 	for ( auto iter = this->remotehosts.begin(); iter != this->remotehosts.end(); iter++ )
 	{
-		DOUT("remotehost.Stop()");
+		DOUT("remotehost.Stop() b");
 		remotehost_ptr p = *iter;
 		RemoteProxyHost* p2 = p.get();
 		p2->stop();
@@ -138,20 +138,47 @@ bool proxy_global::is_same( const BaseClient &client, cppcms::json::value &obj1,
 }
 
 
-bool proxy_global::is_same( const RemoteProxyHost &host, cppcms::json::value &obj, bool &param_changed, bool &remotes_changed, bool &locals_changed ) const
+//bool proxy_global::is_same(const RemoteProxyHost &host, cppcms::json::value &obj, bool &param_changed, bool &remotes_changed, bool &locals_changed, std::vector<RemoteEndpoint> &rem_added, std::vector<RemoteEndpoint> &rem_removed) const
+bool proxy_global::is_same(const RemoteProxyHost &host, cppcms::json::value &obj, bool &param_changed, bool &locals_changed, std::vector<RemoteEndpoint> &rem_added, std::vector<RemoteEndpoint> &rem_removed) const
 {
 	param_changed = false;
-	remotes_changed = false;
+	//remotes_changed = false;
 	locals_changed = false;
 	mylib::port_type host_port = 0;
 	cppcms::utils::check_port( obj, "port", host_port );
 	if ( host.port() != host_port ) return false;
 	if ( host_port > 0)
 	{
-		remotes_changed = true;
+		//remotes_changed = true;
 		cppcms::json::value res = obj.find( "remotes" );
-		if (res.type() == cppcms::json::is_array)
+		ASSERTD(res.type() == cppcms::json::is_array, "Invalid host without remotes in new configuration");
+		for (auto rem : res.array())
 		{
+			RemoteEndpoint ep;
+			ASSERTD(ep.load(rem),"Failed to load remote item in new configuration");
+			if (std::find_if(host.m_remote_ep.begin(), host.m_remote_ep.end(),[&](const RemoteEndpoint &_ep){ return ep == _ep;} ) == host.m_remote_ep.end())
+			{
+				rem_added.push_back(ep);
+			}
+		}
+		for (auto h : host.m_remote_ep)
+		{
+			bool hit = false;
+			for (auto rem : res.array())
+			{
+				RemoteEndpoint ep;
+				ASSERTD(ep.load(rem),"Failed to load remote item in new configuration");
+				if (h == ep) hit = true;
+			}
+			if (!hit)
+			{
+				rem_removed.push_back(h);
+			}
+		}
+/*		
+		{
+			
+			
 			int i1 = res.array().size();
 			if ( i1 == host.m_remote_ep.size())
 			{
@@ -166,6 +193,7 @@ bool proxy_global::is_same( const RemoteProxyHost &host, cppcms::json::value &ob
 				}
 			}
 		}
+*/
 		// Check for local connection changes.
 		locals_changed = true;
 		res = obj.find( "locals" );
@@ -198,7 +226,7 @@ bool proxy_global::is_same( const RemoteProxyHost &host, cppcms::json::value &ob
 
 
 // obj represents the new setup. So anything running that doesn't match the new object must be stopped and removed.
-void proxy_global::unpopulate_json( cppcms::json::value &obj )
+void proxy_global::unpopulate_json( cppcms::json::value obj )
 {
 	stdt::lock_guard<stdt::mutex> l(this->m_mutex_list);
 
@@ -232,55 +260,57 @@ void proxy_global::unpopulate_json( cppcms::json::value &obj )
 			iter = this->localclients.erase(iter);
 		}
 	}
-	for ( auto iter = this->remotehosts.begin(); iter != this->remotehosts.end(); )
+	// Check all remotehosts. 
+	// - Check if each is still active
+	// - For those active check and remove any cancelled remotes
+	for (auto eiter = this->remotehosts.begin(); eiter != this->remotehosts.end();)
 	{
+		auto &ehost = (*(*eiter)); // Existing host
 		bool keep = false;
 		cppcms::json::value kobj;
-		if ( obj["hosts"].type() == cppcms::json::is_array )
+		std::vector<RemoteEndpoint> added, removed;
+		if ( obj["hosts"].type() == cppcms::json::is_array ) // We cannot assert here, because we may have removed all hosts in the new config.
 		{
-			cppcms::json::array hosts = obj["hosts"].array();
-			for ( auto &host : hosts )
+			cppcms::json::array newhosts = obj["hosts"].array();
+			for ( auto &newhost : newhosts )
 			{
 				bool param = false;
-				bool remote_changes = false;
 				bool local_changes = false;
-				if (this->is_same(*(*iter),host,param,remote_changes,local_changes))
+				if (this->is_same(ehost,newhost,param,local_changes, added, removed))
 				{
-					kobj = host;
+					kobj = newhost;
 					keep = !(param || local_changes); // || remote_changes  Currently any kind of changes resets
 				}
 			}
 		}
 		if (keep)
 		{
-			DOUT("keeping host on port: " << (*iter)->port() << " Checking and removing any cancelled remote connections" );
-			std::vector<RemoteEndpoint> eps;
-			load_endpoints(kobj,"remotes",eps); // If we fail to read, we will get an empty and stop all.
-			for (auto it2 = (*iter)->m_clients.begin(); it2 != (*iter)->m_clients.end(); )
+			DOUT("keeping host on port: " << ehost.port() << " Checking and removing any cancelled remote connections, count: " << removed.size() );
+
+			for (auto it = ehost.m_clients.begin(); it != ehost.m_clients.end();)
 			{
-				if (std::find_if(eps.begin(),eps.end(), [&](const RemoteEndpoint &ep){ return ep.m_name == (*it2)->m_endpoint.m_name; } ) == eps.end())
+				if (std::find_if(removed.begin(),removed.end(), [&](const RemoteEndpoint &ep){ return (*it)->m_endpoint == ep; } ) != removed.end())
 				{
-					// It was not in the list of next round of valid names, so we should remove.
-					DOUT("On port: " << (*iter)->port() << " Stop client with name: " << (*it2)->m_endpoint.m_name );
-					(*it2)->stop();
-					it2 = (*iter)->m_clients.erase(it2);
+					DOUT("On port: " << ehost.port() << " Stop client with name: " << (*it)->m_endpoint.m_name );
+					(*it)->stop();
+					it = ehost.m_clients.erase(it);
 				}
 				else
 				{
-					it2++;
+					it++;
 				}
 			}
-			iter++;
+			eiter++;
 		}
 		else
 		{
-			DOUT("Stopping and removing host on port: " << (*iter)->port() );
-			remotehost_ptr p = *iter;
-			RemoteProxyHost* p2 = p.get();
-			p2->stop();
-			iter = this->remotehosts.erase(iter);
+			DOUT("Stopping and removing host on port: " << ehost.port() );
+			//remotehost_ptr p = *eiter;
+			//RemoteProxyHost* p2 = p.get();
+			ehost.stop();
+			eiter = this->remotehosts.erase(eiter);
 		}
-		DOUT("remotehost.Stop()");
+		DOUT("remotehost.Stop() a");
 	}
 }
 
@@ -324,12 +354,6 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 				{
 					auto &item2 = *iter2;
 					RemoteEndpoint ep;
-					/*( //cppcms::utils::check_bool( item2, "active", true, false ), 
-										check_string( item2, "name", "", true ), 
-										check_string( item2, "hostname", "", true),
-										check_int(item2,"port",-1,true) 
-										);*/
-					//if (ep.m_active)
 					if (ep.load(item2))
 					{
 						proxy_endpoints.push_back( ep );
@@ -344,23 +368,16 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 					for ( auto iter2 = ar2.begin(); iter2 != ar2.end(); iter2++ )
 					{
 						auto &item2 = *iter2;
-						LocalEndpoint ep; /*( //cppcms::utils::check_bool( item2, "active", true, false ), 
-											check_string( item2, "name", "", false ), 
-											check_string( item2, "hostname", "", true),
-											check_int(item2,"port",-1,true) 
-											);*/
-						//if (ep.m_active)
+						LocalEndpoint ep;
 						if (ep.load(item2))
 						{
 							provider_endpoints.push_back( ep );
 						}
 					}
 				}
-				if ( //active && 
-					provider_endpoints.size() > 0 )
+				if (provider_endpoints.size() > 0 )
 				{
-					baseclient_ptr local_ptr( new ProviderClient( active, provider_endpoints, proxy_endpoints, standard_plugin ) );
-					//local_ptr->m_proxy_endpoints = proxy_endpoints;
+					baseclient_ptr local_ptr = std::make_shared<ProviderClient>( active, provider_endpoints, proxy_endpoints, standard_plugin );
 					this->localclients.push_back( local_ptr );
 				}
 				else
@@ -379,59 +396,73 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 	}
 	if ( (_json_acl & hosts) > 0 && obj["hosts"].type() == cppcms::json::is_array )
 	{
-		this->remotehosts.clear();
 		cppcms::json::array ar1 = obj["hosts"].array();
 		for ( auto iter1 = ar1.begin(); iter1 != ar1.end(); iter1++ )
 		{
+			bool found = false;
 			auto &item1 = *iter1;
-			// We must have a port number and at least one local address and one remote address
-			mylib::port_type host_port = cppcms::utils::check_int( item1, "port", 0, true );
-			std::vector<LocalEndpoint> local_endpoints;
-			if ( item1["locals"].type() == cppcms::json::is_array )
+			for (auto &host : this->remotehosts) // This should be std::find_if
 			{
-				auto ar2 = item1["locals"].array();
-				for ( auto iter2 = ar2.begin(); iter2 != ar2.end(); iter2++ )
+				bool param_changed = false;
+				//bool remotes_changed = false;
+				bool locals_changed = false;
+				std::vector<RemoteEndpoint> rem_added, rem_removed;
+				if (this->is_same(*host, item1, param_changed, locals_changed, rem_added, rem_removed))
 				{
-					auto &item2 = *iter2;
-					LocalEndpoint addr; //( cppcms::utils::check_string( item2, "hostname", "", true ), 
-									//cppcms::utils::check_int( item2, "port", 0, true ) );
-					if (addr.load(item2)) local_endpoints.push_back( addr );
+					ASSERTD(!(param_changed || locals_changed), "Host should have been deleted: " + mylib::to_string(host->port()));
+					DOUT("Found: " << host->port() << " for: " << item1 << " values: " << param_changed << " " << rem_added.size() << " " << rem_removed.size() << " " << locals_changed);
+					found = true;
+					host->add_remotes(rem_added);
+					host->remove_remotes(rem_removed);
 				}
 			}
-			std::vector<RemoteEndpoint> remote_endpoints;
-			if ( item1["remotes"].type() == cppcms::json::is_array )
+			if (!found)
 			{
-				auto ar2 = item1["remotes"].array();
-				for ( auto iter2 = ar2.begin(); iter2 != ar2.end(); iter2++ )
+				//DOUT("Didn't find: " << item1.port());
+				// We must have a port number and at least one local address and one remote address
+				mylib::port_type host_port = cppcms::utils::check_int( item1, "port", 0, true );
+				std::vector<LocalEndpoint> local_endpoints;
+				if ( item1["locals"].type() == cppcms::json::is_array )
 				{
-					auto &item2 = *iter2;
-					RemoteEndpoint ep; //( //cppcms::utils::check_bool( item2, "active", true, false ), 
-										//cppcms::utils::check_string( item2, "name", "", false ), 
-										//cppcms::utils::check_string( item2, "hostname", "", true),
-										//cppcms::utils::check_string( item2, "username", "", false), 
-										//cppcms::utils::check_string( item2, "password", "", false ) );						
-					if (ep.load(item2)) remote_endpoints.push_back( ep );
-				}
-			}
-			// Check size > 0
-			PluginHandler *plugin = &standard_plugin;
-			std::string plugin_type = cppcms::utils::check_string( item1, "type", "", false );
-			if ( plugin_type.length() > 0 )
-			{
-				for ( auto iter3 = PluginHandler::plugins().begin(); iter3 != PluginHandler::plugins().end(); iter3++ )
-				{
-					if ( (*iter3)->m_type == plugin_type )
+					auto ar2 = item1["locals"].array();
+					for ( auto iter2 = ar2.begin(); iter2 != ar2.end(); iter2++ )
 					{
-						plugin = (*iter3);
+						auto &item2 = *iter2;
+						LocalEndpoint addr;
+						if (addr.load(item2)) local_endpoints.push_back( addr );
 					}
 				}
-				// NB!! What if we don't find the right one ? now we simply default to the empty one.
+				std::vector<RemoteEndpoint> remote_endpoints;
+				if ( item1["remotes"].type() == cppcms::json::is_array )
+				{
+					auto ar2 = item1["remotes"].array();
+					for ( auto iter2 = ar2.begin(); iter2 != ar2.end(); iter2++ )
+					{
+						auto &item2 = *iter2;
+						RemoteEndpoint ep;
+						if (ep.load(item2)) remote_endpoints.push_back( ep );
+					}
+				}
+				// Check size > 0
+				PluginHandler *plugin = &standard_plugin;
+				std::string plugin_type = cppcms::utils::check_string( item1, "type", "", false );
+				if ( plugin_type.length() > 0 )
+				{
+					for ( auto iter3 = PluginHandler::plugins().begin(); iter3 != PluginHandler::plugins().end(); iter3++ )
+					{
+						if ( (*iter3)->m_type == plugin_type )
+						{
+							plugin = (*iter3);
+						}
+					}
+					// NB!! What if we don't find the right one ? now we simply default to the empty one.
+				}
+				if ( remote_endpoints.size() > 0 && local_endpoints.size() > 0 )
+				{
+					remotehost_ptr remote_ptr = std::make_shared<RemoteProxyHost>( host_port, remote_endpoints, local_endpoints, *plugin );
+					this->remotehosts.push_back( remote_ptr );
+				} // NB!! What else if one of them is empty
 			}
-			if ( remote_endpoints.size() > 0 && local_endpoints.size() > 0 )
-			{
-				remotehost_ptr remote_ptr = std::make_shared<RemoteProxyHost>( host_port, remote_endpoints, local_endpoints, *plugin );
-				this->remotehosts.push_back( remote_ptr );
-			} // NB!! What else if one of them is empty
 		}
 	}
 	if ( (_json_acl & web) > 0 && obj["web"].type() == cppcms::json::is_object )
@@ -446,19 +477,61 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 		cppcms::utils::check_bool( config_obj, "debug", this->m_debug );
 		cppcms::json::value proxies = config_obj.find( "uniproxies" );
 		cppcms::utils::check_int( config_obj, "certificate.timeout", this->m_certificate_timeout );
-		
+
+// NB!! Check if new uniproxies
 		if ( proxies.type() == cppcms::json::is_array )
 		{
 			for (auto &item : proxies.array())
 			{
 				LocalEndpoint ep;
-				if (ep.load(item))
+				if (ep.load(item)) // NB!! Should be assert??
 				{
-					this->uniproxies.push_back(ep);
+					if (std::find_if(this->uniproxies.begin(), this->uniproxies.end(), [&](const LocalEndpoint &_ep){ return _ep == ep; }) == this->uniproxies.end())
+					{
+						this->uniproxies.push_back(ep);
+					}
 				}
 			}
+			DOUT("Loaded proxies: " );
+			std::copy(this->uniproxies.begin(), this->uniproxies.end(),std::ostream_iterator<LocalEndpoint>(mylib::dout(), "\r\n"));
 		}
 	}
+}
+
+
+bool proxy_global::is_new_configuration(cppcms::json::value &newobj) const
+{
+	if (this->m_name.empty())
+		return true;
+	if (newobj["config"].type() != cppcms::json::is_object) // Should possibly reject this update ?
+		return true;
+	if (cppcms::utils::check_string(newobj,"config.name","",false) != this->m_name)
+		return true;
+	cppcms::json::value proxies = newobj.find( "config.uniproxies" );
+	int new_uniproxy_count = 0;
+	DOUT("uniproxies");
+	std::copy(this->uniproxies.begin(), this->uniproxies.end(),std::ostream_iterator<LocalEndpoint>(mylib::dout(), "\r\n"));
+	if ( proxies.type() == cppcms::json::is_array )
+	{
+		for (auto &item : proxies.array())
+		{
+			new_uniproxy_count++;
+			LocalEndpoint ep;
+			if (!ep.load(item))
+				return true;
+			if (std::find_if(this->uniproxies.begin(), this->uniproxies.end(), [&](const LocalEndpoint &_ep)
+			{
+				DOUT("Compare: " << ep << " == " << _ep << " count: " << new_uniproxy_count);
+				return _ep == ep;
+			}) == this->uniproxies.end())
+				return true;
+		}
+	}
+	else if (!this->uniproxies.empty())
+	{
+		return this->uniproxies.size() != new_uniproxy_count;		
+	}
+	return false;
 }
 
 

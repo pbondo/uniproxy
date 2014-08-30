@@ -299,7 +299,7 @@ void RemoteProxyClient::remote_threadproc()
 }
 
 
-RemoteProxyHost::RemoteProxyHost( unsigned short _local_port, std::vector<RemoteEndpoint> &_remote_ep, std::vector<LocalEndpoint> &_local_ep, PluginHandler &_plugin )
+RemoteProxyHost::RemoteProxyHost( unsigned short _local_port, const std::vector<RemoteEndpoint> &_remote_ep, const std::vector<LocalEndpoint> &_local_ep, PluginHandler &_plugin )
 :	m_io_service(),
 	m_context(m_io_service, boost::asio::ssl::context::sslv23),
 	m_acceptor(m_io_service),
@@ -327,6 +327,35 @@ RemoteProxyHost::RemoteProxyHost( unsigned short _local_port, std::vector<Remote
 	this->m_context.use_certificate_chain_file(my_public_cert_name);
 	this->m_context.use_private_key_file(my_private_key_name, boost::asio::ssl::context::pem);
 	this->m_activate_stamp = boost::get_system_time();
+}
+
+
+void RemoteProxyHost::add_remotes(const std::vector<RemoteEndpoint> &_remote_ep)
+{
+	std::lock_guard<std::mutex> l(this->m_mutex);
+	for (auto iter = _remote_ep.begin(); iter != _remote_ep.end(); iter++)
+	{
+		this->m_remote_ep.push_back(*iter);
+	}
+	//std::copy(_remote_ep.begin(), _remote_ep.end(), this->m_remote_ep.end());
+}
+
+
+void RemoteProxyHost::remove_remotes(const std::vector<RemoteEndpoint> &_remote_ep)
+{
+	std::lock_guard<std::mutex> l(this->m_mutex);
+	for (auto iter = _remote_ep.begin(); iter != _remote_ep.end(); iter++)
+	{
+		auto help = std::find_if(this->m_remote_ep.begin(), this->m_remote_ep.end(), [&](const RemoteEndpoint &ep){return ep == *iter;});
+		if (help != this->m_remote_ep.end())
+		{
+			// NB!! ASSERTD NOT RUNNING!!
+			this->m_remote_ep.erase(help);
+		}	
+		
+		//this->m_remote_ep.push_back(*iter);
+	}
+	//std::copy(_remote_ep.begin(), _remote_ep.end(), this->m_remote_ep.end());
 }
 
 
@@ -421,7 +450,7 @@ void RemoteProxyHost::stop()
 {
 	DOUT("RemoteProxyHost::stop() stopping port: " << this->port());
 	this->m_thread.stop();
-	stdt::lock_guard<stdt::mutex> l(this->m_mutex);
+	std::lock_guard<stdt::mutex> l(this->m_mutex);
 	// Clean up the current client list and remove any non active clients.
 	for (auto item : this->m_clients)
 	{
