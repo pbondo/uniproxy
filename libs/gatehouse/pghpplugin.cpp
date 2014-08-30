@@ -115,8 +115,7 @@ bool PGHPFilter::connect_handler( boost::asio::ip::tcp::socket &local_socket, Re
 	{
 		char buffer[201];
 		int length = 0;
-		length = boost::asio::socket_read_some_for( local_socket, boost::asio::buffer( buffer, 200), std::chronot::seconds(10) );
-		//length = boost::asio::socket_read_some_for( local_socket, buffer, 200, std::chronot::seconds(10) );
+		length = boost::asio::socket_read_some_for( local_socket, boost::asio::buffer( buffer, 200), boost::posix_time::seconds(10) );
 		if ( length == 0 )
 		{
 			throw std::system_error( make_error_code( uniproxy::error::logon_no_response ) );

@@ -29,7 +29,7 @@
 
 #else
 
-	#define __use_boost_thread__
+	//#define __use_boost_thread__
 	#define noexcept
 
 #endif

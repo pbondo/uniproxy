@@ -28,6 +28,7 @@
 #include <boost/thread/thread_time.hpp>					// get_system_time
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
+#include <boost/thread.hpp>
 
 #include <fstream>
 #include <chrono>
@@ -287,43 +288,25 @@ bool get_certificate_issuer_subject( boost::asio::ssl::stream<boost::asio::ip::t
 
 // This function will perform a read_some on a blocking socket. Notice it uses a thread, so it is slow.
 // Notice this functionality is not supported by ASIO in itself.
-template<typename MutableBufferSequence> int socket_read_some_for( boost::asio::ip::tcp::socket &_socket, const MutableBufferSequence & _buffers, const std::chronot::duration & _duration )
-//int socket_read_some_for( boost::asio::ip::tcp::socket &_socket, char *_buffer, int _size, const std::chronot::duration & _duration )
+template<typename MutableBufferSequence> int socket_read_some_for( boost::asio::ip::tcp::socket &_socket, const MutableBufferSequence & _buffers, const boost::posix_time::time_duration & _duration )
 {
 	int length = 0;
-//#ifdef _WIN32
 #ifdef _MSC_VER
-//	return _socket.read_some( _buffers );
-
-	stdt::packaged_task<int> task4( [&]()->int{ return _socket.read_some( _buffers ); } );
-
-//	boost::packaged_task<int()> task4( [&]()->int{ return _socket.read_some( boost::asio::buffer( _buffer, _size ) ); } );
+	boost::packaged_task<int> task4( [&]()->int{ return _socket.read_some( _buffers ); } );
 	auto f4 = task4.get_future();
-	stdt::thread t4( std::move(task4) );
-	if ( f4.wait_for( _duration ) )
+	boost::thread t4( boost::move(task4) );
+	if (f4.timed_wait(_duration))
 	{
 		length = f4.get();
 	}
-
 #else
 	return _socket.read_some( _buffers );
-//	The following crash with g++ 4.5. Must check with g++ 4.6 or 4.7
-/*
-	std::packaged_task<int()> task4( [&]()->int{ return _socket.read_some( _buffers ); } );
-	//std::packaged_task<int> task4( [&]()->int{ return _socket.read_some( _buffers ); } );
-	//auto f4 = task4.get_future();
-	std::thread t4( std::move(task4) );
-
-	if ( f4.wait_for( _duration ) )
-	{
-		length = f4.get();
-	}*/
 #endif
 	return length;
 }
 
-}
-}
+} // namespace asio
+} // namespace boost
 
 bool operator==( boost::asio::ip::tcp::socket &, boost::asio::ip::tcp::socket & );
 
