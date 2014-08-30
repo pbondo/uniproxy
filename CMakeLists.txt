@@ -2,22 +2,20 @@
 # cmake configuration file
 #
 #
-cmake_minimum_required(VERSION 2.4)
+cmake_minimum_required(VERSION 2.8)
 
 project(uniproxy)
 
 IF (WIN32)
 	SET(VC 12)
 	SET(LANG c:/lang)
-	SET(BOOST d:/lang/boost_1_55_0)
 ENDIF()
 
 
-include_directories(. src/ libs/ ${HOME}/lang/third/include/)
+include_directories(. src/ libs/)
 
 # This command assemble the cppcms templates
 IF (WIN32)
-
 
 add_custom_command(
   OUTPUT views.cpp
@@ -28,7 +26,9 @@ add_custom_command(
   COMMENT "Precompiling views"
   VERBATIM
   )
+
 ELSE (WIN32)
+
 add_custom_command(
   OUTPUT views.cpp
   COMMAND cppcms_tmpl_cc.py ../webserver/master.tmpl ../webserver/view_config.tmpl ../webserver/view_status.tmpl -o views.cpp
@@ -37,6 +37,7 @@ add_custom_command(
   COMMENT "Precompiling views"
   VERBATIM
   )
+
 ENDIF (WIN32)
 
 
@@ -62,8 +63,6 @@ set( uniproxy_cpp_SOURCES
 	../libs/gatehouse/pghpnmeamsg.cpp
 	../libs/gatehouse/pghp2.cpp
 )
-
-
 
 set( uniproxy_SOURCES
 	${uniproxy_cpp_SOURCES}
@@ -99,17 +98,11 @@ IF (WIN32)
 		)
 
 
-	# VS2012
 	ADD_DEFINITIONS( -D_WIN32_WINNT=0x0501 /wd4250 /wd4018  /wd4267 /wd4996)
-	include_directories (${uniproxy_SOURCE_DIR} ${LANG}/w64-vc${VC}/include ${LANG}/third/include ${BOOST} ${LANG}/openssl-win64/include/  c:/lang/w64-vc${VC}/third/include/ )
-	LINK_DIRECTORIES( "${LANG}/w64-vc${VC}/lib" "${LANG}/openssl-win64/lib/VC/static/" ${BOOST}/libs ${BOOST}/lib64-msvc-${VC}.0)
+	include_directories (${uniproxy_SOURCE_DIR} ${LANG}/w64-vc${VC}/include ${LANG}/boost-master/include ${LANG}/boost-ext/include ${LANG}/openssl/include/)
+	LINK_DIRECTORIES( "${LANG}/w64-vc${VC}/lib" "${LANG}/openssl/lib/vc${VC}x64/" ${LANG}/boost-master/lib64)
 	# Use multi cores
 	SET(VISUAL_STUDIO_MP_FLAG "/MP")
-
-	# Mingw64
-	#ADD_DEFINITIONS( -std=c++11 )
-	#include_directories (${uniproxy_SOURCE_DIR} ${LANG}/include ${LANG}/mw64/include ${LANG}/mw64/include/boost-1_49  ${LANG}/OpenSSL-1.0.0a-bin-x64/x86_64-w64-mingw32/include )
-	#LINK_DIRECTORIES( ${LANG}/OpenSSL-1.0.0a-bin-x64/x86_64-w64-mingw32/lib ${LANG}/mingw/x86_64-w64-mingw32/lib c:${LANG}/mingw/lib "${LANG}/mw64/lib"  )
 
 ELSE (WIN32)
 
@@ -121,11 +114,8 @@ ENDIF (WIN32)
 add_executable(${PROJECT_NAME} ${uniproxy_SOURCES})
 
 IF (WIN32)
-	# VS2012
-	target_link_libraries (${PROJECT_NAME} libcppcms libbooster SSLeay32MDd libeay32MDd zlib pcre dbghelp )
 
-	# Mingw the order of libraries are important
-	#target_link_libraries (uniproxy  libcppcms libbooster pcre boost_system-mgw47-mt-1_49 boost_regex-mgw47-mt-1_49 boost_filesystem-mgw47-mt-1_49 ssleay32 crypto ws2_32 wsock32 mswsock zlib m)
+	target_link_libraries (${PROJECT_NAME} libcppcms libbooster SSLeay32 libeay32 zlib pcre dbghelp )
 
 ELSE (WIN32)
 
