@@ -55,7 +55,7 @@ class cppcms::form c;
 
 ////////////////////////////////////////////
 
-proxy_app::proxy_app(cppcms::service &srv) : cppcms::application(srv)
+proxy_app::proxy_app(cppcms::service &srv) : cppcms::application(srv), timer_(srv.get_io_service())
 {
 	dispatcher().assign("^/command/client/activate/name=(.*)&id=(.*)&dummy=(.*)$",&proxy_app::client_activate,this,1,2);
 	dispatcher().assign("^/command/client/active/name=(.*)&id=(.*)&check=(.*)&dummy=(.*)$",&proxy_app::client_active,this,1,2,3);
@@ -259,6 +259,14 @@ bool check_url( const std::string &_input, const std::string &_pattern, std::str
 }
 
 
+// Reset without stopping the application.
+void proxy_app::timeout_handle()
+{
+	cppcms::signal::set_reload();
+	this->shutdown();
+}
+
+
 void proxy_app::config_upload()
 {
 	try
@@ -304,13 +312,11 @@ void proxy_app::config_upload()
 			boost::filesystem::copy_file( filename, config_filename, boost::filesystem::copy_option::overwrite_if_exists, ec );
 			ASSERTE( ec == boost::system::errc::success, uniproxy::error::file_failed_copy, filename + " to " + config_filename );
 
-			//this->config_reload();
-
 			// Check if configuration has changed to warrant a restart.
-
 			if (global.is_new_configuration(newobj))
 			{
 				DOUT("Configuration changed sufficiently to warrant a restart. All connections will be closed");
+				this->response().set_redirect_header("/");
 				throw mylib::reload_exception();
 			}
 			else
@@ -327,7 +333,6 @@ void proxy_app::config_upload()
 					throw mylib::reload_exception();
 				}
 			}
-			//this->response().set_redirect_header("/");
 		}
 	}
 	catch( std::system_error &exc1 )
@@ -450,16 +455,13 @@ void proxy_app::main(std::string url)
 		{
 			DOUT("main url: " << url );
 		}
-		//DOUT( "proxy_app::main: " << url << " unknown command, checking base" );
-		this->cppcms::application::main(url); //"/json" + url);
-
+		this->cppcms::application::main(url);
 	}
 	catch( mylib::reload_exception &)
 	{
 		DOUT( __LINE__ << "Reload exception");
-		//global.m_reload = true;
-		cppcms::signal::set_reload();
-		this->service().shutdown();
+		this->timer_.expires_from_now(booster::ptime::milliseconds(1000));
+		this->timer_.async_wait(binder(this,&proxy_app::timeout_handle));
 	}
 	catch( std::exception &exc )
 	{
@@ -495,29 +497,11 @@ const char help_text[] = "Usage: uniproxy [-l/--working-dir=<working directory>]
 
 int main(int argc,char ** argv)
 {
-/*
-	if (check_arg( argc, argv, 0, "httpclient"))
-	{
-		std::string output;
-		bool result = httpclient::sync("localhost:8085", "/json/command/certificate/get/",output);
-		std::cout << "Result: " << result << " " << output << std::endl;
-		return 0;
-	}
-*/
 	if (check_arg( argc, argv, 'h', "help"))
 	{
 		std::cout << help_text << std::endl;
 		return 0;
 	}
-/*	
-	std::string workdir;
-	if (check_arg( argc, argv, 'w', "working-dir", workdir) && workdir.length() > 0)
-	{
-		// If this fails, there is not much we can do about it anyway, so we silently fail.
-		boost::system::error_code ec;
-		boost::filesystem::current_path(workdir,ec);
-	}
-*/
 #ifdef _WIN32
    EnableFirewallRule();
 #endif
@@ -528,13 +512,7 @@ int main(int argc,char ** argv)
 			srand(time(NULL));
 			cppcms::signal::reset_reload();
 			log().clear();
-			DOUT( std::string("UniProxy starting in path: ") << boost::filesystem::current_path() << " with parameters:");
-/*
-			for (int index = 0; index < argc; index++)
-			{
-				DOUT("Arg: " << index << " value: " << argv[index]);
-			}
-*/
+			DOUT( std::string("UniProxy starting in path: ") << boost::filesystem::current_path());
 			log().add( std::string("UniProxy starting" ) );
 
 			DOUT("Loading plugins count: " << PluginHandler::plugins().size() );

@@ -730,7 +730,6 @@ bool proxy_global::load_configuration()
 				else
 				{
 					log().add("Own name \"" + this->m_name + "\" does not match own certificate \"" + certificate_common_name + "\"");
-					//throw std::runtime_error("Own name \"" + this->m_name + "\" does not match own certificate \"" + certificate_common_name + "\"" );
 				}
 			}
 		}

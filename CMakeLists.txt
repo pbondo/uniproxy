@@ -9,6 +9,8 @@ project(uniproxy)
 IF (WIN32)
 	SET(VC 12)
 	SET(LANG c:/lang)
+ELSE()
+	SET(LANG $ENV{HOME}/lang)
 ENDIF()
 
 
@@ -107,7 +109,7 @@ IF (WIN32)
 ELSE (WIN32)
 
 	ADD_DEFINITIONS( -g -std=c++11 -Wall -Wno-sign-compare )
-	include_directories(${LANG}/third/include)
+	include_directories(${LANG}/boost-ext/include)
 
 ENDIF (WIN32)
 

@@ -23,6 +23,8 @@
 #include <cppcms/json.h>
 #include <cppcms/url_dispatcher.h>
 #include <cppcms/service.h>
+#include <cppcms/http_context.h>
+#include <booster/aio/deadline_timer.h>
 
 #include "remoteclient.h"
 #include "localclient.h"
@@ -69,8 +71,28 @@ public:
 	void host_active(const std::string _param, const std::string _id, const std::string _checked);
 	void certificate_delete(const std::string);
 	void get_certificates(const std::string _param);
+	void timeout_handle();
 
 	static void setup_config( cppcms::json::value &_settings );
+
+	booster::aio::deadline_timer timer_;
+	
+	struct binder 
+	{
+		binder(booster::intrusive_ptr<proxy_app> ptr,void (proxy_app::*member)()) : self(ptr),m(member)
+		{
+		}
+		void operator()(cppcms::http::context::completion_type /*t*/) const
+		{
+			((*self).*m)();
+		}
+		void operator()(booster::system::error_code const &/*e*/) const
+		{
+			((*self).*m)();
+		}
+		booster::intrusive_ptr<proxy_app> self;
+		void (proxy_app::*m)();
+	};
 
 };
 
