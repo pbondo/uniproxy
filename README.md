@@ -80,10 +80,11 @@ openssl (www.openssl.org)
 boost (www.boost.org)
 cppcms (cppcms.com)
 
-mkdir build
-cd build
-cmake -G "Visual Studio 11 Win64" ..
-make
+mkdir build64
+cd build64
+cmake -G "Visual Studio 12 2013 Win64 ..
+msbuild /p:Configuration=Release uniproxy.sln
+
 
 Also boost process
 http://www.highscore.de/boost/process.zip

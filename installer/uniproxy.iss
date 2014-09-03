@@ -34,7 +34,7 @@ Compression=lzma
 SolidCompression=yes
 
 [Files]
-Source: "../build64/uniproxy.exe"; DestDir: "{app}"
+Source: "../build64/Release/uniproxy.exe"; DestDir: "{app}"
 
 ; For uniproxy
 Source: "third/vcredist_x64-vc12.exe"; Flags: dontcopy
@@ -111,8 +111,9 @@ begin
          StopService(UniproxyServiceName, true);
       end;
 
-      InstallNamedRuntime('vcredist_x86-vc9.exe');
-      InstallNamedRuntime('vcredist_x64-vc11.exe');
+      //InstallNamedRuntime('vcredist_x86-vc9.exe');
+      //InstallNamedRuntime('vcredist_x64-vc11.exe');
+      InstallNamedRuntime('vcredist_x64-vc12.exe');
    end;
 end;
 
