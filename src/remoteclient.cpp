@@ -191,7 +191,7 @@ void RemoteProxyClient::remote_threadproc()
 			throw std::runtime_error("No local endpoints found");
 		}
 		this->m_remote_connected = true; // Should perhaps be after the SSL handshake.
-
+/*
 		if ( boost::get_system_time() < this->m_host.m_activate_stamp )
 		{
 			this->m_host.m_activate_stamp = boost::get_system_time();
@@ -208,7 +208,7 @@ void RemoteProxyClient::remote_threadproc()
 			}
 			throw std::runtime_error("Attempted Setupcertificate"); // Actually this is not an error, but we just want to restart the socket.
 		}
-
+*/
 		this->dolog("Performing SSL hansdshake connection");
 		this->m_remote_socket.handshake( boost::asio::ssl::stream_base::server );
 		this->dolog("SSL connection ok");
@@ -326,7 +326,7 @@ RemoteProxyHost::RemoteProxyHost( unsigned short _local_port, const std::vector<
 	this->m_context.load_verify_file( my_certs_name );
 	this->m_context.use_certificate_chain_file(my_public_cert_name);
 	this->m_context.use_private_key_file(my_private_key_name, boost::asio::ssl::context::pem);
-	this->m_activate_stamp = boost::get_system_time();
+//	this->m_activate_stamp = boost::get_system_time();
 }
 
 

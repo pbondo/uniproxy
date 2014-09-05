@@ -83,7 +83,7 @@ class RemoteProxyHost
 public:
 
 	RemoteProxyHost( mylib::port_type _local_port, const std::vector<RemoteEndpoint> &_remote_ep, const std::vector<LocalEndpoint> &_local_ep, PluginHandler &_plugin );
-	
+
 	void add_remotes(const std::vector<RemoteEndpoint> &_remote_ep);
 	void remove_remotes(const std::vector<RemoteEndpoint> &_remote_ep);
 
@@ -110,8 +110,8 @@ public:
 	std::vector<LocalEndpoint> m_local_ep;
 	PluginHandler &m_plugin;
 
-	boost::posix_time::ptime m_activate_stamp;
-	std::string m_activate_name;
+	//boost::posix_time::ptime m_activate_stamp;
+	//std::string m_activate_name;
 	bool m_active;
 
 	mylib::port_type port() const { return this->m_local_port; }

@@ -98,30 +98,31 @@ void BaseClient::ssl_prepare(boost::asio::ssl::context &ssl_context) const
 
 void BaseClient::threadproc_activate(int index)
 {
+	int port = global.m_activate_port;
 	try
 	{
 		if ( boost::get_system_time() < this->m_activate_stamp )
 		{
 			DOUT("Activate: " << index << " starting");
 			boost::asio::io_service io_service;
-			boost::asio::ssl::context ssl_context( io_service, boost::asio::ssl::context::sslv23);
-			this->ssl_prepare(ssl_context);
 			boost::asio::io_service::work session_work(io_service);
-			ssl_socket remote_socket(io_service, ssl_context);
-			
+			boost::asio::ip::tcp::socket socket(io_service);
+
 			std::string epz = this->m_proxy_endpoints[index].m_hostname + ":" + mylib::to_string(this->m_proxy_endpoints[index].m_port);
 			this->dolog("Activate Performing remote connection to: " + epz );
-			boost::asio::sockect_connect( remote_socket.lowest_layer(), io_service, this->m_proxy_endpoints[index].m_hostname, this->m_proxy_endpoints[index].m_port );
+			boost::asio::sockect_connect( socket, io_service, this->m_proxy_endpoints[index].m_hostname, port ); // this->m_proxy_endpoints[index].m_port );
 			this->m_proxy_index = index;
 
 			RemoteEndpoint &ep = this->m_proxy_endpoints[index];
 			std::error_code err;
 			this->dolog("Activate Attempting to perform certificate exchange with " + ep.m_name );
 			this->m_activate_stamp = boost::get_system_time(); // Reset to current time to avoid double attempts.
-			if (	!global.SetupCertificates( remote_socket.next_layer(), ep.m_name, false, err ) &&
-					!global.SetupCertificates( remote_socket.next_layer(), ep.m_name, true, err ) )
+			std::vector<std::string> certnames;
+			certnames.push_back(ep.m_name);
+			if (global.SetupCertificatesClient(socket, certnames.front()) &&
+					!global.SetupCertificatesServer( socket, certnames).empty() )
 			{
-				this->dolog("Succeeded in exchanging certificates" );
+				this->dolog("Succeeded in exchanging certificates with " + certnames.front());
 			}
 			else
 			{
