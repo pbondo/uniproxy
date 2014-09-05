@@ -136,9 +136,7 @@ void proxy_app::script(const std::string)
 
 void proxy_app::get_certificates(const std::string _param)
 {
-	//DOUT(__FUNCTION__ << ": " << _param);
 	std::string certs = readfile( my_certs_name );
-	//DOUT("Read certs: " << certs);
 	this->response().out() << certs;
 }
 
@@ -154,8 +152,8 @@ void proxy_app::host_activate(const std::string _param)
 			RemoteEndpoint &ep = *iter;
 			if ( ep.m_name == _param )
 			{
-				p->m_activate_stamp = boost::get_system_time() + boost::posix_time::seconds( global.m_certificate_timeout );
-				p->m_activate_name = _param;
+				global.m_activate_host.add(_param);
+				return; // No need to add it more than once.
 			}
 		}
 	}
@@ -186,25 +184,6 @@ void proxy_app::host_active(const std::string _param, const std::string _id, con
 		}
 	}
 }
-/*
-for (auto iter = p->m_remote_ep.begin(); iter != p->m_remote_ep.end(); iter++)
-{
-RemoteEndpoint &ep = *iter;
-if (ep.m_name == _param)
-{
-ep.m_active = (_checked == "true") ? true : false;
-if (ep.m_active)
-{
-p->start(); // NB!! This is NOT correct.
-}
-else
-{
-p->stop();
-}
-DOUT("Updated active state for: " << _param << " new value: " << ep.m_active);
-}
-}
-*/
 
 
 void proxy_app::certificate_delete(const std::string _param)
@@ -425,9 +404,9 @@ void proxy_app::setup_config( cppcms::json::value &settings_object )
 	#else
 	std::string coockie_path = "/tmp";
 	#endif
-	std::string coockie = "uniproxy" + mylib::to_string(global.m_port);
+	std::string coockie = "uniproxy" + mylib::to_string(global.m_web_port);
 	settings_object["service"]["api"]="http";
-	settings_object["service"]["port"]= global.m_port;
+	settings_object["service"]["port"]= global.m_web_port;
 	settings_object["service"]["ip"]= global.m_ip4_mask;
 	settings_object["session"]["location"] = "client";
 	settings_object["session"]["cookies"]["prefix"] = coockie;

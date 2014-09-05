@@ -47,6 +47,41 @@ public:
 };
 
 
+class activate_host : public mylib::thread
+{
+public:
+
+	class activate_t
+	{
+	public:
+		boost::posix_time::ptime m_activate_stamp;
+		std::string m_activate_name;
+	};
+
+	activate_host();
+	void start(int _port);
+	void interrupt();
+	void threadproc(int _port);
+	void add(std::string _certname);
+	bool is_in_list(const std::string &_certname, boost::posix_time::ptime &_timeout);
+
+	size_t size() const
+	{
+		std::lock_guard<std::mutex> lock(this->m_mutex);
+		return this->m_activate.size();
+	}
+
+protected:
+
+	void cleanup();
+
+	mutable std::mutex m_mutex;
+	std::vector<activate_t> m_activate;
+	boost::asio::ip::tcp::socket *mp_socket = nullptr;
+	boost::asio::ip::tcp::acceptor *mp_acceptor = nullptr;
+
+};
+
 
 class session_data
 {
@@ -97,11 +132,12 @@ public:
 	std::vector<baseclient_ptr> localclients;
 	std::vector<LocalEndpoint> uniproxies;
 
-	mylib::port_type m_port;
+	mylib::port_type m_web_port = 8085;
 	std::string m_ip4_mask;
 	bool m_debug;
 	cppcms::json::value m_new_setup; // Stop and start services to match this.
-	int m_certificate_timeout;
+	boost::posix_time::seconds m_activate_timeout = boost::posix_time::seconds(60);
+	mylib::port_type m_activate_port = 25500;
 
 	// Own name to be used for generating own certificate.
 	std::string m_name;
@@ -114,7 +150,9 @@ public:
 	stdt::mutex m_mutex_certificates;
 	std::vector<std::string> m_cert_names;
 	bool load_certificate_names( const std::string & _filename );
-	std::error_code SetupCertificates( boost::asio::ip::tcp::socket &_remote_socket, const std::string &_connection_name, bool _server, std::error_code& ec );
+
+	bool SetupCertificatesClient( boost::asio::ip::tcp::socket &_remote_socket, const std::string &_connection_name);
+	std::string SetupCertificatesServer( boost::asio::ip::tcp::socket &_remote_socket, const std::vector<std::string> &_connection_names);
 
 	bool certificate_available( const std::string &_cert_name);
 	bool execute_openssl();
@@ -123,13 +161,13 @@ public:
 
 	bool is_same( const BaseClient &client, cppcms::json::value &obj, bool &param_changes, bool &client_changes ) const;
 	bool is_same(const RemoteProxyHost &host, cppcms::json::value &obj, bool &param_changed, bool &locals_changed, std::vector<RemoteEndpoint> &rem_added, std::vector<RemoteEndpoint> &rem_removed) const;
-	//bool is_same( const RemoteProxyHost &host, cppcms::json::value &obj, bool &param_changes, bool &locals_changed, std::vector<RemoteEndpoint> &rem_added, std::vector<RemoteEndpoint> &rem_removed ) const;
+
+	activate_host m_activate_host;
 
 protected:
 
 	stdt::mutex m_session_data_mutex;
 	std::vector< std::shared_ptr<session_data>> m_sessions;
-
 };
 
 extern proxy_global global;
