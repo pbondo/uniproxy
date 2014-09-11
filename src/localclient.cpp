@@ -46,8 +46,8 @@ boost::asio::ip::tcp::socket &LocalHostSocket::socket()
 }
 
 
-LocalHost::LocalHost( bool _active, mylib::port_type _local_port, const std::vector<RemoteEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin, const boost::posix_time::time_duration &_read_timeout )
-:	BaseClient(_active, _local_port, _proxy_endpoints, _max_connections, _plugin),
+LocalHost::LocalHost(bool _active, mylib::port_type _local_port, mylib::port_type _activate_port, const std::vector<RemoteEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin, const boost::posix_time::time_duration &_read_timeout)
+	: BaseClient(_active, _local_port, _activate_port, _proxy_endpoints, _max_connections, _plugin),
 	mp_io_service( nullptr ),
 	mp_acceptor( nullptr ),
 	m_pdeadline( nullptr ),

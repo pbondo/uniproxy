@@ -29,7 +29,7 @@ class ProviderClient : public BaseClient
 {
 public:
 
-	ProviderClient(bool _active, 
+	ProviderClient(bool _active, mylib::port_type _activate_port,
 			const std::vector<LocalEndpoint> &_local_endpoints, // Local data provider
 			const std::vector<RemoteEndpoint> &_proxy_endpoints, // Remote proxy
 			PluginHandler &_plugin);

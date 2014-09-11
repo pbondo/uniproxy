@@ -22,7 +22,7 @@
 
 static int static_local_id = 0;
 
-BaseClient::BaseClient(bool _active, mylib::port_type _local_port, const std::vector<RemoteEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin)
+BaseClient::BaseClient(bool _active, mylib::port_type _local_port, mylib::port_type _activate_port, const std::vector<RemoteEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin)
 :	m_proxy_index(0),
 	m_active(_active),
 	mp_remote_socket( nullptr ),
@@ -31,7 +31,8 @@ BaseClient::BaseClient(bool _active, mylib::port_type _local_port, const std::ve
 	m_max_connections(_max_connections),
 	m_thread_activate([]{}),
 	m_thread( [this]{ this->interrupt(); } ),
-	m_plugin(_plugin)
+	m_plugin(_plugin),
+	m_activate_port(_activate_port)
 {
 	this->m_proxy_endpoints = _proxy_endpoints;
 	this->m_activate_stamp = boost::get_system_time();
@@ -98,7 +99,6 @@ void BaseClient::ssl_prepare(boost::asio::ssl::context &ssl_context) const
 
 void BaseClient::threadproc_activate(int index)
 {
-	int port = global.m_activate_port;
 	try
 	{
 		if ( boost::get_system_time() < this->m_activate_stamp )
@@ -110,7 +110,7 @@ void BaseClient::threadproc_activate(int index)
 
 			std::string epz = this->m_proxy_endpoints[index].m_hostname + ":" + mylib::to_string(this->m_proxy_endpoints[index].m_port);
 			this->dolog("Activate Performing remote connection to: " + epz );
-			boost::asio::sockect_connect( socket, io_service, this->m_proxy_endpoints[index].m_hostname, port ); // this->m_proxy_endpoints[index].m_port );
+			boost::asio::sockect_connect( socket, io_service, this->m_proxy_endpoints[index].m_hostname, this->m_activate_port ); // this->m_proxy_endpoints[index].m_port );
 			this->m_proxy_index = index;
 
 			RemoteEndpoint &ep = this->m_proxy_endpoints[index];
@@ -145,7 +145,7 @@ void BaseClient::stop_activate()
 
 void BaseClient::start_activate(int _index)
 {
-	this->m_thread_activate.start([this,_index](){this->threadproc_activate(_index);});	
+	this->m_thread_activate.start([=](){this->threadproc_activate(_index);});	
 }
 
 

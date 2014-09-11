@@ -307,8 +307,10 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 		{
 			auto &item1 = *iter1;
 			bool active = cppcms::utils::check_bool( item1, "active", true, false );
-			mylib::port_type client_port = cppcms::utils::check_int( item1, "port", 0, true );
-			auto iter_cur = std::find_if(this->localclients.begin(),this->localclients.end(),[&](const baseclient_ptr& client){ return client_port == client->port();});
+			bool provider = cppcms::utils::check_bool(item1, "provider", false, false);
+			mylib::port_type client_port = cppcms::utils::check_int(item1, "port", 0, !provider);
+			mylib::port_type activate_port = cppcms::utils::check_int(item1, "activate.port", 25500, false);
+			auto iter_cur = std::find_if(this->localclients.begin(), this->localclients.end(), [&](const baseclient_ptr& client){ return client_port == client->port(); });
 			if (iter_cur != this->localclients.end())
 			{
 				DOUT("Found existing running client on port: " << client_port);
@@ -316,7 +318,6 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 			}
 
 			int help;
-			bool provider = cppcms::utils::check_bool( item1, "provider", false, false );
 			boost::posix_time::time_duration read_timeout = boost::posix_time::minutes(5);
 			if (cppcms::utils::check_int( item1, "timeout", help ) && help > 0)
 			{
@@ -355,7 +356,7 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 				}
 				if (provider_endpoints.size() > 0 )
 				{
-					baseclient_ptr local_ptr = std::make_shared<ProviderClient>( active, provider_endpoints, proxy_endpoints, standard_plugin );
+					baseclient_ptr local_ptr = std::make_shared<ProviderClient>(active, activate_port, provider_endpoints, proxy_endpoints, standard_plugin);
 					this->localclients.push_back( local_ptr );
 				}
 				else
@@ -367,7 +368,7 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 			else if ( active && proxy_endpoints.size() > 0 )
 			{
 				// NB!! Search for the correct plugin version
-				baseclient_ptr local_ptr( new LocalHost( active, client_port, proxy_endpoints, max_connections, standard_plugin, read_timeout ) );
+				baseclient_ptr local_ptr( new LocalHost( active, client_port, activate_port, proxy_endpoints, max_connections, standard_plugin, read_timeout ) );
 				this->localclients.push_back( local_ptr );
 			} // NB!! What else if one of them is empty
 		}
@@ -530,6 +531,7 @@ std::string proxy_global::save_json_status( bool readable )
 		obj["id"] = local.m_id;
 		obj["active"] = local.m_active;
 		obj["port"] = local.local_portname();
+		obj["activate"]["port"] = local.activate_port();
 		obj["connected_local"] = local.is_local_connected();
 		obj["log"] = local.dolog();
 

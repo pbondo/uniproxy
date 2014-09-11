@@ -27,7 +27,7 @@ class BaseClient
 {
 public:
 
-	BaseClient(bool _active, mylib::port_type _local_port, const std::vector<RemoteEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin);
+	BaseClient(bool _active, mylib::port_type _local_port, mylib::port_type _activate_port, const std::vector<RemoteEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin);
 
 	virtual void start() = 0;
 	virtual void stop() = 0;
@@ -62,10 +62,12 @@ public:
 	data_flow m_count_in, m_count_out;
 	
 	mylib::port_type port() const { return this->m_local_port; }
+	mylib::port_type activate_port() const { return this->m_activate_port; }
 
 protected:
 
 	mylib::port_type m_local_port;
+	mylib::port_type m_activate_port;
 
 public:
 
