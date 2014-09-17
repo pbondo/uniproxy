@@ -1008,14 +1008,21 @@ void client_certificate_exchange::thread_proc( const std::vector<LocalEndpoint> 
 	}
 	while (this->check_run())
 	{
-		this->sleep(60000);
+		if (global.m_activate_host.size())
+		{
+			this->sleep(20000);
+		}
+		else
+		{
+			this->sleep(60000);
+		}
 		for (auto &ep : eps)
 		{
 			try
 			{
 				std::string host = ep.m_hostname + ":" + mylib::to_string(ep.m_port);
 				std::string output;
-				DOUT("Get certificate from: " << host);
+				//DOUT("Get certificate from: " << host);
 				bool result = httpclient::sync(host,"/json/command/certificate/get/",output);
 				if (result)
 				{
@@ -1033,12 +1040,17 @@ void client_certificate_exchange::thread_proc( const std::vector<LocalEndpoint> 
 							{
 								ok = true;
 								// NB!! Check if cert are otherwise equal.
+								if (!equal(cert,rem))
+								{
+									DERR("Certificate with name: " << get_common_name(cert) << " has changed contents");
+								}
 							}
 						}
 						if (!ok)
 						{
 							DOUT("Adding cert: " << get_common_name(rem));
 							own.push_back(rem);
+							global.m_activate_host.remove(get_common_name(rem));
 						}
 					}
 					if (ownsize != own.size())
@@ -1053,7 +1065,7 @@ void client_certificate_exchange::thread_proc( const std::vector<LocalEndpoint> 
 				DERR(__FUNCTION__ << " failed to exchange certificates with " << ep.m_hostname);
 			}
 		}
-		this->sleep(4*60000);
+		//this->sleep(60000);
 	}
 }
 
@@ -1147,7 +1159,7 @@ void activate_host::threadproc(int _port)
 				{
 					if (iter->m_activate_name == certname)
 					{
-						DOUT("Found and removing " << certname);
+						DOUT("Found and removing from activation list: " << certname);
 						this->m_activate.erase(iter);
 						break;
 					}
@@ -1163,6 +1175,23 @@ void activate_host::threadproc(int _port)
 			DOUT("Exception in certificate client: " << exc.what());
 		}
 	}
+}
+
+
+bool activate_host::remove(const std::string &certname)
+{
+	std::lock_guard<std::mutex> lock(this->m_mutex);
+	this->cleanup();
+	for (auto iter = this->m_activate.begin(); iter != this->m_activate.end(); iter++)
+	{
+		if (iter->m_activate_name == certname)
+		{
+			DOUT("Found and removing from activation list: " << certname);
+			this->m_activate.erase(iter);
+			return true;
+		}
+	}
+	return false;
 }
 
 

@@ -3,7 +3,7 @@
 #
 #!/bin/bash
 
-version=0.3.4
+version=0.9.0
 release=1
 
 ln -s ../deb/postinstall-pak

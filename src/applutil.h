@@ -569,6 +569,8 @@ bool delete_certificate_file( const std::string &_filename, const std::string &_
 std::string get_subject_name( const certificate_type &_cert );
 std::string get_issuer_name( const certificate_type &_cert );
 std::string get_common_name( const certificate_type &_cert );
+bool equal(const certificate_type &_cert1, const certificate_type &_cert2);
+
 
 // Read a text (NOT binary file).
 std::string readfile( const std::string &_filename );

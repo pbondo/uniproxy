@@ -28,11 +28,11 @@ BaseClient::BaseClient(bool _active, mylib::port_type _local_port, mylib::port_t
 	mp_remote_socket( nullptr ),
 	m_count_in(true), m_count_out(true),
 	m_local_port(_local_port),
+	m_activate_port(_activate_port),
 	m_max_connections(_max_connections),
 	m_thread_activate([]{}),
 	m_thread( [this]{ this->interrupt(); } ),
-	m_plugin(_plugin),
-	m_activate_port(_activate_port)
+	m_plugin(_plugin)
 {
 	this->m_proxy_endpoints = _proxy_endpoints;
 	this->m_activate_stamp = boost::get_system_time();

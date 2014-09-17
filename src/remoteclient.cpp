@@ -487,10 +487,11 @@ void RemoteProxyHost::handle_accept(RemoteProxyClient* new_session, const boost:
 				}
 			}
 			DOUT( __FUNCTION__ << ":" << __LINE__ );
+			this->m_context.load_verify_file( my_certs_name );
 			this->m_clients.push_back( new_session );
 			new_session->start( this->m_local_ep );
 
-			mylib::msleep( 2000 );
+			mylib::msleep(1000);
 			DOUT("Trying to reload verify file");
 			this->m_context.load_verify_file( my_certs_name );
 			// This call is not multithread safe. load_certificate_names( my_certs_name );

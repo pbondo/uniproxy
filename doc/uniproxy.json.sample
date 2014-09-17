@@ -2,6 +2,7 @@
 	"clients" : [
 		{
 			"port" : 1240,
+			"activate" : { "port" : 25500 },
 			"remotes" : [
 				{ "name" : "remote_certificate", "hostname" : "remote_hostname.com", "port":8750 }
 			]
@@ -38,5 +39,5 @@
 			"remotes" : [ { "name" : "remote_certificate" }, { "name" : "some_other_certificate", "ip" : "1.2.3.4", "username":"username", "password" : "secret2" } ]
 	       }
 	],
-	"config" : { "name" : "my_certificate" }
+	"config" : { "name" : "my_certificate", "activate" : { "port" : 25500 } }
 }

@@ -267,6 +267,12 @@ std::string get_issuer_name( const certificate_type &_cert )
 }
 
 
+bool equal(const certificate_type &_cert1, const certificate_type &_cert2)
+{
+	return !X509_cmp(_cert1.get(), _cert2.get() );
+}
+
+
 std::string get_common_name( const certificate_type &_cert )
 {
 	std::string common_name, issuer = get_issuer_name( _cert );

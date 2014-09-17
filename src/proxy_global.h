@@ -64,6 +64,7 @@ public:
 	void threadproc(int _port);
 	void add(std::string _certname);
 	bool is_in_list(const std::string &_certname, boost::posix_time::ptime &_timeout);
+	bool remove(const std::string &_certname);
 
 	size_t size() const
 	{

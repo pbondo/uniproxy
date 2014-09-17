@@ -348,7 +348,7 @@ void proxy_app::client_activate(const std::string _param, const std::string _id)
 				auto &r = p->m_proxy_endpoints[index];
 				if ( r.m_name == _param )
 				{
-					p->m_activate_stamp = boost::get_system_time() + boost::posix_time::seconds( 60 ); // The client should timeout quickly
+					p->m_activate_stamp = boost::get_system_time() + boost::posix_time::seconds(30); // The client should timeout quickly
 					p->m_proxy_index = index;
 					p->stop_activate();
 					p->start_activate(index);
@@ -430,7 +430,7 @@ void proxy_app::main(std::string url)
 		{
 			url = param;
 		}
-		if ( url.find("/logger") == std::string::npos && url.find( "/status" ) == std::string::npos )
+		if ( url.find("/logger") == std::string::npos && url.find( "/status" ) == std::string::npos && url.find("/command/certificate/get/") == std::string::npos)
 		{
 			DOUT("main url: " << url );
 		}
@@ -488,6 +488,15 @@ int main(int argc,char ** argv)
 	{
 		try // Outer loop for reload exceptions.
 		{
+#ifdef __linux__			
+			if (cppcms::signal::reload())
+			{
+				cppcms::signal::reset_reload(); // Reset here to allow signal 1 or 15 while waiting
+				DOUT("Reloading, we need to wait 60+ seconds before restart in order to ensure we don't hook up on the same port again");
+				mylib::msleep(70000);
+				DOUT("Finished waiting for restart");
+			}
+#endif
 			srand(time(NULL));
 			cppcms::signal::reset_reload();
 			log().clear();

@@ -420,7 +420,7 @@ void LocalHost::threadproc()
 			this->m_proxy_index = 0;
 		}
 		this->m_local_connected = false;
-		this->m_thread.sleep( 4000 );	//We will need some time to ensure the remote end has settled. May need to be investigated.
+		this->m_thread.sleep( 1500 );	//We will need some time to ensure the remote end has settled. May need to be investigated.
 	}
 }
 
