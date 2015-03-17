@@ -18,7 +18,10 @@
 //====================================================================
 
 // The following unfortunately needs to be before.main.h,  otherwise we have a link error with copy_file (crap)
+#ifdef _WIN32
+#else
 #define BOOST_NO_CXX11_SCOPED_ENUMS
+#endif
 #include <boost/filesystem.hpp>
 
 #include "main.h"

@@ -47,6 +47,7 @@ Source: "third/ssleay32.dll"; DestDir: "{app}"
 Source: "third/nssm.exe"; DestDir: "{app}"; Check: GetInstallService()
 Source: "third/zlib.dll"; DestDir: "{app}"
 Source: "third/nc.exe"; DestDir: "{app}"
+Source: "third/pcre.dll"; DestDir: "{app}"
 
 Source: "../script/jquery.js"; DestDir: "{app}/script"
 Source: "../doc/uniproxy.json.sample"; DestDir: "{app}/doc"
