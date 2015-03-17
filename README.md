@@ -13,6 +13,11 @@ The documentation ie. the requirement specification is available but will not be
 Log:
 ========
 
+17/3-2015 PBondo
+----------------
+Updated with TLSv12 as replacement for SSL.
+
+
 24/4-2014 PBondo
 ----------------
 Released new version with OpenSSL upgraded for heartbleed potential.

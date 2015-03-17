@@ -150,7 +150,7 @@ void ProviderClient::threadproc()
 			ASSERTE(this->is_local_connected(), uniproxy::error::socket_invalid,"Provider failed connection to local host: " + ep);
 
 
-			boost::asio::ssl::context ssl_context( io_service, boost::asio::ssl::context::sslv23);
+			boost::asio::ssl::context ssl_context( io_service, boost::asio::ssl::context::tlsv12);
 			ssl_context.set_password_callback(boost::bind(&ProviderClient::get_password,this));
 			ssl_context.set_verify_mode(boost::asio::ssl::context::verify_peer|boost::asio::ssl::context::verify_fail_if_no_peer_cert);
 			ssl_context.load_verify_file(my_certs_name);

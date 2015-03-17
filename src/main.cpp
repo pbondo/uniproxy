@@ -16,17 +16,21 @@
 // http://www.gatehouse.dk
 // mailto:gh@gatehouse.dk
 //====================================================================
+
+// The following unfortunately needs to be before.main.h,  otherwise we have a link error with copy_file (crap)
+#define BOOST_NO_CXX11_SCOPED_ENUMS
+#include <boost/filesystem.hpp>
+
 #include "main.h"
 
 #include <cppcms/applications_pool.h>
 #include <cppcms/mount_point.h>
-
 #include <cppcms/http_response.h>
 #include <cppcms/http_file.h>
 #include "cppcms_util.h"
 
 #include <boost/regex.hpp>
-#include <boost/filesystem.hpp>
+
 #include <fstream>
 
 #include <webserver/content.h>

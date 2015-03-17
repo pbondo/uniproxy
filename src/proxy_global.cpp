@@ -467,6 +467,7 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 			for (auto &item : proxies.array())
 			{
 				LocalEndpoint ep;
+				ep.m_port = 8085;
 				if (ep.load(item)) // NB!! Should be assert??
 				{
 					if (std::find_if(this->uniproxies.begin(), this->uniproxies.end(), [&](const LocalEndpoint &_ep){ return _ep == ep; }) == this->uniproxies.end())
@@ -688,7 +689,7 @@ bool proxy_global::load_configuration()
 			if ( ifs.good() )
 			{
 				boost::system::error_code ec1,ec2;
-				boost::asio::ssl::context ctx(boost::asio::ssl::context_base::sslv23);
+				boost::asio::ssl::context ctx(boost::asio::ssl::context_base::tlsv12);
 				ctx.use_private_key_file(my_private_key_name,boost::asio::ssl::context_base::file_format::pem,ec1);
 				ctx.use_certificate_file(my_public_cert_name,boost::asio::ssl::context_base::file_format::pem,ec2);
 				load_private = !ec1 && !ec2;

@@ -301,7 +301,7 @@ void RemoteProxyClient::remote_threadproc()
 
 RemoteProxyHost::RemoteProxyHost( unsigned short _local_port, const std::vector<RemoteEndpoint> &_remote_ep, const std::vector<LocalEndpoint> &_local_ep, PluginHandler &_plugin )
 :	m_io_service(),
-	m_context(m_io_service, boost::asio::ssl::context::sslv23),
+	m_context(m_io_service, boost::asio::ssl::context::tlsv12),
 	m_acceptor(m_io_service),
 	m_plugin( _plugin ),
 	m_local_port(_local_port),
@@ -312,7 +312,7 @@ RemoteProxyHost::RemoteProxyHost( unsigned short _local_port, const std::vector<
 	this->m_remote_ep = _remote_ep;
 	this->m_local_ep = _local_ep;
 
-	this->m_context.set_options(boost::asio::ssl::context::default_workarounds| boost::asio::ssl::context::no_sslv2);//| boost::asio::ssl::context::single_dh_use);
+	this->m_context.set_options(boost::asio::ssl::context::default_workarounds| boost::asio::ssl::context::tlsv12);//| boost::asio::ssl::context::single_dh_use);
 	this->m_context.set_password_callback(boost::bind(&RemoteProxyHost::get_password, this));
 	this->m_context.set_verify_mode(boost::asio::ssl::context::verify_peer|boost::asio::ssl::context::verify_fail_if_no_peer_cert);
 
