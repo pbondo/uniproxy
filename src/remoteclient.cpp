@@ -240,14 +240,22 @@ void RemoteProxyClient::remote_threadproc()
 			throw std::runtime_error("Certificate valid but no active connections specified: " + common_name );
 		}
 		this->m_local_connected = false;
-		for ( int index = 0; index < this->m_local_ep.size(); index++ )
+		std::vector<int> indexes(this->m_local_ep.size());
+		for (int index = 0; index < indexes.size(); index++)
 		{
-			std::string ep = this->m_local_ep[index].m_hostname + ":" + mylib::to_string(this->m_local_ep[index].m_port);
+			indexes[index] = index;
+		}
+		std::random_shuffle(indexes.begin(),indexes.end());
+		
+		for (int index = 0; index < this->m_local_ep.size(); index++)
+		{
+			int proxy_index = indexes[index];
+			std::string ep = this->m_local_ep[proxy_index].m_hostname + ":" + mylib::to_string(this->m_local_ep[proxy_index].m_port);
 			try
 			{
 				this->dolog("Performing local connection to: " + ep );
-				boost::asio::sockect_connect( this->m_local_socket, this->m_io_service, this->m_local_ep[index].m_hostname, this->m_local_ep[index].m_port );
-				DOUT( __FUNCTION__ << ":" << __LINE__ );
+				boost::asio::sockect_connect( this->m_local_socket, this->m_io_service, this->m_local_ep[proxy_index].m_hostname, this->m_local_ep[proxy_index].m_port );
+				//DOUT( __FUNCTION__ << ":" << __LINE__ );
 				this->m_local_connected = true;
 				break;
 			}

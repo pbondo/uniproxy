@@ -24,6 +24,7 @@
 PluginHandler standard_plugin("");
 proxy_global global;
 
+const std::string UNIPROXY_VERSION = "0.3.7";
 
 proxy_global::proxy_global()
 {
@@ -643,6 +644,7 @@ std::string proxy_global::save_json_status( bool readable )
 	cppcms::json::object config_obj;
 	config_obj["name"] = this->m_name;
 	glob["global"] = config_obj;
+	glob["version"] = UNIPROXY_VERSION;
 
 	std::ostringstream os;
 	glob.save( os, readable );

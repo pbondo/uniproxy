@@ -342,6 +342,7 @@ Status.prototype.on_status_update1 = function( data )
 		} );
 	}
 	sz_html += "</table>";
+	$("#version").html( (json_data.version) ? (json_data.version) : "&nbsp;" );
 	$("#hosts").html( sz_html );
 
 	$("#own_name").html( (json_data.global.name) ? (json_data.global.name) : "&nbsp;" );
@@ -527,7 +528,7 @@ $(document).ready(function()
 <div id="hosts"></div>
 <p></p>
 <table>
-<tr><td>Status:</td><td><div id="status">status</div></td></tr>
+<tr><td>Version:<td><div id="version"></div></td><td>Status:</td><td><div id="status">status</div></td></tr>
 </table>
 
 <p></p>

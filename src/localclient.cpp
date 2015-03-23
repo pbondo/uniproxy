@@ -329,8 +329,6 @@ void LocalHost::threadproc()
 		// On start and after each lost connection we end up here.
 		try
 		{
-			//ProxyEndpoint &ep( this->m_proxy_endpoints[this->m_proxy_index]);
-
 			DOUT(__FUNCTION__ << ":" << __LINE__);
 			boost::asio::io_service io_service;
 			mylib::protect_pointer<boost::asio::io_service> p_io_service( this->mp_io_service, io_service, this->m_mutex );
@@ -369,24 +367,7 @@ void LocalHost::threadproc()
 
 			this->dolog("Connecting to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) );
 			boost::asio::sockect_connect( remote_socket.lowest_layer(), io_service, this->remote_hostname(), this->remote_port() );
-/*
-			if ( boost::get_system_time() < this->m_activate_stamp )
-			{
-				std::error_code err;
-				this->dolog("Attempting to perform certificate exchange with " + ep.m_name );
-				this->m_activate_stamp = boost::get_system_time(); // Reset to current time to avoid double attempts.
-				if (	!global.SetupCertificates( remote_socket.next_layer(), ep.m_name, false, err ) &&
-						!global.SetupCertificates( remote_socket.next_layer(), ep.m_name, true, err ) )
-				{
-					this->dolog("Succeeded in exchanging certificates" );
-				}
-				else
-				{
-					this->dolog("Failed to exchange certificate: " + err.message() );
-				}
-				throw std::runtime_error("Called setup certificate, retry connection"); // Not an error
-			}
-*/
+
 			this->dolog("Connected to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) + " Attempting SSL handshake" );
 			DOUT( "handles: " << remote_socket.next_layer().native_handle() << " / " << remote_socket.lowest_layer().native_handle() );
 
@@ -415,9 +396,9 @@ void LocalHost::threadproc()
 		{
 			this->dolog(exc.what());
 		}
-		if (++this->m_proxy_index >= this->m_proxy_endpoints.size())
+		if (!this->m_proxy_endpoints.empty()) // Pick a new random access value.
 		{
-			this->m_proxy_index = 0;
+			this->m_proxy_index = std::rand() % this->m_proxy_endpoints.size();
 		}
 		this->m_local_connected = false;
 		this->m_thread.sleep( 1500 );	//We will need some time to ensure the remote end has settled. May need to be investigated.

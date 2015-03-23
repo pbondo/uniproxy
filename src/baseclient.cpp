@@ -99,19 +99,19 @@ void BaseClient::ssl_prepare(boost::asio::ssl::context &ssl_context) const
 
 void BaseClient::threadproc_activate(int index)
 {
-	try
+	if ( boost::get_system_time() < this->m_activate_stamp )
 	{
-		if ( boost::get_system_time() < this->m_activate_stamp )
+		this->m_proxy_index = index; // For activation we do not seek randomness, so we pick the particular.
+		std::string epz = this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) + "(" + mylib::to_string(this->m_activate_port) + ")";
+		try
 		{
 			DOUT("Activate: " << index << " starting");
 			boost::asio::io_service io_service;
 			boost::asio::io_service::work session_work(io_service);
 			boost::asio::ip::tcp::socket socket(io_service);
 
-			std::string epz = this->m_proxy_endpoints[index].m_hostname + ":" + mylib::to_string(this->m_proxy_endpoints[index].m_port);
 			this->dolog("Activate Performing remote connection to: " + epz );
-			boost::asio::sockect_connect( socket, io_service, this->m_proxy_endpoints[index].m_hostname, this->m_activate_port ); // this->m_proxy_endpoints[index].m_port );
-			this->m_proxy_index = index;
+			boost::asio::sockect_connect(socket, io_service, this->remote_hostname(), this->m_activate_port);
 
 			RemoteEndpoint &ep = this->m_proxy_endpoints[index];
 			std::error_code err;
@@ -120,7 +120,7 @@ void BaseClient::threadproc_activate(int index)
 			std::vector<std::string> certnames;
 			certnames.push_back(ep.m_name);
 			if (global.SetupCertificatesClient(socket, certnames.front()) &&
-					!global.SetupCertificatesServer( socket, certnames).empty() )
+				!global.SetupCertificatesServer( socket, certnames).empty() )
 			{
 				this->dolog("Succeeded in exchanging certificates with " + certnames.front());
 			}
@@ -129,10 +129,10 @@ void BaseClient::threadproc_activate(int index)
 				this->dolog("Failed to exchange certificate: " + err.message() );
 			}
 		}			
-	}
-	catch(std::exception &exc)
-	{
-		DERR("Threadproc exception: " << exc.what());
+		catch(std::exception &exc)
+		{
+			DERR("Failed to connect for activation: " << epz << " " << exc.what());
+		}
 	}
 }
 

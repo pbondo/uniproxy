@@ -356,7 +356,6 @@ void proxy_app::client_activate(const std::string _param, const std::string _id)
 				if ( r.m_name == _param )
 				{
 					p->m_activate_stamp = boost::get_system_time() + boost::posix_time::seconds(30); // The client should timeout quickly
-					p->m_proxy_index = index;
 					p->stop_activate();
 					p->start_activate(index);
 					break;

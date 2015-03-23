@@ -159,24 +159,32 @@ void ProviderClient::threadproc()
 
 			ssl_socket remote_socket( io_service, ssl_context );
 			mylib::protect_pointer<ssl_socket> p2( this->mp_remote_socket, remote_socket, this->m_mutex );
-
-			this->dolog("Provider local: " + ep + " connecting to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) );
-			for ( int index = 0; index < this->m_proxy_endpoints.size(); index++ )
+			std::vector<int> indexes(this->m_proxy_endpoints.size());
+			for (int index = 0; index < indexes.size(); index++)
 			{
-				if (global.certificate_available(this->m_proxy_endpoints[index].m_name))
+				indexes[index] = index;
+			}
+			std::random_shuffle(indexes.begin(),indexes.end());
+			for (int index = 0; index < indexes.size(); index++)
+			{
+				this->m_proxy_index = indexes[index]; // Get the next random connection.
+				std::string ep = this->remote_hostname() + ":" + mylib::to_string(this->remote_port());
+				if (global.certificate_available(this->m_proxy_endpoints[this->m_proxy_index].m_name))
 				{
-					std::string ep = this->m_proxy_endpoints[index].m_hostname + ":" + mylib::to_string(this->m_proxy_endpoints[index].m_port);
 					try
 					{
 						this->dolog("Performing remote connection to: " + ep );
-						boost::asio::sockect_connect( remote_socket.lowest_layer(), io_service, this->m_proxy_endpoints[index].m_hostname, this->m_proxy_endpoints[index].m_port );
-						this->m_proxy_index = index;
+						boost::asio::sockect_connect( remote_socket.lowest_layer(), io_service, remote_hostname(), this->remote_port());
 						break;
 					}
 					catch( std::exception &exc )
 					{
-						DOUT(  __FUNCTION__ << ":" << __LINE__ << " Failed connection to: " << ep << " " << exc.what() );
+						this->dolog("Failed connection to remote: " + ep);
 					}
+				}
+				else
+				{
+					DOUT("Ignored due to missing certificate: " << ep);
 				}
 			}
 			ASSERTE(this->is_remote_connected(), uniproxy::error::socket_invalid,"Provider failed connection to remote host");

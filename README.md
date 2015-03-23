@@ -13,6 +13,14 @@ The documentation ie. the requirement specification is available but will not be
 Log:
 ========
 
+
+23/3-2015 PBondo
+----------------
+Issue with round robin. If a lot of connections to one uniproxy / or one host application are dropped becauseof a restart, then all move to the next (same) UP.
+Being replaced with a random selection, to spread out the load.
+Initial idea of shuffling the list does not work, since it is used for detecting if the configuration has changed. And there is currently no gate on the list, so it is readonly.
+
+
 17/3-2015 PBondo
 ----------------
 Updated with TLSv12 as replacement for SSL.
