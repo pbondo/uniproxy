@@ -19,6 +19,7 @@
 #include "providerclient.h"
 #include <boost/bind.hpp>
 #include "proxy_global.h"
+#include <random>
 
 using boost::asio::ip::tcp;
 
@@ -164,7 +165,7 @@ void ProviderClient::threadproc()
 			{
 				indexes[index] = index;
 			}
-			std::random_shuffle(indexes.begin(),indexes.end());
+			std::shuffle(std::begin(indexes), std::end(indexes), std::default_random_engine(static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count())));
 			for (int index = 0; index < indexes.size(); index++)
 			{
 				this->m_proxy_index = indexes[index]; // Get the next random connection.

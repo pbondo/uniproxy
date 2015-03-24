@@ -21,6 +21,7 @@
 #include <boost/regex.hpp>
 #include <boost/algorithm/string/regex.hpp>
 #include "proxy_global.h"
+#include <random>
 
 static int static_remote_count = 0;
 
@@ -245,17 +246,20 @@ void RemoteProxyClient::remote_threadproc()
 		{
 			indexes[index] = index;
 		}
-		std::random_shuffle(indexes.begin(),indexes.end());
-		
+		std::shuffle(std::begin(indexes), std::end(indexes), std::default_random_engine(static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count())));
+		for (int i = 0; i < indexes.size(); i++)
+		{
+			DOUT("Random i: " << i << " index " << indexes[i] << " size: " << indexes.size());
+		}
+		std::string ep;
 		for (int index = 0; index < this->m_local_ep.size(); index++)
 		{
 			int proxy_index = indexes[index];
-			std::string ep = this->m_local_ep[proxy_index].m_hostname + ":" + mylib::to_string(this->m_local_ep[proxy_index].m_port);
+			ep = this->m_local_ep[proxy_index].m_hostname + ":" + mylib::to_string(this->m_local_ep[proxy_index].m_port);
 			try
 			{
 				this->dolog("Performing local connection to: " + ep );
 				boost::asio::sockect_connect( this->m_local_socket, this->m_io_service, this->m_local_ep[proxy_index].m_hostname, this->m_local_ep[proxy_index].m_port );
-				//DOUT( __FUNCTION__ << ":" << __LINE__ );
 				this->m_local_connected = true;
 				break;
 			}
@@ -268,11 +272,12 @@ void RemoteProxyClient::remote_threadproc()
 		{
 			throw std::runtime_error("Failed connection to local host");
 		}
-		this->dolog("Performing logon procedure" );
+		this->dolog("Performing logon procedure to " + ep);
 		if ( ! this->m_host.m_plugin.connect_handler( this->m_local_socket, this->m_endpoint ) )
 		{		
 			throw std::runtime_error("Failed plugin connect_handler for type: " + this->m_host.m_plugin.m_type );
 		}
+		this->dolog("Completed logon procedure to " + ep);
 		this->m_local_thread.start( [&]{this->local_threadproc(); } );
 		boost::asio::socket_set_keepalive_to( this->m_remote_socket.lowest_layer(), std::chrono::seconds(20) );
 		for ( ; this->m_remote_thread.check_run(); )
