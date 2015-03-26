@@ -1,5 +1,6 @@
 /installer/Output
 build
+dummy.txt
 .*~
 *~
 /installer/third/*

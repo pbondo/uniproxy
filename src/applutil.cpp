@@ -220,7 +220,6 @@ bool is_connected( ip::tcp::socket::lowest_layer_type &_socket )
 	if (_socket.is_open())
 	{
 		// is_open is not enough, we need to ensure we are connected. Check for the remote end_point.
-		// boost::asio::ip::tcp::endpoint ep = 
 		_socket.remote_endpoint(ec);
 		return (!ec);
 	}
@@ -280,12 +279,10 @@ std::string get_common_name( const certificate_type &_cert )
 	{
 		std::vector< std::string > result;
 		boost::algorithm::split_regex( result, issuer, boost::regex( "/CN=" ) );
-		//DOUT("Split: " << result.size() );
 		if ( result.size() > 1 )
 		{
 			common_name = result[1];
 		}
-		//DOUT("Received certificate CN= " << common_name );
 	}
 	return common_name;
 }
@@ -313,7 +310,6 @@ bool delete_certificate_file( const std::string &_filename, const std::string &_
 		}
 		while( hit );
 		return save_certificates_file( my_certs_name, local_certs );
-		//return true
 	}
 	return false;
 }
@@ -334,7 +330,6 @@ bool load_certificates_file( const std::string &_filename, std::vector<certifica
 	bool result = false;
 	FILE *file;
 	file = fopen( _filename.c_str(), "r" );
-	//DOUT( __FUNCTION__ << " file: " << _filename << " ok: " << (file != NULL) );
 	if ( file != NULL )
 	{
 		X509 * cert;
@@ -342,7 +337,6 @@ bool load_certificates_file( const std::string &_filename, std::vector<certifica
 		{
 			std::shared_ptr<X509> scert( cert, do_clear );
 			_certs.push_back( scert );
-			//DOUT("Read certificate");
 		}
 		result = true;
 		fclose( file );
@@ -354,7 +348,6 @@ bool load_certificates_file( const std::string &_filename, std::vector<certifica
 bool load_certificates_string( const std::string &_certificate_string, std::vector<certificate_type> &_certs )
 {
 	std::string tmpname = boost::filesystem::unique_path().string();
-	//DOUT("Using temp filename: " << tmpname );
 	std::ofstream ofs( tmpname );
 	ofs << _certificate_string;
 	ofs.close();
@@ -369,7 +362,6 @@ bool save_certificates_file( const std::string &_filename, const std::vector<cer
 	bool result = false;
 	FILE *file;
 	file = fopen( _filename.c_str(), "w" );
-	//DOUT( __FUNCTION__ << " file: " << _filename << " ok: " << (file != NULL) );
 	if ( file != NULL )
 	{
 		for ( int index = 0; index < _certs.size(); index++ )
@@ -468,7 +460,7 @@ proxy_log::proxy_log(const std::string&_name)
 std::string proxy_log::peek() const
 {
 	stdt::lock_guard<stdt::mutex> l(this->m_mutex);
-	std::string sz; // = "&nbsp;";
+	std::string sz;
 	if ( this->m_log.size() > 0)
 	{
 		sz = this->m_log.back().second;
@@ -480,7 +472,7 @@ std::string proxy_log::peek() const
 std::string proxy_log::get(int index) const
 {
 	stdt::lock_guard<stdt::mutex> l(this->m_mutex);
-	std::string sz; // = "&nbsp;";
+	std::string sz;
 	auto iter = std::find_if(this->m_log.begin(),this->m_log.end(), [&](const std::pair<int,std::string> &_){return _.first == index;});
 	if (iter != this->m_log.end()) return iter->second;
 	return sz;
@@ -489,8 +481,6 @@ std::string proxy_log::get(int index) const
 
 size_t proxy_log::count() const
 {
-	//stdt::lock_guard<stdt::mutex> l(this->m_mutex);
-	// m_write_index declared atomic
 	return this->m_write_index;
 }
 
@@ -510,7 +500,7 @@ void proxy_log::add( const std::string &_value )
 	{
 		this->m_log_file_index = !this->m_log_file_index;
 		this->m_logfile.close();
-		this->m_logfile.open("uniproxy" + mylib::to_string(this->m_log_file_index)+".log"); //,std::ios::app|std::ios::ate);
+		this->m_logfile.open("uniproxy" + mylib::to_string(this->m_log_file_index)+".log");
 	}
 	this->m_logfile << mylib::time_stamp() << ": " << _value << std::endl;
 }
@@ -519,7 +509,6 @@ void proxy_log::add( const std::string &_value )
 void proxy_log::clear()
 {
 	stdt::lock_guard<stdt::mutex> l(this->m_mutex);
-//	this->m_log.clear();
 }
 
 
@@ -556,7 +545,7 @@ void data_flow::cleanup( int64_t _stamp )
 	{
 		int index = this->m_stamp % data_flow_size;
 		int index_stop = _stamp % data_flow_size;
-		while ( index != index_stop )	// for index = start +1; index <= stop
+		while ( index != index_stop )
 		{
 			index = (index + 1) % data_flow_size;
 			this->m_buffer[index] = 0;
@@ -733,8 +722,6 @@ int process::execute_process( const std::string& _command, const std::string& _p
 		std::string cmd;
 		std::string param;
 #ifdef _WIN32
-		//cmd = "cmd.exe";
-		//param = " /C \"" + _command + ".exe " + _param + "\"";
 		cmd = _command + ".exe";
 		param = _param;
 #else
@@ -803,45 +790,6 @@ std::ostream &operator << (std::ostream &os, const LocalEndpoint &ep)
 	return os;
 }
 
-
-//------------------------------
-
-/*
-ProxyEndpoint::ProxyEndpoint()
-{
-}
-
-
-bool ProxyEndpoint::load(cppcms::json::value &obj)
-{
-	if (obj.type() == cppcms::json::is_object)
-	{
-		cppcms::utils::check_port(obj,"port",this->m_port);
-		//cppcms::utils::check_bool(obj,"active",this->m_active);
-		cppcms::utils::check_string(obj,"hostname",this->m_hostname);
-		cppcms::utils::check_string(obj,"name",this->m_name);
-		return true;
-	}
-	return false;
-}
-
-
-cppcms::json::value ProxyEndpoint::save() const
-{
-	cppcms::json::value obj;
-	cppcms::utils::set_value(obj,"port",this->m_port);
-	cppcms::utils::set_value(obj,"hostname",this->m_hostname);
-	cppcms::utils::set_value(obj,"name",this->m_name);
-	return obj;
-}
-
-
-bool operator == (const ProxyEndpoint &ep1, const ProxyEndpoint &ep2)
-{
-	return ep1.m_port == ep2.m_port //&& ep1.m_active == ep2.m_active 
-		&& ep1.m_name == ep2.m_name && ep1.m_hostname == ep2.m_hostname;
-}
-*/
 
 //------------------------------
 

@@ -169,7 +169,7 @@ Status.prototype.reload = function( timeout )
 
 Status.prototype.show_flow = function( input )
 {
-	if ( input ) //&& input > 0)
+	if ( input )
 	{
 		var rate = parseInt(input * 8 / 60);
 		return (rate >= 1024) ? (parseInt(rate / 1024) + 'K') : rate;
@@ -361,7 +361,6 @@ Status.prototype.do_get_update = function( )
 				$("#status").removeClass();
 				that.on_status_update1( data );
 				that.do_get_log();
-				//do_something();
 			},
 			error: function()
 			{
@@ -485,8 +484,6 @@ Status.prototype.on_toggle_log = function( )
 
 function on_status_timer()
 {
-	//console.log("on_status_timer");
-	//console.dir(status1);
 	status1.do_get_update();
 }
 

@@ -216,29 +216,7 @@ public:
 		msleep(millisec);
 		this->check_run();
 	}
-	/*
-	bool is_running()
-	{
-		bool result = false;
-		#ifdef __linux__
-		// With pthread we are ensured the thread handle is not reused while the thread is joinable.
-		// According to the Internet :-)
-		if ( this->m_thread.joinable() )
-		{
-			int ret = pthread_kill( this->m_thread.native_handle(), 0);
-			if ( ret == ESRCH )
-			{
-				return false;
-			}
-			return true;
-		}
-		#else
-			//NB!! #warning "thread::is_running is Not Implemented"
-XX XX
-		#endif
-		return result;
-	}
-	*/
+
 	static bool is_thread_running(stdt::thread &th);
 
 	bool is_running()
@@ -419,7 +397,6 @@ public:
 	std::string m_hostname;
 	std::string m_username;
 	std::string m_password;
-	//bool m_active; // This is not stored.
 
 	friend bool operator==( const RemoteEndpoint &ep1, const RemoteEndpoint &ep2 );
 
@@ -432,34 +409,6 @@ public:
 bool load_endpoints(const cppcms::json::value &obj, const std::string &key, std::vector<LocalEndpoint> &ep);
 bool load_endpoints(const cppcms::json::value &obj, const std::string &key, std::vector<RemoteEndpoint> &ep);
 
-
-/*
-// Used for describing the remote proxy when defining local clients.
-class ProxyEndpoint
-{
-public:
-
-	ProxyEndpoint( //bool _active, 
-		const std::string &_name, const std::string &_hostname, int _port )
-	: //m_active(_active), 
-		m_name(_name), m_hostname(_hostname), m_port(_port)
-	{
-	}
-	
-	ProxyEndpoint();
-
-	friend bool operator == (const ProxyEndpoint &ep1, const ProxyEndpoint &ep2);
-
-	//bool m_active = true;
-	std::string m_name;
-	std::string m_hostname;
-	mylib::port_type m_port = 0;
-
-	bool load(cppcms::json::value &obj);
-	cppcms::json::value save() const;
-	
-};
-*/
 
 class Buffer
 {
@@ -549,8 +498,6 @@ private:
 };
 
 
-//int check_int( cppcms::json::value &_input_obj, const std::string &_inputname, const int _default_value, bool _required );
-//std::string check_string( cppcms::json::value &_input_obj, const std::string &_inputname, const std::string & _default_value, bool _required );
 int check_int( const char *_input);
 std::string check_ip4( const std::string &_input );
 

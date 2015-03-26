@@ -42,7 +42,7 @@ void proxy_global::lock()
 	for ( auto iter = this->remotehosts.begin(); iter != this->remotehosts.end(); iter++ )
 	{
 		remotehost_ptr p = *iter;
-		DOUT("Starting remotehost at: " << p->port() ); //m_acceptor.local_endpoint() );
+		DOUT("Starting remotehost at: " << p->port() );
 		p->start();
 	}
 	for ( auto iter = this->localclients.begin(); iter != this->localclients.end(); iter++ )
@@ -795,7 +795,7 @@ std::string proxy_global::save_json_config( bool readable )
 		RemoteProxyHost &host( *this->remotehosts[index] );
 		cppcms::json::object obj_host;
 		obj_host["id"] = host.m_id;
-		obj_host["port"] = host.port(); // .m_acceptor.local_endpoint().port();
+		obj_host["port"] = host.port();
 		obj_host["type"] = host.m_plugin.m_type;
 		obj_host["active"] = host.m_active;
 		for (int index2 = 0; index2 < host.m_local_ep.size(); index2++)
@@ -1069,7 +1069,6 @@ void client_certificate_exchange::thread_proc( const std::vector<LocalEndpoint> 
 				DERR(__FUNCTION__ << " failed to exchange certificates with " << ep.m_hostname);
 			}
 		}
-		//this->sleep(60000);
 	}
 }
 

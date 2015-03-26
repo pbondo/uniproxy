@@ -128,8 +128,6 @@ void ProviderClient::threadproc()
 
 			boost::asio::io_service::work session_work(io_service);
 
-			//this->dolog("Provider connecting to remote host");
-
 			boost::asio::ip::tcp::socket local_socket(io_service);
 			mylib::protect_pointer<boost::asio::ip::tcp::socket> p1( this->mp_local_socket, local_socket, this->m_mutex );
 			std::string ep;

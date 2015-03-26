@@ -110,8 +110,6 @@ public:
 	std::vector<LocalEndpoint> m_local_ep;
 	PluginHandler &m_plugin;
 
-	//boost::posix_time::ptime m_activate_stamp;
-	//std::string m_activate_name;
 	bool m_active;
 
 	mylib::port_type port() const { return this->m_local_port; }

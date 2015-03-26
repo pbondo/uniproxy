@@ -29,7 +29,6 @@
 
 #else
 
-	//#define __use_boost_thread__
 	#define noexcept
 
 #endif
@@ -82,16 +81,7 @@ namespace chronot
 
 #endif
 
-// Remove this once supported by c++11
-//#define null_ptr 0
-
 #ifdef __linux__
-
-	namespace std {
-	namespace chrono {
-//	typedef monotonic_clock steady_clock;
-	}
-	}
 
 	// The following will possibly later be incorporated into the C++ standard.
 	template<typename T, typename ...A1> std::unique_ptr<T> make_unique(A1&& ...arg1)
@@ -102,9 +92,6 @@ namespace chronot
 #else
 
 	#pragma warning( disable : 4996 )
-	// #pragma warning( disable : 4305 4244 )
-
-	//#define make_unique( xx ) new xx
 
 #endif
 

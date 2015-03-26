@@ -78,7 +78,6 @@ proxy_app::proxy_app(cppcms::service &srv) : cppcms::application(srv), timer_(sr
 	dispatcher().assign("^/logger/(.*)$",&proxy_app::logger_get,this);
 	dispatcher().assign("^/command/certificate/get/(.*)$",&proxy_app::get_certificates,this,1);
 	dispatcher().assign("^/$",&proxy_app::index,this);
-	//dispatcher().assign("^//(.*)$",&proxy_app::,this);
 }
 
 
@@ -95,7 +94,7 @@ void proxy_app::index()
 
 void proxy_app::config_reload()
 {
-	DOUT( __FUNCTION__ ); //"proxy_app::main: " << url );
+	DOUT( __FUNCTION__ );
 	throw mylib::reload_exception();
 }
 
@@ -125,7 +124,7 @@ void proxy_app::status_get()
 void proxy_app::script(const std::string)
 {
 	int kb = 0;
-	std::string filename; // = url.substr(1); // NB! This is a security risc, therefore we start by hardcoding the single valid file to read.
+	std::string filename; // NB! This is a security risc, therefore we start by hardcoding the single valid file to read.
 	filename = "script/jquery.js";
 	std::ifstream ifs(filename);
 	DOUT("Reading from file: " << filename );
@@ -429,7 +428,6 @@ void proxy_app::main(std::string url)
 	try
 	{
 		std::string url2 = url;
-		//DOUT("main url: " << url );
 		std::string param;
 		// If we run in debug mode then the json part will already have been removed.
 		if ( check_remove_substr( url, "/json", param ) )

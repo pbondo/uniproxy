@@ -79,8 +79,6 @@ bool httpclient::sync(const std::string &hostnameport, const std::string &url, s
 		std::string header;
 		while (std::getline(response_stream, header) && header != "\r")
 			;
-			//std::cout << header << "\n";
-		//std::cout << "\n";
 		
 		std::ostringstream oss;
 
