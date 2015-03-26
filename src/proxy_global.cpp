@@ -625,6 +625,7 @@ std::string proxy_global::save_json_status( bool readable )
 					{
 						// NB!! Here we provide an IP address, but it should be a hostname.
 						obj["local_hostname"] = client.local_endpoint().address().to_string();
+						obj["local_port"] = client.local_endpoint().port();
 					}
 					bool is_remote_connected = client.is_remote_connected();
 					obj["connected_remote"] = is_remote_connected;

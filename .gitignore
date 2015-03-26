@@ -1,5 +1,7 @@
 /installer/Output
 build
 .*~
+*~
 /installer/third/*
-
+prod/
+test/

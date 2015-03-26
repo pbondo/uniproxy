@@ -171,7 +171,8 @@ Status.prototype.show_flow = function( input )
 {
 	if ( input ) //&& input > 0)
 	{
-		return (input >= 1024) ? (parseInt(input / 1024) + 'K') : input;
+		var rate = parseInt(input * 8 / 60);
+		return (rate >= 1024) ? (parseInt(rate / 1024) + 'K') : rate;
 	}
 	return "&nbsp;";
 }
@@ -196,7 +197,7 @@ Status.prototype.on_status_update1 = function( data )
 	sz_html = ""; 
 	if ( json_data.clients )
 	{
-		sz_html = "<h3>Clients</h3><table border='1'><tr><th>Port</th><th>Name</th><th>Hostname</th><th>Data in [B/min]</th><th>Data out [B/min]</th><th>Certificate</th><th>Active</th><th>Status</th></tr>";
+		sz_html = "<h3>Clients</h3><table border='1'><tr><th>Port</th><th>Name</th><th>Hostname</th><th>Data in [bit/s]</th><th>Data out [bit/s]</th><th>Certificate</th><th>Active</th><th>Status</th></tr>";
 		$.each(json_data.clients, function(idata,client_data) 
 		{
 			var localhosts = ' ';
@@ -286,12 +287,11 @@ Status.prototype.on_status_update1 = function( data )
 	sz_html = "";
 	if ( json_data.hosts )
 	{
-		sz_html = "<h3>Hosts</h3><table border='1'><tr><th>Port</th><th>Name</th><th>Remote</th><th>Local</th><th>Data in [B/min]</th><th>Data out [B/min]</th><th>Certificate</th><th>Active</th><th>Status</th></tr>";
+		sz_html = "<h3>Hosts</h3><table border='1'><tr><th>Port</th><th>Name</th><th>Remote</th><th>Local</th><th>Data in [bit/s]</th><th>Data out [bit/s]</th><th>Certificate</th><th>Active</th><th>Status</th></tr>";
 		json_data.hosts.forEach( function(host_data)
 		{
 			var linest = "<tr><td>" + host_data.port + "</td>";
 
-			//linest += "</tr>";
 			linest += "<td></td><td></td><td></td><td></td><td></td><td></td>";
 			linest += "<td><input type=\"checkbox\" disabled=\"disabled\" ";
 			if (host_data.active)
@@ -303,9 +303,14 @@ Status.prototype.on_status_update1 = function( data )
 			linest += "</tr>";
 			host_data.remotes.forEach( function(remote_data) 
 			{
+				var local_host = remote_data.local_hostname;
+				if (remote_data.local_port)
+				{
+					local_host = local_host + ":" + remote_data.local_port;
+				}
 				linest += "<tr><td></td><td>" + remote_data.name + "</td>";
 				linest += that.connection_string( host_data.active, remote_data.connected_remote, remote_data.remote_hostname );
-				linest += that.connection_string( host_data.active, remote_data.connected_local, remote_data.local_hostname );
+				linest += that.connection_string( host_data.active, remote_data.connected_local, local_host );
 				linest += "<td>" + that.show_flow( remote_data.count_in ) + "</td>";
 				linest += "<td>" + that.show_flow( remote_data.count_out ) + "</td>";
 				linest += "<td>";
@@ -325,16 +330,6 @@ Status.prototype.on_status_update1 = function( data )
 					}
 				}
 				linest += "</td>";
-				/*
-				linest += "<td><input type=\"checkbox\"";
-				if (remote_data.active)
-				{
-					linest += " checked=\"yes\" ";
-				}
-				//linest += " /></td>";
-				linest += " onclick=\"status1.on_host_active(this," + host_data.id + ", '" + remote_data.name + "')\" /></td>";
-				*/
-
 				linest += "<td>" + ( ( remote_data.log ) ? remote_data.log : "&nbsp;" ) + "</td>";
 				linest += "</tr>";
 			} );
