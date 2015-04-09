@@ -878,4 +878,30 @@ bool load_endpoints(const cppcms::json::value &obj, const std::string &key, std:
 }
 
 
+std::string local_address_port(boost::asio::ip::tcp::socket &_socket)
+{
+	std::string result;
+	boost::system::error_code ec;
+	boost::asio::ip::tcp::endpoint ep = _socket.local_endpoint(ec);
+	if (!ec)
+	{
+		result += ep.address().to_string() + ":" + mylib::to_string(ep.port());
+	}
+	return result;
+}
+
+
+std::string remote_address_port(boost::asio::ip::tcp::socket &_socket)
+{
+	std::string result;
+	boost::system::error_code ec;
+	boost::asio::ip::tcp::endpoint ep = _socket.remote_endpoint(ec);
+	if (!ec)
+	{
+		result += ep.address().to_string() + ":" + mylib::to_string(ep.port());
+	}
+	return result;
+}
+
+
 //------------------------------

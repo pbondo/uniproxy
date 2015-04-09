@@ -277,16 +277,16 @@ void LocalHost::handle_remote_write(const boost::system::error_code& error)
 
 void LocalHost::handle_accept( boost::asio::ip::tcp::socket *_socket, const boost::system::error_code& error )
 {
-	if ( !error )
+	if (!error && _socket)
 	{
-		auto p = std::make_shared<LocalHostSocket>( *this, _socket);
+		auto p = std::make_shared<LocalHostSocket>(*this, _socket);
 		this->m_local_sockets.push_back(p);
-		DOUT("Added extra local socket: " << this->m_local_sockets.size() );
+		DOUT(local_address_port(*_socket) << " Added extra local socket " << remote_address_port(*_socket) << " now " << this->m_local_sockets.size() << " connections");
 	}
 	else
 	{
 		delete _socket; // NB!! This is not really the right way. Explore passing the shared_ptr as a parameter instead.
-		DOUT("Local accept error: " << this->m_local_sockets.size() );
+		DOUT("Local accept error, now " << this->m_local_sockets.size() << " connections");
 	}
 
 	// Unconditionally we start looking for the next socket.
@@ -302,22 +302,31 @@ void LocalHost::handle_accept( boost::asio::ip::tcp::socket *_socket, const boos
 // Oddly this is also called whenever a succesfull read was performed.
 void LocalHost::check_deadline()
 {
-	stdt::lock_guard<stdt::mutex> l(this->m_mutex);
-	if (this->m_pdeadline == nullptr || this->m_pdeadline->expires_at() <= deadline_timer::traits_type::now())
+	bool call_interrupt = false;
 	{
-		DERR("Timeout read from remote socket");
-		if (this->m_pdeadline != nullptr)
+		stdt::lock_guard<stdt::mutex> l(this->m_mutex);
+		if (this->m_pdeadline == nullptr || this->m_pdeadline->expires_at() <= deadline_timer::traits_type::now())
 		{
-			this->m_pdeadline->expires_at(boost::posix_time::pos_infin);
+			DERR(":" << this->port() << " Timeout read from remote socket");
+			if (this->m_pdeadline != nullptr)
+			{
+				this->m_pdeadline->expires_at(boost::posix_time::pos_infin);
+			}
+			boost::system::error_code ec;
+			this->remote_socket().shutdown(ec);
+			this->remote_socket().lowest_layer().close();
+			// This call should stop all local connections.
+			call_interrupt = true;
 		}
-		boost::system::error_code ec;
-		this->remote_socket().shutdown(ec);
-		this->remote_socket().lowest_layer().close();
+		// Put the actor back to sleep.
+		if (this->m_pdeadline != nullptr)
+		{	// This is called for every transmission.
+			this->m_pdeadline->async_wait(boost::bind(&LocalHost::check_deadline, this));
+		}
 	}
-	// Put the actor back to sleep.
-	if (this->m_pdeadline != nullptr)
-	{
-		this->m_pdeadline->async_wait(boost::bind(&LocalHost::check_deadline, this));
+	if (call_interrupt)
+	{	// Must happen outside the mutex
+		this->interrupt();
 	}
 }
 
@@ -383,10 +392,12 @@ void LocalHost::threadproc()
 			local_socket->async_read_some( boost::asio::buffer( m_local_data, max_length), boost::bind(&LocalHostSocket::handle_local_read, p.get(), boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred) );
 			remote_socket.async_read_some( boost::asio::buffer( m_remote_data, max_length), boost::bind(&LocalHost::handle_remote_read, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred) );
 
-			// NB!! The following line may leak....
-			boost::asio::ip::tcp::socket *new_socket = new boost::asio::ip::tcp::socket(io_service);
-			acceptor.async_accept( *new_socket, boost::bind(&LocalHost::handle_accept, this, new_socket, boost::asio::placeholders::error));
-
+			if (this->m_max_connections > 1)
+			{
+				// NB!! The following line may leak....
+				boost::asio::ip::tcp::socket *new_socket = new boost::asio::ip::tcp::socket(io_service);
+				acceptor.async_accept( *new_socket, boost::bind(&LocalHost::handle_accept, this, new_socket, boost::asio::placeholders::error));
+			}
 			// Now let the io_service handle the session.
 			io_service.run();
 

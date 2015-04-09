@@ -21,10 +21,12 @@
 #include <cppcms/view.h>
 #include "httpclient.h"
 
+// From release.cpp
+extern const char * version;
+
 PluginHandler standard_plugin("");
 proxy_global global;
 
-const std::string UNIPROXY_VERSION = "0.3.7";
 
 proxy_global::proxy_global()
 {
@@ -323,6 +325,7 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 			if (cppcms::utils::check_int( item1, "timeout", help ) && help > 0)
 			{
 				read_timeout = boost::posix_time::minutes(help);
+				DOUT("Read timeout from configuration: " << read_timeout);
 			}
 			int max_connections = cppcms::utils::check_int( item1, "max_connections", 1, false );
 			std::vector<RemoteEndpoint> proxy_endpoints;
@@ -645,7 +648,7 @@ std::string proxy_global::save_json_status( bool readable )
 	cppcms::json::object config_obj;
 	config_obj["name"] = this->m_name;
 	glob["global"] = config_obj;
-	glob["version"] = UNIPROXY_VERSION;
+	glob["version"] = version;
 
 	std::ostringstream os;
 	glob.save( os, readable );

@@ -64,6 +64,7 @@ set( uniproxy_cpp_SOURCES
 	../libs/gatehouse/pghplogonrequest.cpp
 	../libs/gatehouse/pghpnmeamsg.cpp
 	../libs/gatehouse/pghp2.cpp
+	../release.cpp
 )
 
 set( uniproxy_SOURCES

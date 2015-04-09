@@ -286,6 +286,14 @@ template<typename MutableBufferSequence> int socket_read_some_for( boost::asio::
 } // namespace asio
 } // namespace boost
 
+
+///\brief Return address:port as 192.168.1.2:2345 for the remote end of the socket.
+std::string remote_address_port(boost::asio::ip::tcp::socket &_socket);
+
+///\brief Return address:port as 192.168.1.2:2345 for the local end of the socket.
+std::string local_address_port(boost::asio::ip::tcp::socket &_socket);
+
+
 bool operator==( boost::asio::ip::tcp::socket &, boost::asio::ip::tcp::socket & );
 
 typedef boost::asio::ssl::stream<boost::asio::ip::tcp::socket> ssl_socket;

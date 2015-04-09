@@ -28,8 +28,9 @@
 using namespace std;
 using boost::asio::ip::tcp;
 
-const char * release = "GateHouse A/S (C) r1 2011/10/26 UNIPROXY";
-const char * version = "v0.0.1";
+// From release.cpp
+extern const char * release;
+extern const char * version;
 
 PGHPFilter m_PGHPFilter;
 

@@ -3,7 +3,8 @@
 #
 #!/bin/bash
 
-version=0.3.7
+#version=0.3.7
+version=`sed -n -e  's/const.*version.*"\(.*\)";/\1/p' ../release.cpp`
 release=1
 
 ln -s ../deb/postinstall-pak

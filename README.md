@@ -14,6 +14,13 @@ Log:
 ========
 
 
+8/4-2015 PBondo
+---------------
+Wellbehaving extra local connection to a client is working ok, but it is the slowest client that determine the speed.
+Disconnecting is also ok. However pulling the plug timesout after 5 minutes (probably TCP K/A) and it does not have any effect.
+
+
+
 23/3-2015 PBondo
 ----------------
 Issue with round robin. If a lot of connections to one uniproxy / or one host application are dropped becauseof a restart, then all move to the next (same) UP.
