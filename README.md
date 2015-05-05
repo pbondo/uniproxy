@@ -13,12 +13,29 @@ The documentation ie. the requirement specification is available but will not be
 Log:
 ========
 
+5/5-2015 PBondo
+---------------
+It looks like the proper way to stop a synchronous SSL connection (that is established) from another thread is to call only 
+this->m_remote_socket.lowest_layer().cancel(ec);
+Then from the thread that made the connection the remaining shutdown and close should be called.
+
+Aiming for Version 1.0.0
+
+
+
+14/4-2015 PBondo
+----------------
+The log file is overwritten on restart. Possibly we should add a check to ensure we delete the oldest log file.
+Seen a case with zero data throughput without a reconnect.
+
+Changing a client (remote port) in a uploaded file did apparently not cause a reload configuration. A subsequent reload configuration did work.
+However changing the hostname of the remote did work. Changing both did not obviously work if not connected.
+
 
 8/4-2015 PBondo
 ---------------
 Wellbehaving extra local connection to a client is working ok, but it is the slowest client that determine the speed.
-Disconnecting is also ok. However pulling the plug timesout after 5 minutes (probably TCP K/A) and it does not have any effect.
-
+Disconnecting is also ok. However pulling the plug timesout after 5 minutes (probably default read timeout) and it does not have any effect.
 
 
 23/3-2015 PBondo
@@ -27,6 +44,9 @@ Issue with round robin. If a lot of connections to one uniproxy / or one host ap
 Being replaced with a random selection, to spread out the load.
 Initial idea of shuffling the list does not work, since it is used for detecting if the configuration has changed. And there is currently no gate on the list, so it is readonly.
 
+This one should also have the release number in the GateHouse connection string and displayed on the status web page.
+
+Subsequently release 0.3.7.
 
 17/3-2015 PBondo
 ----------------

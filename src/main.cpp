@@ -300,7 +300,7 @@ void proxy_app::config_upload()
 			// Check if configuration has changed to warrant a restart.
 			if (global.is_new_configuration(newobj))
 			{
-				DOUT("Configuration changed sufficiently to warrant a restart. All connections will be closed");
+				log().add("Configuration changed sufficiently to warrant a restart. All connections will be closed");
 				this->response().set_redirect_header("/");
 				throw mylib::reload_exception();
 			}
@@ -310,11 +310,13 @@ void proxy_app::config_upload()
 				{
 					global.unpopulate_json(newobj);
 					global.populate_json(newobj, proxy_global::json_acl::all);
-					DOUT("Updated configuration without restart");
+					mylib::msleep(1000);
+					log().add("Updated configuration without restart, now starting all connections");
+					global.lock();
 				}
 				catch(std::exception exc)
 				{
-					DOUT("Configuration update failed to warrant a restart. All connections will be closed");
+					log().add("Configuration update failed to warrant a restart. All connections will be closed");
 					throw mylib::reload_exception();
 				}
 			}
@@ -492,20 +494,11 @@ int main(int argc,char ** argv)
 	{
 		try // Outer loop for reload exceptions.
 		{
-#ifdef __linux__			
-			if (cppcms::signal::reload())
-			{
-				cppcms::signal::reset_reload(); // Reset here to allow signal 1 or 15 while waiting
-				DOUT("Reloading, we need to wait 60+ seconds before restart in order to ensure we don't hook up on the same port again");
-				mylib::msleep(70000);
-				DOUT("Finished waiting for restart");
-			}
-#endif
 			srand(time(NULL));
 			cppcms::signal::reset_reload();
 			log().clear();
-			DOUT( std::string("UniProxy starting in path: ") << boost::filesystem::current_path());
 			log().add( std::string("UniProxy starting" ) );
+			DOUT( std::string("UniProxy starting in path: ") << boost::filesystem::current_path());
 
 			DOUT("Loading plugins count: " << PluginHandler::plugins().size() );
 			for ( int index = 0; index < PluginHandler::plugins().size(); index++ )

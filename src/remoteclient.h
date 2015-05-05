@@ -127,4 +127,6 @@ protected:
 
 };
 
+std::ostream & operator << (std::ostream & os, const RemoteProxyHost &host);
+
 #endif

@@ -454,8 +454,8 @@ proxy_log::proxy_log(const std::string&_name)
 	this->m_log_file_index = 0;
 	this->m_write_index = 0;
 	this->m_name = _name;
-	this->m_logfile.open("uniproxy0.log");//,std::ios::app|std::ios::ate);
 }
+
 
 std::string proxy_log::peek() const
 {
@@ -485,22 +485,40 @@ size_t proxy_log::count() const
 }
 
 
+std::string proxy_log::filename(int index)
+{
+	return "uniproxy" + mylib::to_string(index)+".log";
+}
+
+
 void proxy_log::add( const std::string &_value )
 {
 	if (_value.empty()) return; // Don't bother with empty log lines.
 	DOUT("Log: " << this->m_name << ": " << _value );
 	stdt::lock_guard<stdt::mutex> l(this->m_mutex);
+	if (this->m_write_index == 0)
+	{
+		boost::system::error_code ec0,ec1;
+		std::time_t t0 = boost::filesystem::last_write_time(this->filename(0), ec0);
+		std::time_t t1 = boost::filesystem::last_write_time(this->filename(1), ec1);
+		if (!ec0 && (ec1 || (!ec1 && t0 > t1))) // if 0 exist and either 1 does not exist or time 0 > time 1
+		{
+			this->m_log_file_index = !this->m_log_file_index;
+		}
+		this->m_logfile.open(this->filename(this->m_log_file_index));
+	}
+
 	this->m_log.push_back(std::make_pair(this->m_write_index++, mylib::time_stamp() + ": " + _value));
 	while (this->m_log.size() > 50)
 	{
 		this->m_log.erase(this->m_log.begin());
 	}
 	// Check and write to log file.
-	if ((this->m_write_index % 1000) == 0) // cycle the log.
+	if ((this->m_write_index % 10000) == 0) // cycle the log.
 	{
 		this->m_log_file_index = !this->m_log_file_index;
 		this->m_logfile.close();
-		this->m_logfile.open("uniproxy" + mylib::to_string(this->m_log_file_index)+".log");
+		this->m_logfile.open(this->filename(this->m_log_file_index));
 	}
 	this->m_logfile << mylib::time_stamp() << ": " << _value << std::endl;
 }

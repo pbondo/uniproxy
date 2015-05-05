@@ -339,12 +339,14 @@ public:
 	void add( const std::string &_value );
 
 	void clear();
-	
+
 	std::string peek() const;
 
 	std::string get(int _index) const;
 
 	size_t count() const;
+
+	static std::string filename(int index);
 
 	std::ofstream m_logfile;
 

@@ -26,6 +26,23 @@
 static int static_remote_count = 0;
 
 
+std::ostream & operator << (std::ostream & os, const RemoteProxyHost &host)
+{
+	os << "[";
+	for (auto item : host.m_remote_ep)
+	{
+		os << " port: " << item.m_port << " hostname " << item.m_hostname << " name " << item.m_name << ",";
+	}
+	os << "][";
+	for (auto item : host.m_local_ep)
+	{
+		os << " hostname " << item.m_hostname << " port " << item.m_port << ",";
+	}
+	os << "]";
+	return os;
+}
+
+
 /*
 When a connection is established a an instance of RemoteProxyClient is started.
 It will initiate 2 threads:
@@ -119,18 +136,16 @@ void RemoteProxyClient::stop()
 
 void RemoteProxyClient::interrupt()
 {
-	boost::system::error_code err;
+	boost::system::error_code ec;
 	DOUT( __FUNCTION__ << ":" << __LINE__ );
 	if ( this->m_local_socket.is_open() )
 	{
-		TRY_CATCH( this->m_local_socket.shutdown( boost::asio::socket_base::shutdown_both, err ) );
-		TRY_CATCH( this->m_local_socket.close(err) );
+		TRY_CATCH( this->m_local_socket.shutdown( boost::asio::socket_base::shutdown_both, ec ) );
+		TRY_CATCH( this->m_local_socket.close(ec) );
 	}
 	if ( this->m_remote_socket.lowest_layer().is_open() )
 	{
-		TRY_CATCH( this->m_remote_socket.lowest_layer().shutdown( boost::asio::socket_base::shutdown_both, err ) );
-		TRY_CATCH( this->m_remote_socket.shutdown(err) );
-		TRY_CATCH( this->m_remote_socket.next_layer().shutdown( boost::asio::socket_base::shutdown_both, err ) );
+		this->m_remote_socket.lowest_layer().cancel(ec);
 	}
 	this->m_local_connected = this->m_remote_connected = false;
 }
@@ -156,7 +171,13 @@ void RemoteProxyClient::local_threadproc()
 			for ( ; this->m_local_thread.check_run(); )
 			{
 				int length;
-				length = this->m_local_socket.read_some( boost::asio::buffer( this->m_local_read_buffer, this->m_host.m_plugin.max_buffer_size() ) );
+				boost::system::error_code ec;
+				length = this->m_local_socket.read_some( boost::asio::buffer( this->m_local_read_buffer, this->m_host.m_plugin.max_buffer_size() ), ec );
+				if (ec.value() != 0 || length == 0)
+				{
+					DOUT("Local read socket: " << this->local_endpoint() << " Failed reading data " << ec.category().name() << " val: " << (int)ec.value() << " msg: " << ec.category().message(ec.value()) << " length: " << length);
+					break;
+				}
 				this->m_local_read_buffer[length] = 0;
 				Buffer buffer( this->m_local_read_buffer, length );
 				if ( this->m_host.m_plugin.message_filter_local2remote( buffer ) )
@@ -174,6 +195,9 @@ void RemoteProxyClient::local_threadproc()
 	}
 	DOUT( "Thread RemoteProxyClient::local_threadproc stopping");
 	this->interrupt();
+	boost::system::error_code ec;
+	this->m_remote_socket.shutdown(ec);
+	this->m_remote_socket.lowest_layer().close(ec);
 	DOUT( "Thread RemoteProxyClient::local_threadproc stopped");
 }
 
@@ -261,18 +285,27 @@ void RemoteProxyClient::remote_threadproc()
 		boost::asio::socket_set_keepalive_to( this->m_remote_socket.lowest_layer(), std::chrono::seconds(20) );
 		for ( ; this->m_remote_thread.check_run(); )
 		{
-			int length = this->m_remote_socket.read_some( boost::asio::buffer( this->m_remote_read_buffer, this->m_host.m_plugin.max_buffer_size() ) );
-			this->m_remote_read_buffer[length] = 0;
-			Buffer buffer( this->m_remote_read_buffer, length );
-			if ( this->m_host.m_plugin.message_filter_remote2local( buffer ) )
+			boost::system::error_code ec;
+			int length = this->m_remote_socket.read_some(boost::asio::buffer(this->m_remote_read_buffer, this->m_host.m_plugin.max_buffer_size()), ec);
+			if (ec.value() != 0 || length == 0)
 			{
-				length = this->m_local_socket.write_some( boost::asio::buffer( buffer.m_buffer, buffer.m_size ) );
-				this->m_count_in.add(length);
+				DOUT("Remote read socket: " << this->remote_endpoint() << " Failed reading data " << ec.category().name() << " val: " << (int)ec.value() << " msg: " << ec.category().message(ec.value()) << " length: " << length);
+				break;
 			}
-			else
+			if (length > 0)
 			{
-				// This should not happen too often.
-				this->dolog("Data overflow");
+				this->m_remote_read_buffer[length] = 0;
+				Buffer buffer( this->m_remote_read_buffer, length );
+				if ( this->m_host.m_plugin.message_filter_remote2local( buffer ) )
+				{
+					length = this->m_local_socket.write_some( boost::asio::buffer( buffer.m_buffer, buffer.m_size ) );
+					this->m_count_in.add(length);
+				}
+				else
+				{
+					// This should not happen too often.
+					this->dolog("Data overflow");
+				}
 			}
 		}
 	}
@@ -287,6 +320,9 @@ void RemoteProxyClient::remote_threadproc()
 	}
 	DOUT( "Thread RemoteProxyClient::remote_threadproc stopping");
 	this->interrupt();
+	boost::system::error_code ec;
+	this->m_remote_socket.shutdown(ec);
+	this->m_remote_socket.lowest_layer().close(ec);
 	DOUT( "Thread RemoteProxyClient::remote_threadproc stopped");
 }
 
@@ -367,12 +403,13 @@ void RemoteProxyHost::start()
 		return;
 	}
 	// We do the following because we want it done in the main thread, so exceptions during start are propagated through.
+	// In particular we want to ensure that we dont have 2 servers with the same port number.
 	this->dolog( std::string("opening connection on port: ") + mylib::to_string( this->m_local_port ) );
 	boost::asio::ip::tcp::endpoint ep(boost::asio::ip::tcp::v4(), this->m_local_port);
 	this->m_acceptor.open(ep.protocol());
 	this->m_acceptor.set_option(boost::asio::ip::tcp::acceptor::reuse_address(false));
 	this->m_acceptor.bind(ep);
-
+	DOUT("Bind ok for " << ep);
 	this->m_thread.start( [this]{ this->threadproc(); } );
 }
 
@@ -385,8 +422,10 @@ void RemoteProxyHost::lock()
 
 void RemoteProxyHost::unlock()
 {
-	this->m_acceptor.cancel();
-	this->m_acceptor.close();
+	boost::system::error_code ec;
+	this->m_acceptor.cancel(ec);
+	boost::asio::socket_shutdown( this->m_acceptor,ec );
+	this->m_acceptor.close(ec);
 }
 
 

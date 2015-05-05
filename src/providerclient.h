@@ -58,4 +58,8 @@ protected:
 
 };
 
+bool is_provider(const BaseClient &client);
+
+std::ostream &operator << (std::ostream &os, const ProviderClient &client);
+
 #endif

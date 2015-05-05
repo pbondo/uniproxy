@@ -40,6 +40,7 @@ proxy_global::proxy_global()
 
 void proxy_global::lock()
 {
+	DOUT("Now starting all connections");
 	stdt::lock_guard<stdt::mutex> l(this->m_mutex_list);
 	for ( auto iter = this->remotehosts.begin(); iter != this->remotehosts.end(); iter++ )
 	{
@@ -93,7 +94,7 @@ void proxy_global::stopall()
 }
 
 
-bool proxy_global::is_provider(const BaseClient &client) const
+bool is_provider(const BaseClient &client)
 {
 	return dynamic_cast<const ProviderClient*>(&client) != nullptr;
 }
@@ -105,14 +106,33 @@ bool has_array(const cppcms::json::value &obj, const std::string &name)
 }
 
 
+std::ostream &operator << (std::ostream &os, const BaseClient &client)
+{
+	os << "port: " << client.port() << " provider: " << (int)is_provider(client) << "[";
+
+	for (auto item : client.m_proxy_endpoints)
+	{
+		os << " " << item.m_hostname << " " << item.m_port;
+	}
+	os << "]";
+	return os;
+}
+
+
 bool proxy_global::is_same( const BaseClient &client, cppcms::json::value &obj1, bool &param_changed, bool &remotes_changed ) const
 {
+	// This function does not currently work correctly if changing a port on the remote part.
+param_changed = true;
+remotes_changed = true;
+return false;
+
+	bool result = false;
 	param_changed = false;
 	remotes_changed = false;
 	mylib::port_type client_port = 0;
 	cppcms::utils::check_port( obj1, "port", client_port );
 	if ( client.port() != client_port ) return false;
-	if ( client_port > 0 || (client_port == 0 && this->is_provider(client)))
+	if ( client_port > 0 || (client_port == 0 && is_provider(client)))
 	{
 		remotes_changed = true;
 		cppcms::json::value res = obj1.find( "remotes" );
@@ -137,14 +157,16 @@ bool proxy_global::is_same( const BaseClient &client, cppcms::json::value &obj1,
 		{
 			param_changed = true;
 		}
-		return true;
+		result = true;
 	}
-	return false;
+	DOUT("Compare clients: " << client << " <=> " << obj1 << " result: " << result << " param: " << (int)param_changed << " remotes_changed: " << (int)remotes_changed);
+	return result;
 }
 
 
 bool proxy_global::is_same(const RemoteProxyHost &host, cppcms::json::value &obj, bool &param_changed, bool &locals_changed, std::vector<RemoteEndpoint> &rem_added, std::vector<RemoteEndpoint> &rem_removed) const
 {
+	bool result = false;
 	param_changed = false;
 	locals_changed = false;
 	mylib::port_type host_port = 0;
@@ -202,9 +224,10 @@ bool proxy_global::is_same(const RemoteProxyHost &host, cppcms::json::value &obj
 		{
 			param_changed = true;
 		}
-		return true;
+		result = true;
 	}
-	return false;
+	DOUT("Compare: " << host << " <=> " << obj << " result: " << (int)result << " param: " << (int)param_changed << " remote: " << (int)locals_changed)
+	return result;
 }
 
 
@@ -1088,7 +1111,23 @@ activate_host::activate_host()
 
 void activate_host::start(int _port)
 {
-	this->mylib::thread::start([=]{this->threadproc(_port);});
+	if (!this->mylib::thread::is_running())
+	{
+		DOUT("Starting activation host on port: " << _port);
+		this->mylib::thread::start([=]{this->threadproc(_port);});
+	}
+	else
+	{
+		int port = -1;
+		std::lock_guard<std::mutex> lock(this->m_mutex);
+		if (this->mp_acceptor != nullptr)
+		{
+			boost::system::error_code ec;
+			boost::asio::ip::tcp::endpoint ep = this->mp_acceptor->local_endpoint(ec);
+			port = ep.port();
+		}
+		DOUT("Activation host already running on port: " << port << " new port: " << _port);
+	}
 }
 
 
