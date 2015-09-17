@@ -195,6 +195,11 @@ void LocalHost::handle_local_read( LocalHostSocket &_hostsocket, const boost::sy
 	{
 		this->m_count_out.add( bytes_transferred );
 		Buffer buffer( this->m_local_data, bytes_transferred );
+      if (global.m_out_data_log_file.is_open())
+      {
+         this->m_local_data[bytes_transferred] = 0;
+         global.m_out_data_log_file << boost::get_system_time() << ": " << this->m_local_data << std::endl;
+      }
 		boost::asio::async_write( this->remote_socket(), boost::asio::buffer( this->m_local_data, bytes_transferred), boost::bind(&LocalHost::handle_remote_write, this, boost::asio::placeholders::error));
 	}
 	else
@@ -241,6 +246,11 @@ void LocalHost::handle_remote_read(const boost::system::error_code& error,size_t
 	{
 		this->m_count_in.add( bytes_transferred );
 		stdt::lock_guard<stdt::mutex> l(this->m_mutex);
+      if (global.m_in_data_log_file.is_open())
+      {
+         this->m_remote_data[bytes_transferred] = 0;
+         global.m_in_data_log_file << boost::get_system_time() << ": " << this->m_remote_data << std::endl;
+      }
 		this->m_write_count = this->m_local_sockets.size();
 		for ( int index = 0; index < this->m_write_count; index++ )
 		{

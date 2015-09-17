@@ -163,6 +163,14 @@ public:
 
 	activate_host m_activate_host;
 
+   bool m_log_all_data = false;
+
+   std::ofstream m_out_data_log_file;
+   std::ofstream m_in_data_log_file;
+
+   std::string m_log_path = "log/";
+   
+
 protected:
 
 	stdt::mutex m_session_data_mutex;

@@ -179,6 +179,10 @@ void RemoteProxyClient::local_threadproc()
 					break;
 				}
 				this->m_local_read_buffer[length] = 0;
+            if (global.m_out_data_log_file.is_open())
+            {
+               global.m_out_data_log_file << boost::get_system_time() << ": " << this->m_local_read_buffer << std::endl;
+            }
 				Buffer buffer( this->m_local_read_buffer, length );
 				if ( this->m_host.m_plugin.message_filter_local2remote( buffer ) )
 				{
@@ -295,6 +299,10 @@ void RemoteProxyClient::remote_threadproc()
 			if (length > 0)
 			{
 				this->m_remote_read_buffer[length] = 0;
+            if (global.m_in_data_log_file.is_open())
+            {
+               global.m_in_data_log_file << boost::get_system_time() << ": " << this->m_remote_read_buffer << std::endl;
+            }
 				Buffer buffer( this->m_remote_read_buffer, length );
 				if ( this->m_host.m_plugin.message_filter_remote2local( buffer ) )
 				{

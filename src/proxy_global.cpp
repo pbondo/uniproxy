@@ -481,6 +481,7 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 		cppcms::json::value &config_obj( obj["config"] );
 		cppcms::utils::check_string( config_obj, "name", this->m_name );
 		cppcms::utils::check_bool( config_obj, "debug", this->m_debug );
+		cppcms::utils::check_string( config_obj, "log_path", global.m_log_path );
 		cppcms::json::value proxies = config_obj.find( "uniproxies" );
 		if (cppcms::utils::check_int( config_obj, "activate.timeout", i ))
 		{

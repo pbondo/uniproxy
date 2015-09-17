@@ -454,6 +454,15 @@ Status.prototype.on_stop = function( )
 	}
 }
 
+
+Status.prototype.on_filelog_active = function( cb )
+{
+	console.log( "on_filelog_active: " + cb);
+   
+   jQuery.ajax({ url: '/json/command/logfile/active=' + cb.checked });
+}
+
+
 Status.prototype.on_configure = function( )
 {
 	console.log( "on_configure: " + name );
@@ -471,10 +480,12 @@ Status.prototype.on_toggle_log = function( )
 	var testdiv_outer = jQuery("#testdiv_outer");
 	if ( testdiv_outer.height() > 100 )
 	{
+      $('#div_logfile').css('visibility', 'hidden');
 		testdiv_outer.height(0);
 	}
 	else
 	{
+      $('#div_logfile').css('visibility', 'visible');
 		testdiv_outer.height(200);
 	}
 }
@@ -492,6 +503,7 @@ $(document).ready(function()
 {
 	status1 = new Status();
 	
+   $('#div_logfile').css('visibility', 'hidden');
 	console.log("Ready");
 	$.ajaxSetup({ cache: false });
 	console.dir(status1);
@@ -538,9 +550,9 @@ $(document).ready(function()
 </table>
 
 <p></p>
+<input id="div_logfile" type="checkbox" checked="no" onclick="status1.on_filelog_active(this)" />
 <div class="testdiv" id="testdiv_outer" style="height:0px;overflow:auto;border: 1px black solid">
-	<div class="testdiv_inner" id="testdiv_inner">
-	</div>
+	<div class="testdiv_inner" id="testdiv_inner"></div>
 </div>
 
 

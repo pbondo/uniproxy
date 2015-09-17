@@ -35,6 +35,12 @@ namespace mylib
 
 std::ostream &dout()
 {
+	if ((++log().m_log_access_count % 100000) == 0) // cycle the log.
+	{
+		log().m_log_file_index = !log().m_log_file_index;
+		log().m_logfile.close();
+		log().m_logfile.open(log().filename(log().m_log_file_index));
+	}
    return log().m_logfile;
 }
 
@@ -513,6 +519,7 @@ void proxy_log::add( const std::string &_value )
 	{
 		this->m_log.erase(this->m_log.begin());
 	}
+/*
 	// Check and write to log file.
 	if ((this->m_write_index % 10000) == 0) // cycle the log.
 	{
@@ -520,7 +527,9 @@ void proxy_log::add( const std::string &_value )
 		this->m_logfile.close();
 		this->m_logfile.open(this->filename(this->m_log_file_index));
 	}
-	this->m_logfile << mylib::time_stamp() << ": " << _value << std::endl;
+	this->m_logfile 
+*/
+   mylib::dout() << mylib::time_stamp() << ": " << _value << std::endl;
 }
 
 

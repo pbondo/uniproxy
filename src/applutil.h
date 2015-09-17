@@ -357,7 +357,10 @@ protected:
 	mutable stdt::mutex m_mutex;
 	std::string m_name;
 	std::atomic<int> m_write_index;
+
+public:
 	int m_log_file_index;
+   int m_log_access_count = 0;
 };
 
 proxy_log &log();

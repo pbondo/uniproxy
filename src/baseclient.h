@@ -84,8 +84,8 @@ protected:
 	mutable stdt::mutex m_mutex;
 
 	enum { max_length = 1024 };
-	char m_local_data[max_length];
-	char m_remote_data[max_length];
+	char m_local_data[max_length+1];
+	char m_remote_data[max_length+1];
 
 };
 

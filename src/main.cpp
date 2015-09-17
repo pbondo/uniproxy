@@ -73,6 +73,7 @@ proxy_app::proxy_app(cppcms::service &srv) : cppcms::application(srv), timer_(sr
 	dispatcher().assign("^/command/stop/(.*)$",&proxy_app::shutdown,this);
 	dispatcher().assign("^/command/config/upload/(.*)$",&proxy_app::config_upload,this);
 	dispatcher().assign("^/command/config/reload/(.*)$",&proxy_app::config_reload,this);
+	dispatcher().assign("^/command/logfile/active=(.*)$",&proxy_app::log_file,this,1);
 	dispatcher().assign("^/script/(.*)$",&proxy_app::script,this,1);
 	dispatcher().assign("^/status/(.*)$",&proxy_app::status_get,this);
 	dispatcher().assign("^/logger/(.*)$",&proxy_app::logger_get,this);
@@ -214,6 +215,24 @@ std::string proxy_app::status_get_json()
 	std::string result = global.save_json_status( true );
 	return result;
 }
+
+
+void proxy_app::log_file(const std::string _param)
+{
+   global.m_log_all_data = _param == "true";
+   DOUT("Logfile: " << global.m_log_all_data << " from " << _param);
+   if (global.m_log_all_data)
+   {
+      global.m_in_data_log_file.open(global.m_log_path + "in_data.log");
+      global.m_out_data_log_file.open(global.m_log_path + "out_data.log");
+   }
+   else
+   {
+      global.m_in_data_log_file.close();
+      global.m_out_data_log_file.close();
+   }
+}
+
 
 
 // NB!! kludge! Should be possible inline with a simple regex
@@ -509,6 +528,8 @@ int main(int argc,char ** argv)
 			{
 				log().add("Failed to load configuration"); // Written in global exception handler...?
 			}
+         boost::filesystem::create_directory(global.m_log_path);
+
 			stdt::lock_guard<proxy_global> lock(global);
 			client_certificate_exchange cert_exch;
 			stdt::lock_guard<client_certificate_exchange> certificate_exchange_lock(cert_exch);

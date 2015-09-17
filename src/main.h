@@ -72,6 +72,7 @@ public:
 	void certificate_delete(const std::string);
 	void get_certificates(const std::string _param);
 	void timeout_handle();
+   void log_file(const std::string _param);
 
 	static void setup_config( cppcms::json::value &_settings );
 
