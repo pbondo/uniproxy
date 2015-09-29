@@ -13,6 +13,13 @@ The documentation ie. the requirement specification is available but will not be
 Log:
 ========
 
+29/9-2015 PBondo
+----------------
+Moved Windows compile to VC14.
+
+Version 1.0.2
+
+
 5/5-2015 PBondo
 ---------------
 It looks like the proper way to stop a synchronous SSL connection (that is established) from another thread is to call only 
