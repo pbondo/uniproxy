@@ -7,8 +7,8 @@ cmake_minimum_required(VERSION 2.8)
 project(uniproxy)
 
 IF (WIN32)
-	SET(VC 12)
-	SET(LANG c:/lang)
+	SET(VC 14)
+	SET(LANG v:/lang)
 ELSE()
 	SET(LANG $ENV{HOME}/lang)
 ENDIF()
@@ -102,8 +102,8 @@ IF (WIN32)
 
 
 	ADD_DEFINITIONS( -D_WIN32_WINNT=0x0501 /wd4250 /wd4018  /wd4267 /wd4996)
-	include_directories (${uniproxy_SOURCE_DIR} ${LANG}/w64-vc${VC}/include ${LANG}/boost-master/include ${LANG}/boost-ext/include ${LANG}/openssl/include/)
-	LINK_DIRECTORIES( "${LANG}/w64-vc${VC}/lib" "${LANG}/openssl/lib/vc${VC}x64/" ${LANG}/boost-master/lib64)
+	include_directories (${uniproxy_SOURCE_DIR} ${LANG}/w64-vc${VC}/include ${LANG}/cppcms-1.0.5/include ${LANG}/boost/1_59_0 ${LANG}/boost-ext/include ${LANG}/openssl-1.0.2d/include/)
+	LINK_DIRECTORIES( "${LANG}/w64-vc${VC}/lib" "${LANG}/openssl-1.0.2d/lib/vc${VC}x64/" ${LANG}/boost/1_59_0/lib64-msvc-${VC}.0/ ${LANG}/cppcms-1.0.5/lib/vc${VC}x64/release)
 	# Use multi cores
 	SET(VISUAL_STUDIO_MP_FLAG "/MP")
 
@@ -118,7 +118,7 @@ add_executable(${PROJECT_NAME} ${uniproxy_SOURCES})
 
 IF (WIN32)
 
-	target_link_libraries (${PROJECT_NAME} libcppcms libbooster SSLeay32 libeay32 zlib pcre dbghelp )
+	target_link_libraries (${PROJECT_NAME} cppcms booster libeay64vc14 ssleay64vc14 ) ##zlib pcre dbghelp )
 
 ELSE (WIN32)
 

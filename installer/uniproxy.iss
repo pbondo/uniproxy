@@ -34,20 +34,22 @@ Compression=lzma
 SolidCompression=yes
 
 [Files]
-Source: "../build64/Release/uniproxy.exe"; DestDir: "{app}"
+Source: "../build/Release/uniproxy.exe"; DestDir: "{app}"
 
 ; For uniproxy
-Source: "third/vcredist_x64-vc12.exe"; Flags: dontcopy
+;Source: "third/vcredist_x64-vc12.exe"; Flags: dontcopy
 ; For openssl
 ; Source: "third/vcredist_x86-vc9.exe"; Flags: dontcopy
 Source: "third/openssl.exe"; DestDir: "{app}"
 Source: "third/openssl.cnf"; DestDir: "{app}"
-Source: "third/libeay32.dll"; DestDir: "{app}"
-Source: "third/ssleay32.dll"; DestDir: "{app}"
+Source: "third/libeay64vc14.dll"; DestDir: "{app}"
+Source: "third/ssleay64vc14.dll"; DestDir: "{app}"
 Source: "third/nssm.exe"; DestDir: "{app}"; Check: GetInstallService()
 Source: "third/zlib.dll"; DestDir: "{app}"
 Source: "third/nc.exe"; DestDir: "{app}"
 Source: "third/pcre.dll"; DestDir: "{app}"
+Source: "third/booster.dll"; DestDir: "{app}"
+Source: "third/cppcms.dll"; DestDir: "{app}"
 
 Source: "../script/jquery.js"; DestDir: "{app}/script"
 Source: "../doc/uniproxy.json.sample"; DestDir: "{app}/doc"

@@ -29,7 +29,7 @@
 
 #else
 
-	#define noexcept
+	//#define noexcept
 
 #endif
 

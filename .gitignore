@@ -3,6 +3,6 @@ build
 dummy.txt
 .*~
 *~
-/installer/third/*
+## /installer/third/*
 prod/
 test/
