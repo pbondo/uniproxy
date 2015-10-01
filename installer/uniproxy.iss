@@ -34,7 +34,7 @@ Compression=lzma
 SolidCompression=yes
 
 [Files]
-Source: "../build64/Release/uniproxy.exe"; DestDir: "{app}"
+Source: "../build64/RelWithDebInfo/uniproxy.exe"; DestDir: "{app}"
 
 ; For uniproxy
 ;Source: "third/vcredist_x64-vc14.exe"; Flags: dontcopy
