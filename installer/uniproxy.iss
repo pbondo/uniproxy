@@ -114,9 +114,7 @@ begin
          StopService(UniproxyServiceName, true);
       end;
 
-      //InstallNamedRuntime('vcredist_x86-vc9.exe');
-      //InstallNamedRuntime('vcredist_x64-vc11.exe');
-      InstallNamedRuntime('vcredist_x64-vc12.exe');
+      InstallNamedRuntime('vcredist_x64-vc14.exe');
    end;
 end;
 
