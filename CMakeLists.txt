@@ -96,6 +96,7 @@ set( uniproxy_SOURCES
 IF (WIN32)
 	set( uniproxy_SOURCES
 		${uniproxy_SOURCES}
+                ${LANG}/openssl-1.0.2d/ms/applink.c
 		../src/win_util.cpp
 		../src/win_util.h
 		)
