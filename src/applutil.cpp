@@ -125,6 +125,26 @@ std::vector<std::string> split(const std::string &s, char delim)
 }
 
 
+template<> std::string to_string(const boost::posix_time::ptime &_p)
+{
+   if (!_p.is_special())
+   {
+      struct tm t1;
+      char buffer[40];
+      t1 = boost::posix_time::to_tm(_p);
+      sprintf(buffer, "%04i-%02i-%02i %02i:%02i:%02i", (t1.tm_year + 1900), (t1.tm_mon + 1), (t1.tm_mday), (t1.tm_hour), (t1.tm_min), (t1.tm_sec));
+      return std::string(buffer);
+   }
+   else if (_p.is_pos_infinity())
+   {
+      return "infinity";
+   }
+   else if (_p.is_neg_infinity())
+   {
+      return "infinity";
+   }
+   return std::string();
+}
 
 } // namespace mylib
 

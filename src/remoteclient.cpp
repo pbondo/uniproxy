@@ -182,7 +182,7 @@ void RemoteProxyClient::local_threadproc()
             if (global.m_out_data_log_file.is_open())
             {
                std::ofstream ofs(global.m_log_path + "out_" + this->m_endpoint.m_name + ".log", std::ios::ate | std::ios::app);
-               ofs << boost::get_system_time() << ": " << this->m_local_read_buffer << std::endl;
+               ofs << "[" << mylib::to_string(boost::get_system_time()) << "]" << this->m_local_read_buffer;
             }
 				Buffer buffer( this->m_local_read_buffer, length );
 				if ( this->m_host.m_plugin.message_filter_local2remote( buffer ) )
@@ -303,7 +303,7 @@ void RemoteProxyClient::remote_threadproc()
             if (global.m_in_data_log_file.is_open())
             {
                std::ofstream ofs(global.m_log_path + "in_" + common_name + ".log", std::ios::ate | std::ios::app);
-               ofs << boost::get_system_time() << ": " << this->m_remote_read_buffer << std::endl;
+               ofs << "[" << mylib::to_string(boost::get_system_time()) << "]" << this->m_remote_read_buffer;
             }
 				Buffer buffer( this->m_remote_read_buffer, length );
 				if ( this->m_host.m_plugin.message_filter_remote2local( buffer ) )

@@ -82,13 +82,15 @@ void msleep(int millisec);
 
 std::vector<std::string> split(const std::string &s, char delim);
 
-template <class T> inline std::string to_string (const T& t)
+template <class T> inline std::string to_string(const T& t)
 {
 	std::stringstream ss;
 	ss << t;
 	return ss.str();
 }
 
+
+template <> std::string to_string(const boost::posix_time::ptime &);
 
 
 template <class T> inline T& from_string (const std::string &sz, T& t)
