@@ -41,6 +41,10 @@ public:
 
    friend bool operator==( const LocalHostSocket&, const LocalHostSocket&);
 
+   int id;
+   
+   static int id_gen;
+
 protected:
 
    boost::asio::ip::tcp::socket *m_socket;
@@ -65,14 +69,14 @@ public:
    void handle_remote_read(const boost::system::error_code& error,size_t bytes_transferred);
 
    void handle_local_write(boost::asio::ip::tcp::socket *_socket, const boost::system::error_code& error);
-   void handle_remote_write(const boost::system::error_code& error);
+   void handle_remote_write(int id, const boost::system::error_code& error);
 
    void remove_socket( boost::asio::ip::tcp::socket &_socket );
    bool is_local_connected() const;
    void handle_accept( boost::asio::ip::tcp::socket *_socket, const boost::system::error_code& error );
    void cleanup();
 
-   void go_out(boost::asio::io_service &io_service, boost::asio::ip::tcp::acceptor &acceptor, boost::asio::ip::tcp::socket &local_socket);
+   void go_out(boost::asio::io_service &io_service);
 
    std::vector<std::string> local_hostnames() const;
 
