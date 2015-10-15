@@ -24,8 +24,8 @@
 #include <cppcms/json.h>
 #include "platform.h"
 
-#include <boost/date_time/posix_time/posix_time.hpp>	// ptime
-#include <boost/thread/thread_time.hpp>					// get_system_time
+#include <boost/date_time/posix_time/posix_time.hpp>  // ptime
+#include <boost/thread/thread_time.hpp>               // get_system_time
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/thread.hpp>
@@ -54,9 +54,9 @@ namespace error
 
 enum error_t
 {
-	#define error_code_def( xx, yy ) xx
-	#include "error_codes.h"
-	#undef error_code_def
+   #define error_code_def( xx, yy ) xx
+   #include "error_codes.h"
+   #undef error_code_def
 };
 
 } // namespace error
@@ -76,7 +76,7 @@ std::error_condition make_error_condition(uniproxy::error::error_t e);
 namespace mylib
 {
 typedef unsigned short port_type;
-	
+   
 std::ostream &dout();
 std::ostream &derr();
 std::string time_stamp();
@@ -87,9 +87,9 @@ std::vector<std::string> split(const std::string &s, char delim);
 
 template <class T> inline std::string to_string(const T& t)
 {
-	std::stringstream ss;
-	ss << t;
-	return ss.str();
+   std::stringstream ss;
+   ss << t;
+   return ss.str();
 }
 
 
@@ -98,50 +98,50 @@ template <> std::string to_string(const boost::posix_time::ptime &);
 
 template <class T> inline T& from_string (const std::string &sz, T& t)
 {
-	std::stringstream ss(sz);
-	ss >> t;
-	return t;
+   std::stringstream ss(sz);
+   ss >> t;
+   return t;
 }
 
 template <class T> class protect_pointer
 {
 public:
 
-	protect_pointer( T * &_p, T&_ref, stdt::mutex &_mutex ) : m_p(_p), m_mutex( _mutex )
-	{
-		stdt::lock_guard<stdt::mutex> l(this->m_mutex);
-		this->m_p = &_ref;
-	}
+   protect_pointer( T * &_p, T&_ref, stdt::mutex &_mutex ) : m_p(_p), m_mutex( _mutex )
+   {
+      stdt::lock_guard<stdt::mutex> l(this->m_mutex);
+      this->m_p = &_ref;
+   }
 
-	~protect_pointer()
-	{
-		stdt::lock_guard<stdt::mutex> l(this->m_mutex);
-		this->m_p = nullptr;
-	}
+   ~protect_pointer()
+   {
+      stdt::lock_guard<stdt::mutex> l(this->m_mutex);
+      this->m_p = nullptr;
+   }
 
-	T * &m_p;
-	stdt::mutex &m_mutex;
+   T * &m_p;
+   stdt::mutex &m_mutex;
 };
 
 
 // trim from start
 static inline std::string &ltrim(std::string &s)
 {
-	s.erase(s.begin(), std::find_if(s.begin(), s.end(), std::not1(std::ptr_fun<int, int>(std::isspace))));
-	return s;
+   s.erase(s.begin(), std::find_if(s.begin(), s.end(), std::not1(std::ptr_fun<int, int>(std::isspace))));
+   return s;
 }
 
 // trim from end
 static inline std::string &rtrim(std::string &s)
 {
-	s.erase(std::find_if(s.rbegin(), s.rend(), std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
-	return s;
+   s.erase(std::find_if(s.rbegin(), s.rend(), std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
+   return s;
 }
 
 // trim from both ends
 static inline std::string &trim(std::string &s)
 {
-	return ltrim(rtrim(s));
+   return ltrim(rtrim(s));
 }
 
 // This exception is used for terminating a thread. 
@@ -156,96 +156,96 @@ class thread
 {
 public:
 
-	thread( std::function<void()> _interrupt_function ) // NULL is allowed
-	{
-		this->m_stop = false;
-		if ( _interrupt_function != NULL )
-		{
-			m_interrupt_function = _interrupt_function;
-		}
-	}
+   thread( std::function<void()> _interrupt_function ) // NULL is allowed
+   {
+      this->m_stop = false;
+      if ( _interrupt_function != NULL )
+      {
+         m_interrupt_function = _interrupt_function;
+      }
+   }
 
-	~thread()
-	{
-		if ( this->m_thread.joinable() )
-		{
-			this->m_thread.join();
-		}
-	}
+   ~thread()
+   {
+      if ( this->m_thread.joinable() )
+      {
+         this->m_thread.join();
+      }
+   }
 
-	// Notice we cannot restart a thread even if it has terminated.
-	// _conditional indicates that we should ignore threads already running.
-	void start( std::function<void()> _thread_function )
-	{
-		ASSERTE( !this->m_thread.joinable(), uniproxy::error::thread_already_running, "" );
-		this->m_stop = false;
-		this->m_thread_function = _thread_function;
-		stdt::thread t1( [&]{ try { this->m_thread_function(); } catch ( ... ) { } } );
-		this->m_thread = std::move(t1);
-	}
+   // Notice we cannot restart a thread even if it has terminated.
+   // _conditional indicates that we should ignore threads already running.
+   void start( std::function<void()> _thread_function )
+   {
+      ASSERTE( !this->m_thread.joinable(), uniproxy::error::thread_already_running, "" );
+      this->m_stop = false;
+      this->m_thread_function = _thread_function;
+      stdt::thread t1( [&]{ try { this->m_thread_function(); } catch ( ... ) { } } );
+      this->m_thread = std::move(t1);
+   }
 
-	void stop( bool _wait = true )
-	{
-		this->m_stop = true;
-		// NB!! Check if we are self threading. then we should simply call check_run
-		if ( this->m_interrupt_function != nullptr )
-		{
-			this->m_interrupt_function();
-		}
-		if ( _wait && this->m_thread.joinable() )
-		{
-			this->m_thread.join();
-		}
-	}
+   void stop( bool _wait = true )
+   {
+      this->m_stop = true;
+      // NB!! Check if we are self threading. then we should simply call check_run
+      if ( this->m_interrupt_function != nullptr )
+      {
+         this->m_interrupt_function();
+      }
+      if ( _wait && this->m_thread.joinable() )
+      {
+         this->m_thread.join();
+      }
+   }
 
-	// throw exception
-	// return true to continue running
-	bool check_run( bool _throw_exception = true )
-	{
-		if ( this->m_stop && _throw_exception )
-		{
-			throw interrupt_exception();
-		}
-		return !this->m_stop;
-	}
+   // throw exception
+   // return true to continue running
+   bool check_run( bool _throw_exception = true )
+   {
+      if ( this->m_stop && _throw_exception )
+      {
+         throw interrupt_exception();
+      }
+      return !this->m_stop;
+   }
 
-	void sleep( int millisec )
-	{
-		const int SLEEP = 5000;
-		while(millisec >= SLEEP)
-		{
-			this->check_run();
-			msleep(SLEEP);
-			millisec -= SLEEP;
-		}
-		msleep(millisec);
-		this->check_run();
-	}
+   void sleep( int millisec )
+   {
+      const int SLEEP = 5000;
+      while(millisec >= SLEEP)
+      {
+         this->check_run();
+         msleep(SLEEP);
+         millisec -= SLEEP;
+      }
+      msleep(millisec);
+      this->check_run();
+   }
 
-	static bool is_thread_running(stdt::thread &th);
+   static bool is_thread_running(stdt::thread &th);
 
-	bool is_running()
-	{
-		return is_thread_running(this->m_thread);
-	}
+   bool is_running()
+   {
+      return is_thread_running(this->m_thread);
+   }
 
-	stdt::thread  &operator() ()
-	{
-		return this->m_thread;
-	}
+   stdt::thread  &operator() ()
+   {
+      return this->m_thread;
+   }
 
-	bool m_stop;
-	std::function<void()> m_interrupt_function;
-	stdt::thread m_thread;
+   bool m_stop;
+   std::function<void()> m_interrupt_function;
+   stdt::thread m_thread;
 
-	std::function<void()> m_thread_function;
+   std::function<void()> m_thread_function;
 };
 
 }
 
 
 namespace boost {
-	
+   
 namespace filesystem {
 const std::string path_separator();
 }
@@ -273,19 +273,19 @@ bool get_certificate_issuer_subject( boost::asio::ssl::stream<boost::asio::ip::t
 // Notice this functionality is not supported by ASIO in itself.
 template<typename MutableBufferSequence> int socket_read_some_for( boost::asio::ip::tcp::socket &_socket, const MutableBufferSequence & _buffers, const boost::posix_time::time_duration & _duration )
 {
-	int length = 0;
+   int length = 0;
 #ifdef _MSC_VER
-	boost::packaged_task<int> task4( [&]()->int{ return _socket.read_some( _buffers ); } );
-	auto f4 = task4.get_future();
-	boost::thread t4( boost::move(task4) );
-	if (f4.timed_wait(_duration))
-	{
-		length = f4.get();
-	}
+   boost::packaged_task<int> task4( [&]()->int{ return _socket.read_some( _buffers ); } );
+   auto f4 = task4.get_future();
+   boost::thread t4( boost::move(task4) );
+   if (f4.timed_wait(_duration))
+   {
+      length = f4.get();
+   }
 #else
-	return _socket.read_some( _buffers );
+   return _socket.read_some( _buffers );
 #endif
-	return length;
+   return length;
 }
 
 } // namespace asio
@@ -314,24 +314,24 @@ class data_flow
 {
 public:
 
-	data_flow( bool _debug = false );
-	
-	void add( size_t _count );
-	
-	size_t get();
+   data_flow( bool _debug = false );
+   
+   void add( size_t _count );
+   
+   size_t get();
 
-	void cleanup( int64_t _stamp );
-	
-	#define data_flow_size 60
-	
-	// Modulate by 1 seconds.
-	size_t m_buffer[data_flow_size];
+   void cleanup( int64_t _stamp );
+   
+   #define data_flow_size 60
+   
+   // Modulate by 1 seconds.
+   size_t m_buffer[data_flow_size];
 
-	int64_t timestamp();
+   int64_t timestamp();
 
-	int64_t m_stamp;
+   int64_t m_stamp;
 
-	bool m_debug;
+   bool m_debug;
 };
 
 
@@ -339,32 +339,32 @@ class proxy_log
 {
 public:
 
-	proxy_log( const std::string &_name );
+   proxy_log( const std::string &_name );
 
-	void add( const std::string &_value );
+   void add( const std::string &_value );
 
-	void clear();
+   void clear();
 
-	std::string peek() const;
+   std::string peek() const;
 
-	std::string get(int _index) const;
+   std::string get(int _index) const;
 
-	size_t count() const;
+   size_t count() const;
 
-	static std::string filename(int index);
+   static std::string filename(int index);
 
-	std::ofstream m_logfile;
+   std::ofstream m_logfile;
 
 protected:
 
-	std::vector<std::pair<int,std::string>> m_log;
+   std::vector<std::pair<int,std::string>> m_log;
 
-	mutable stdt::mutex m_mutex;
-	std::string m_name;
-	std::atomic<int> m_write_index;
+   mutable stdt::mutex m_mutex;
+   std::string m_name;
+   std::atomic<int> m_write_index;
 
 public:
-	int m_log_file_index;
+   int m_log_file_index;
    int m_log_access_count = 0;
 };
 
@@ -376,50 +376,50 @@ class LocalEndpoint
 {
 public:
 
-	LocalEndpoint( const std::string &_hostname, const mylib::port_type _port )
-	: m_hostname( _hostname ), m_port( _port )
-	{
-	}
-	
-	LocalEndpoint() : m_port(0)
-	{}
+   LocalEndpoint( const std::string &_hostname, const mylib::port_type _port )
+   : m_hostname( _hostname ), m_port( _port )
+   {
+   }
+   
+   LocalEndpoint() : m_port(0)
+   {}
 
-	bool load(cppcms::json::value &obj);
-	cppcms::json::value save() const;
+   bool load(cppcms::json::value &obj);
+   cppcms::json::value save() const;
 
-	friend bool operator == (const LocalEndpoint &a1, const LocalEndpoint &a2);
-	friend std::ostream &operator << (std::ostream &os, const LocalEndpoint &a);
+   friend bool operator == (const LocalEndpoint &a1, const LocalEndpoint &a2);
+   friend std::ostream &operator << (std::ostream &os, const LocalEndpoint &a);
 
-	std::string m_hostname;
-	mylib::port_type m_port;
+   std::string m_hostname;
+   mylib::port_type m_port;
 
 };
 
 
 
 // The configured data for each remote connection. Handles each of the "remotes" in the list below.
-//	{	port : 8750, type : "GHP"
-//		locals : [ { hostname : "127.0.0.1", port : 1234 }, { hostname : "127.0.0.1", port : 1235 } ], 
-//		remotes : [ { name : "UK", name : "1.2.3.4", username : "uk", password : "cheers" }, { name : "Finland", username : "hytli", password : "sauna" } ]
-//	}
+// {  port : 8750, type : "GHP"
+//    locals : [ { hostname : "127.0.0.1", port : 1234 }, { hostname : "127.0.0.1", port : 1235 } ], 
+//    remotes : [ { name : "UK", name : "1.2.3.4", username : "uk", password : "cheers" }, { name : "Finland", username : "hytli", password : "sauna" } ]
+// }
 class RemoteEndpoint
 {
 public:
 
-	RemoteEndpoint() : m_port(0) //, m_active(true)
-	{
-	}
+   RemoteEndpoint() : m_port(0) //, m_active(true)
+   {
+   }
 
-	mylib::port_type m_port;
-	std::string m_name;
-	std::string m_hostname;
-	std::string m_username;
-	std::string m_password;
+   mylib::port_type m_port;
+   std::string m_name;
+   std::string m_hostname;
+   std::string m_username;
+   std::string m_password;
 
-	friend bool operator==( const RemoteEndpoint &ep1, const RemoteEndpoint &ep2 );
+   friend bool operator==( const RemoteEndpoint &ep1, const RemoteEndpoint &ep2 );
 
-	bool load(cppcms::json::value &obj);
-	cppcms::json::value save() const;
+   bool load(cppcms::json::value &obj);
+   cppcms::json::value save() const;
 
 };
 
@@ -432,23 +432,23 @@ class Buffer
 {
 public:
 
-	Buffer( void * _buffer, size_t _size ) : m_buffer(0), m_size(_size)
-	{
-		if ( this->m_size > 0 )
-		{
-			this->m_buffer = new char[this->m_size+1];
-			memset( this->m_buffer, 0, this->m_size+1);		// Just add a 0 termination to enable string output
-			memcpy( this->m_buffer, _buffer, this->m_size );
-		}
-	}
+   Buffer( void * _buffer, size_t _size ) : m_buffer(0), m_size(_size)
+   {
+      if ( this->m_size > 0 )
+      {
+         this->m_buffer = new char[this->m_size+1];
+         memset( this->m_buffer, 0, this->m_size+1);     // Just add a 0 termination to enable string output
+         memcpy( this->m_buffer, _buffer, this->m_size );
+      }
+   }
 
-	~Buffer()
-	{
-		delete[] (char*)this->m_buffer;
-	}
+   ~Buffer()
+   {
+      delete[] (char*)this->m_buffer;
+   }
 
-	void *m_buffer;
-	size_t m_size;
+   void *m_buffer;
+   size_t m_size;
 
 };
 
@@ -457,61 +457,61 @@ class PluginHandler
 {
 public:
 
-	std::string m_type;
+   std::string m_type;
 
-	PluginHandler( const std::string & _type )
-	{
-		this->m_type = _type;
-		plugins().push_back( this );
-		std::cout << "PluginHandler: " << this->m_type << " " << plugins().size() << std::endl;
-	}
+   PluginHandler( const std::string & _type )
+   {
+      this->m_type = _type;
+      plugins().push_back( this );
+      std::cout << "PluginHandler: " << this->m_type << " " << plugins().size() << std::endl;
+   }
 
-	static std::vector<PluginHandler*> &plugins()
-	{
-		if ( m_plugins == NULL )
-		{
-			m_plugins = new std::vector<PluginHandler*>;
-		}
-		return *m_plugins;
-	}
+   static std::vector<PluginHandler*> &plugins()
+   {
+      if ( m_plugins == NULL )
+      {
+         m_plugins = new std::vector<PluginHandler*>;
+      }
+      return *m_plugins;
+   }
 
-	virtual size_t max_buffer_size()
-	{
-		return 1000;
-	}
+   virtual size_t max_buffer_size()
+   {
+      return 1000;
+   }
 
-	// Return false to indicate a connect or login failure to the host system.
-	// Throw a std::runtime_error to indicate failure and log a user message that will propagate to the web page.
-	virtual bool connect_handler( boost::asio::ip::tcp::socket &local_socket, RemoteEndpoint &_remote_ep )
-	{
-		return true;
-	}
+   // Return false to indicate a connect or login failure to the host system.
+   // Throw a std::runtime_error to indicate failure and log a user message that will propagate to the web page.
+   virtual bool connect_handler( boost::asio::ip::tcp::socket &local_socket, RemoteEndpoint &_remote_ep )
+   {
+      return true;
+   }
 
-	// Used for streaming data from the local tcp server to the remote ssl client.
-	// std::runtime_error may be thrown to indicate lost connection and log a user message that will propagate to the web page.
-	virtual bool stream_local2remote( boost::asio::ip::tcp::socket &local_socket, boost::asio::ssl::stream<boost::asio::ip::tcp::socket> &remote_socket, mylib::thread &_thread )
-	{
-		return false;
-	}
+   // Used for streaming data from the local tcp server to the remote ssl client.
+   // std::runtime_error may be thrown to indicate lost connection and log a user message that will propagate to the web page.
+   virtual bool stream_local2remote( boost::asio::ip::tcp::socket &local_socket, boost::asio::ssl::stream<boost::asio::ip::tcp::socket> &remote_socket, mylib::thread &_thread )
+   {
+      return false;
+   }
 
-	// The full flag indicates that a lot of data is buffered up waiting for transmission to the remote site.
-	// This typically means that the remote is slow and/or congested.
-	// If the full flag is set, then the function buffer the data and return false.
-	// Once the full flag is cleared again we should start sending data again.
-	virtual bool message_filter_local2remote( Buffer &_buffer ) //, bool _full )
-	{
-		return true;
-	}
+   // The full flag indicates that a lot of data is buffered up waiting for transmission to the remote site.
+   // This typically means that the remote is slow and/or congested.
+   // If the full flag is set, then the function buffer the data and return false.
+   // Once the full flag is cleared again we should start sending data again.
+   virtual bool message_filter_local2remote( Buffer &_buffer ) //, bool _full )
+   {
+      return true;
+   }
 
-	virtual bool message_filter_remote2local( Buffer &_buffer ) //, bool _full )
-	{
-		return true;
-	}
+   virtual bool message_filter_remote2local( Buffer &_buffer ) //, bool _full )
+   {
+      return true;
+   }
 
 private:
 
-	// If this was not defined as a * then it may be constructed at the wrong type. The basic = 0 seems to always work.
-	static std::vector<PluginHandler*> *m_plugins;
+   // If this was not defined as a * then it may be constructed at the wrong type. The basic = 0 seems to always work.
+   static std::vector<PluginHandler*> *m_plugins;
 
 };
 
@@ -549,7 +549,7 @@ namespace std2
 #ifdef _WIN32
 template<class T, class U> std::unique_ptr<T> make_unique(U&& u)
 {
-	 return std::unique_ptr<T>(new T(std::forward<U>(u)));
+    return std::unique_ptr<T>(new T(std::forward<U>(u)));
 }
 #else
 template<typename T, typename... Args> std::unique_ptr<T> make_unique(Args&&... args)
@@ -572,15 +572,15 @@ static int execute_process( const std::string& _command, const std::string& _par
 
 template <class T> std::ostream & operator << (std::ostream &os, const std::vector<T> & t)
 {
-	for ( int i = 0; i < t.size(); i++ )
-	{
-		if ( i )
-		{
-			os << " ";
-		}
-		os << t[i] ;
-	}
-	return os;
+   for ( int i = 0; i < t.size(); i++ )
+   {
+      if ( i )
+      {
+         os << " ";
+      }
+      os << t[i] ;
+   }
+   return os;
 }
 
 

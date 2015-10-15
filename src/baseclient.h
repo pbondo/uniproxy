@@ -27,65 +27,65 @@ class BaseClient
 {
 public:
 
-	BaseClient(bool _active, mylib::port_type _local_port, mylib::port_type _activate_port, const std::vector<RemoteEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin);
+   BaseClient(bool _active, mylib::port_type _local_port, mylib::port_type _activate_port, const std::vector<RemoteEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin);
 
-	virtual void start() = 0;
-	virtual void stop() = 0;
-	virtual void interrupt() = 0;
-	virtual bool is_local_connected() const = 0;
-	virtual std::vector<std::string> local_hostnames() const = 0;
-	virtual std::string local_portname() const;
+   virtual void start() = 0;
+   virtual void stop() = 0;
+   virtual void interrupt() = 0;
+   virtual bool is_local_connected() const = 0;
+   virtual std::vector<std::string> local_hostnames() const = 0;
+   virtual std::string local_portname() const;
 
-	// The remote connections does not need to be virtual.
-	std::string remote_hostname() const;
-	int remote_port() const;
-	bool is_remote_connected(int index = -1) const;
+   // The remote connections does not need to be virtual.
+   std::string remote_hostname() const;
+   int remote_port() const;
+   bool is_remote_connected(int index = -1) const;
 
-	ssl_socket &remote_socket();
+   ssl_socket &remote_socket();
 
-	const std::string dolog();
-	void dolog( const std::string &_line );
+   const std::string dolog();
+   void dolog( const std::string &_line );
 
-	std::string get_password() const;
-	
-	void threadproc_activate(int _index);
-	void start_activate(int _index);
-	void stop_activate();
-	void ssl_prepare(boost::asio::ssl::context &_ctx) const;
+   std::string get_password() const;
+   
+   void threadproc_activate(int _index);
+   void start_activate(int _index);
+   void stop_activate();
+   void ssl_prepare(boost::asio::ssl::context &_ctx) const;
 
-	std::vector<RemoteEndpoint> m_proxy_endpoints; // The list of remote proxies to connect to in a round robin fashion.
+   std::vector<RemoteEndpoint> m_proxy_endpoints; // The list of remote proxies to connect to in a round robin fashion.
 
-	int m_id;
-	int m_proxy_index;
-	bool m_active;
-	ssl_socket *mp_remote_socket;
-	data_flow m_count_in, m_count_out;
-	
-	mylib::port_type port() const { return this->m_local_port; }
-	mylib::port_type activate_port() const { return this->m_activate_port; }
+   int m_id;
+   int m_proxy_index;
+   bool m_active;
+   ssl_socket *mp_remote_socket;
+   data_flow m_count_in, m_count_out;
+   
+   mylib::port_type port() const { return this->m_local_port; }
+   mylib::port_type activate_port() const { return this->m_activate_port; }
 
 protected:
 
-	mylib::port_type m_local_port;
-	mylib::port_type m_activate_port;
+   mylib::port_type m_local_port;
+   mylib::port_type m_activate_port;
 
 public:
 
-	int m_max_connections;
-	boost::posix_time::ptime m_activate_stamp;
+   int m_max_connections;
+   boost::posix_time::ptime m_activate_stamp;
 
 protected:
 
-	std::string m_log;
-	mylib::thread m_thread_activate;
-	mylib::thread m_thread;
-	PluginHandler &m_plugin;
+   std::string m_log;
+   mylib::thread m_thread_activate;
+   mylib::thread m_thread;
+   PluginHandler &m_plugin;
 
-	mutable stdt::mutex m_mutex;
+   mutable stdt::mutex m_mutex;
 
-	enum { max_length = 1024 };
-	char m_local_data[max_length+1];
-	char m_remote_data[max_length+1];
+   enum { max_length = 1024 };
+   char m_local_data[max_length+1];
+   char m_remote_data[max_length+1];
 
 };
 

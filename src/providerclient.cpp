@@ -25,62 +25,62 @@ using boost::asio::ip::tcp;
 
 
 ProviderClient::ProviderClient(bool _active, mylib::port_type _activate_port, const std::vector<LocalEndpoint> &_local_endpoints, const std::vector<RemoteEndpoint> &_proxy_endpoints, PluginHandler &_plugin)
-	: BaseClient(_active, 0, _activate_port, _proxy_endpoints, 1, _plugin),
-	m_local_connected_index(0),
-	mp_local_socket( nullptr )
+   : BaseClient(_active, 0, _activate_port, _proxy_endpoints, 1, _plugin),
+   m_local_connected_index(0),
+   mp_local_socket( nullptr )
 {
-	this->m_local_endpoints = _local_endpoints;
+   this->m_local_endpoints = _local_endpoints;
 }
 
 
 bool ProviderClient::is_local_connected() const
 {
-	stdt::lock_guard<stdt::mutex> l(this->m_mutex);
-	return this->mp_local_socket != nullptr && is_connected(this->mp_local_socket->lowest_layer());
+   stdt::lock_guard<stdt::mutex> l(this->m_mutex);
+   return this->mp_local_socket != nullptr && is_connected(this->mp_local_socket->lowest_layer());
 }
 
 
 void ProviderClient::start()
 {
-	if (this->m_thread.is_running())
-	{
-		DOUT("Provider client is already running on port: " << this->port());
-		return;
-	}
-	this->m_thread.start( [this]{ this->threadproc(); } );
+   if (this->m_thread.is_running())
+   {
+      DOUT("Provider client is already running on port: " << this->port());
+      return;
+   }
+   this->m_thread.start( [this]{ this->threadproc(); } );
 }
 
 
 void ProviderClient::stop()
 {
-	this->stop_activate();
-	this->m_thread.stop();
+   this->stop_activate();
+   this->m_thread.stop();
 }
 
 
 // The interrupt function may happen in local or other (main) thread context.
 void ProviderClient::interrupt()
 {
-	try
-	{
-		stdt::lock_guard<stdt::mutex> l(this->m_mutex);
+   try
+   {
+      stdt::lock_guard<stdt::mutex> l(this->m_mutex);
 
-		if ( this->mp_local_socket != nullptr )
-		{
-			boost::system::error_code ec;
-			this->mp_local_socket->lowest_layer().shutdown( boost::asio::socket_base::shutdown_both, ec );
-		}
-		if ( this->mp_remote_socket != nullptr )
-		{
-			boost::system::error_code ec;
-			this->mp_remote_socket->lowest_layer().shutdown( boost::asio::socket_base::shutdown_both, ec );
-		}
-	}
-	catch( std::exception &exc )
-	{
-		this->dolog( exc.what() );
-	}
-	DOUT(__FUNCTION__ << ":" << __LINE__ );
+      if ( this->mp_local_socket != nullptr )
+      {
+         boost::system::error_code ec;
+         this->mp_local_socket->lowest_layer().shutdown( boost::asio::socket_base::shutdown_both, ec );
+      }
+      if ( this->mp_remote_socket != nullptr )
+      {
+         boost::system::error_code ec;
+         this->mp_remote_socket->lowest_layer().shutdown( boost::asio::socket_base::shutdown_both, ec );
+      }
+   }
+   catch( std::exception &exc )
+   {
+      this->dolog( exc.what() );
+   }
+   DOUT(__FUNCTION__ << ":" << __LINE__ );
 }
 
 
@@ -91,156 +91,156 @@ void ProviderClient::lock()
 
 void ProviderClient::unlock()
 {
-	this->interrupt();
+   this->interrupt();
 }
 
 
 void ProviderClient::threadproc()
 {
-	int timeout = 5000;
-	for ( ; this->m_thread.check_run() ; )
-	{
-		// On start and after each lost connection we end up here.
-		try
-		{
-			if (timeout < 60000)
-			{
-				timeout += 5000;
-			}
-			this->m_thread.sleep( timeout );
+   int timeout = 5000;
+   for ( ; this->m_thread.check_run() ; )
+   {
+      // On start and after each lost connection we end up here.
+      try
+      {
+         if (timeout < 60000)
+         {
+            timeout += 5000;
+         }
+         this->m_thread.sleep( timeout );
 
-			bool found = false;
-			for ( int index = 0; index < this->m_proxy_endpoints.size(); index++ )
-			{
-				if (global.certificate_available(this->m_proxy_endpoints[index].m_name))
-				{
-					found = true;
-				}
-			}
-			if (!found) continue;
+         bool found = false;
+         for ( int index = 0; index < this->m_proxy_endpoints.size(); index++ )
+         {
+            if (global.certificate_available(this->m_proxy_endpoints[index].m_name))
+            {
+               found = true;
+            }
+         }
+         if (!found) continue;
 
-			this->m_proxy_index = 0;
-			this->m_local_connected_index = 0;
+         this->m_proxy_index = 0;
+         this->m_local_connected_index = 0;
 
-			boost::asio::io_service io_service;
+         boost::asio::io_service io_service;
 
-			stdt::lock_guard<ProviderClient> l(*this);
+         stdt::lock_guard<ProviderClient> l(*this);
 
-			boost::asio::io_service::work session_work(io_service);
+         boost::asio::io_service::work session_work(io_service);
 
-			boost::asio::ip::tcp::socket local_socket(io_service);
-			mylib::protect_pointer<boost::asio::ip::tcp::socket> p1( this->mp_local_socket, local_socket, this->m_mutex );
-			std::string ep;
-			for ( int index = 0; index < this->m_local_endpoints.size(); index++ )
-			{
-				ep = this->m_local_endpoints[index].m_hostname + ":" + mylib::to_string(this->m_local_endpoints[index].m_port);
-				try
-				{
-					this->dolog("Provider connecting to local: " + ep );
-					boost::asio::sockect_connect( local_socket, io_service, this->m_local_endpoints[index].m_hostname, this->m_local_endpoints[index].m_port );
-					this->m_local_connected_index = index;
-					break;
-				}
-				catch( std::exception &exc )
-				{
-					DOUT(  __FUNCTION__ << ":" << __LINE__ << " Failed connection to: " << ep << " " << exc.what() );
-				}
-			}
-			ASSERTE(this->is_local_connected(), uniproxy::error::socket_invalid,"Provider failed connection to local host: " + ep);
+         boost::asio::ip::tcp::socket local_socket(io_service);
+         mylib::protect_pointer<boost::asio::ip::tcp::socket> p1( this->mp_local_socket, local_socket, this->m_mutex );
+         std::string ep;
+         for ( int index = 0; index < this->m_local_endpoints.size(); index++ )
+         {
+            ep = this->m_local_endpoints[index].m_hostname + ":" + mylib::to_string(this->m_local_endpoints[index].m_port);
+            try
+            {
+               this->dolog("Provider connecting to local: " + ep );
+               boost::asio::sockect_connect( local_socket, io_service, this->m_local_endpoints[index].m_hostname, this->m_local_endpoints[index].m_port );
+               this->m_local_connected_index = index;
+               break;
+            }
+            catch( std::exception &exc )
+            {
+               DOUT(  __FUNCTION__ << ":" << __LINE__ << " Failed connection to: " << ep << " " << exc.what() );
+            }
+         }
+         ASSERTE(this->is_local_connected(), uniproxy::error::socket_invalid,"Provider failed connection to local host: " + ep);
 
 
-			boost::asio::ssl::context ssl_context( io_service, boost::asio::ssl::context::tlsv12);
-			ssl_context.set_password_callback(boost::bind(&ProviderClient::get_password,this));
-			ssl_context.set_verify_mode(boost::asio::ssl::context::verify_peer|boost::asio::ssl::context::verify_fail_if_no_peer_cert);
-			ssl_context.load_verify_file(my_certs_name);
-			ssl_context.use_certificate_chain_file(my_public_cert_name);
-			ssl_context.use_private_key_file(my_private_key_name, boost::asio::ssl::context::pem);
+         boost::asio::ssl::context ssl_context( io_service, boost::asio::ssl::context::tlsv12);
+         ssl_context.set_password_callback(boost::bind(&ProviderClient::get_password,this));
+         ssl_context.set_verify_mode(boost::asio::ssl::context::verify_peer|boost::asio::ssl::context::verify_fail_if_no_peer_cert);
+         ssl_context.load_verify_file(my_certs_name);
+         ssl_context.use_certificate_chain_file(my_public_cert_name);
+         ssl_context.use_private_key_file(my_private_key_name, boost::asio::ssl::context::pem);
 
-			ssl_socket remote_socket( io_service, ssl_context );
-			mylib::protect_pointer<ssl_socket> p2( this->mp_remote_socket, remote_socket, this->m_mutex );
-			std::vector<int> indexes(this->m_proxy_endpoints.size());
-			for (int index = 0; index < indexes.size(); index++)
-			{
-				indexes[index] = index;
-			}
-			std::shuffle(std::begin(indexes), std::end(indexes), std::default_random_engine(static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count())));
-			for (int index = 0; index < indexes.size(); index++)
-			{
-				this->m_proxy_index = indexes[index]; // Get the next random connection.
-				std::string ep = this->remote_hostname() + ":" + mylib::to_string(this->remote_port());
-				if (global.certificate_available(this->m_proxy_endpoints[this->m_proxy_index].m_name))
-				{
-					try
-					{
-						this->dolog("Performing remote connection to: " + ep );
-						boost::asio::sockect_connect( remote_socket.lowest_layer(), io_service, remote_hostname(), this->remote_port());
-						break;
-					}
-					catch( std::exception &exc )
-					{
-						this->dolog("Failed connection to remote: " + ep);
-					}
-				}
-				else
-				{
-					DOUT("Ignored due to missing certificate: " << ep);
-				}
-			}
-			ASSERTE(this->is_remote_connected(), uniproxy::error::socket_invalid,"Provider failed connection to remote host");
+         ssl_socket remote_socket( io_service, ssl_context );
+         mylib::protect_pointer<ssl_socket> p2( this->mp_remote_socket, remote_socket, this->m_mutex );
+         std::vector<int> indexes(this->m_proxy_endpoints.size());
+         for (int index = 0; index < indexes.size(); index++)
+         {
+            indexes[index] = index;
+         }
+         std::shuffle(std::begin(indexes), std::end(indexes), std::default_random_engine(static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count())));
+         for (int index = 0; index < indexes.size(); index++)
+         {
+            this->m_proxy_index = indexes[index]; // Get the next random connection.
+            std::string ep = this->remote_hostname() + ":" + mylib::to_string(this->remote_port());
+            if (global.certificate_available(this->m_proxy_endpoints[this->m_proxy_index].m_name))
+            {
+               try
+               {
+                  this->dolog("Performing remote connection to: " + ep );
+                  boost::asio::sockect_connect( remote_socket.lowest_layer(), io_service, remote_hostname(), this->remote_port());
+                  break;
+               }
+               catch( std::exception &exc )
+               {
+                  this->dolog("Failed connection to remote: " + ep);
+               }
+            }
+            else
+            {
+               DOUT("Ignored due to missing certificate: " << ep);
+            }
+         }
+         ASSERTE(this->is_remote_connected(), uniproxy::error::socket_invalid,"Provider failed connection to remote host");
 
-			this->dolog("Provider connected to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) + " Attempting SSL handshake" );
-			remote_socket.handshake(boost::asio::ssl::stream_base::client);
-			this->dolog("Succesfull SSL handshake to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()));
+         this->dolog("Provider connected to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) + " Attempting SSL handshake" );
+         remote_socket.handshake(boost::asio::ssl::stream_base::client);
+         this->dolog("Succesfull SSL handshake to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()));
 
-			boost::asio::socket_set_keepalive_to( local_socket, std::chrono::seconds(20) );
-			boost::asio::socket_set_keepalive_to( remote_socket.lowest_layer(), std::chrono::seconds(20) );
+         boost::asio::socket_set_keepalive_to( local_socket, std::chrono::seconds(20) );
+         boost::asio::socket_set_keepalive_to( remote_socket.lowest_layer(), std::chrono::seconds(20) );
 
-			// This implementation uses the naive read some data and then write some data.
-			// Since the TCP stack is using buffers internally this should run reasonably efficient.
-			for ( ; this->m_thread.check_run(); )
-			{
-				int length;
-				length = local_socket.read_some( boost::asio::buffer( this->m_local_data, max_length-1 ) );
-				this->m_count_out.add(length);
-				this->m_local_data[length] = 0;
-				Buffer buffer( this->m_local_data, length );
-				if ( this->m_plugin.message_filter_local2remote( buffer ) ) //, full ) )
-				{
-					// The plugin is allowed to modify the buffer, thus we need to recalculate size
-					length = remote_socket.write_some( boost::asio::buffer( buffer.m_buffer, buffer.m_size ) );
-					this->m_count_out.add(length);
+         // This implementation uses the naive read some data and then write some data.
+         // Since the TCP stack is using buffers internally this should run reasonably efficient.
+         for ( ; this->m_thread.check_run(); )
+         {
+            int length;
+            length = local_socket.read_some( boost::asio::buffer( this->m_local_data, max_length-1 ) );
+            this->m_count_out.add(length);
+            this->m_local_data[length] = 0;
+            Buffer buffer( this->m_local_data, length );
+            if ( this->m_plugin.message_filter_local2remote( buffer ) ) //, full ) )
+            {
+               // The plugin is allowed to modify the buffer, thus we need to recalculate size
+               length = remote_socket.write_some( boost::asio::buffer( buffer.m_buffer, buffer.m_size ) );
+               this->m_count_out.add(length);
 
-					timeout = 10000; // This is just to only reset the timeout once data has been exchanged.
-				}
-			}
-		}
-		catch( std::exception &exc )
-		{
-			this->dolog(exc.what());
-		}
-	}
+               timeout = 10000; // This is just to only reset the timeout once data has been exchanged.
+            }
+         }
+      }
+      catch( std::exception &exc )
+      {
+         this->dolog(exc.what());
+      }
+   }
 }
 
 
 std::string ProviderClient::local_hostname() const
 {
-	return this->m_local_endpoints[this->m_local_connected_index].m_hostname;
+   return this->m_local_endpoints[this->m_local_connected_index].m_hostname;
 }
 
 
 std::vector<std::string> ProviderClient::local_hostnames() const
 {
-	std::vector<std::string> result;
-	for ( auto &ep : this->m_local_endpoints )
-	{
-		result.push_back(ep.m_hostname);
-	}
-	return result;
+   std::vector<std::string> result;
+   for ( auto &ep : this->m_local_endpoints )
+   {
+      result.push_back(ep.m_hostname);
+   }
+   return result;
 }
 
 
 std::string ProviderClient::local_portname() const
 {
-	return "Provider";
+   return "Provider";
 }
 

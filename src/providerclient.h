@@ -29,32 +29,32 @@ class ProviderClient : public BaseClient
 {
 public:
 
-	ProviderClient(bool _active, mylib::port_type _activate_port,
-			const std::vector<LocalEndpoint> &_local_endpoints, // Local data provider
-			const std::vector<RemoteEndpoint> &_proxy_endpoints, // Remote proxy
-			PluginHandler &_plugin);
+   ProviderClient(bool _active, mylib::port_type _activate_port,
+         const std::vector<LocalEndpoint> &_local_endpoints, // Local data provider
+         const std::vector<RemoteEndpoint> &_proxy_endpoints, // Remote proxy
+         PluginHandler &_plugin);
 
-	void start();
-	void stop();
+   void start();
+   void stop();
 
-	void threadproc();
-	void interrupt();
+   void threadproc();
+   void interrupt();
 
-	bool is_local_connected() const;
-	std::string local_hostname() const;
-	std::string local_portname() const;
+   bool is_local_connected() const;
+   std::string local_hostname() const;
+   std::string local_portname() const;
 
-	std::vector<std::string> local_hostnames() const;
+   std::vector<std::string> local_hostnames() const;
 
-	void lock();
-	void unlock();
+   void lock();
+   void unlock();
 
 protected:
 
-	std::vector<LocalEndpoint> m_local_endpoints; // The list of local data providers to connect to in a round robin fashion.
-	int m_local_connected_index;
+   std::vector<LocalEndpoint> m_local_endpoints; // The list of local data providers to connect to in a round robin fashion.
+   int m_local_connected_index;
 
-	boost::asio::ip::tcp::socket *mp_local_socket;
+   boost::asio::ip::tcp::socket *mp_local_socket;
 
 };
 
