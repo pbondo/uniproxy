@@ -176,9 +176,12 @@ void RemoteProxyClient::local_threadproc()
 				if (ec.value() != 0 || length == 0)
 				{
 					DOUT("Local read socket: " << this->local_endpoint() << " Failed reading data " << ec.category().name() << " val: " << (int)ec.value() << " msg: " << ec.category().message(ec.value()) << " length: " << length);
+               DOUT("Last outgoing message: " << this->m_last_outgoing_stamp << ":" << this->m_last_outgoing_msg);
 					break;
 				}
 				this->m_local_read_buffer[length] = 0;
+            this->m_last_outgoing_stamp = boost::get_system_time();
+            this->m_last_outgoing_msg = (const char*)this->m_local_read_buffer;
             if (global.m_out_data_log_file.is_open())
             {
                std::ofstream ofs(global.m_log_path + "out_" + this->m_endpoint.m_name + ".log", std::ios::ate | std::ios::app);
@@ -295,11 +298,14 @@ void RemoteProxyClient::remote_threadproc()
 			if (ec.value() != 0 || length == 0)
 			{
 				DOUT("Remote read socket: " << this->remote_endpoint() << " Failed reading data " << ec.category().name() << " val: " << (int)ec.value() << " msg: " << ec.category().message(ec.value()) << " length: " << length);
+            DOUT("Last received msg: " << this->m_last_incoming_stamp << ":" << this->m_last_incoming_msg);
 				break;
 			}
 			if (length > 0)
 			{
 				this->m_remote_read_buffer[length] = 0;
+            this->m_last_incoming_msg = (const char*)this->m_remote_read_buffer;
+            this->m_last_incoming_stamp = boost::get_system_time();
             if (global.m_in_data_log_file.is_open())
             {
                std::ofstream ofs(global.m_log_path + "in_" + common_name + ".log", std::ios::ate | std::ios::app);

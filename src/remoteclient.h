@@ -59,6 +59,9 @@ public:
 
 	data_flow m_count_in, m_count_out;
 
+   std::string m_last_incoming_msg, m_last_outgoing_msg;
+   boost::posix_time::ptime m_last_incoming_stamp, m_last_outgoing_stamp;
+
 protected:
 
 	void interrupt();

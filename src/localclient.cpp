@@ -11,7 +11,7 @@
 // This version is released under the GNU General Public License with restrictions.
 // See the doc/license.txt file.
 //
-// Copyright (C) 2011-2013 by GateHouse A/S
+// Copyright (C) 2011-2015 by GateHouse A/S
 // All Rights Reserved.
 // http://www.gatehouse.dk
 // mailto:gh@gatehouse.dk
@@ -24,7 +24,6 @@
 using boost::asio::ip::tcp;
 using boost::asio::deadline_timer;
 
-#define DEBUG_LINE() DOUT(__FILE__ << ":" << __FUNCTION__ << ":" << __LINE__ )
 
 LocalHostSocket::LocalHostSocket(LocalHost &_host, boost::asio::ip::tcp::socket *_socket)
 : m_host(_host)
@@ -117,15 +116,12 @@ void LocalHost::cleanup()
 			TRY_CATCH( this->m_local_sockets.front()->socket().close(ec) );
 			this->m_local_sockets.erase( this->m_local_sockets.begin() ); // Since we use shared_ptr it should autodelete.
 		}
-		DEBUG_LINE();
-	
 		this->mp_acceptor = NULL;
 	}
 	catch( std::exception &exc )
 	{
 		this->dolog( exc.what() );
 	}
-	DEBUG_LINE();
 }
 
 
@@ -135,7 +131,6 @@ void LocalHost::interrupt()
 	try
 	{
 		{
-			DEBUG_LINE();
 			stdt::lock_guard<stdt::mutex> l(this->m_mutex);
 			if ( this->mp_acceptor != nullptr )
 			{
@@ -145,7 +140,6 @@ void LocalHost::interrupt()
 			}
 		}
 		{
-			DEBUG_LINE();
 			stdt::lock_guard<stdt::mutex> l(this->m_mutex);
 
 			for ( int index = 0; index < this->m_local_sockets.size(); index++ )
@@ -156,7 +150,6 @@ void LocalHost::interrupt()
 		}
 		{
 			stdt::lock_guard<stdt::mutex> l(this->m_mutex);
-			DEBUG_LINE();
 			if ( this->mp_remote_socket != nullptr )
 			{
 				boost::system::error_code ec;
@@ -168,7 +161,6 @@ void LocalHost::interrupt()
 	{
 		this->dolog( exc.what() );
 	}
-	DEBUG_LINE();
 }
 
 
@@ -195,6 +187,8 @@ void LocalHost::handle_local_read( LocalHostSocket &_hostsocket, const boost::sy
 	{
 		this->m_count_out.add( bytes_transferred );
 		Buffer buffer( this->m_local_data, bytes_transferred );
+      this->m_last_outgoing_msg = this->m_local_data;
+      this->m_last_outgoing_stamp = boost::get_system_time();
       if (global.m_out_data_log_file.is_open())
       {
          this->m_local_data[bytes_transferred] = 0;
@@ -204,7 +198,8 @@ void LocalHost::handle_local_read( LocalHostSocket &_hostsocket, const boost::sy
 	}
 	else
 	{
-		DOUT( "Error: " << error << " in " << __FUNCTION__ << ":" <<__LINE__ << " connections: " << this->m_local_sockets.size() );
+		DERR(local_address_port(_hostsocket.socket()) << " Error: " << error << " connections: " << this->m_local_sockets.size());
+      DOUT(local_address_port(_hostsocket.socket()) << " Last outgoing msg: " << this->m_last_outgoing_stamp << ":" << this->m_last_outgoing_msg);
 		if ( this->m_local_sockets.size() <= 1 )
 		{
 			throw std::runtime_error( "Local connection closed for " + mylib::to_string(this->m_local_port) );
@@ -224,7 +219,7 @@ void LocalHost::handle_local_write( boost::asio::ip::tcp::socket *_socket, const
 	}
 	else
 	{
-		DOUT( "One of the attached sockets disconnected: " << __FUNCTION__ << ":" <<__LINE__ << " : " ); //<< _socket->remote_endpoint().address() );
+		DOUT(local_address_port(*_socket) << " One of the attached sockets disconnected: " << remote_address_port(*_socket));
 		this->remove_socket(*_socket);
 	}
 	if ( this->m_write_count == 0 && this->m_local_sockets.size() > 0 )
@@ -246,21 +241,24 @@ void LocalHost::handle_remote_read(const boost::system::error_code& error,size_t
 	{
 		this->m_count_in.add( bytes_transferred );
 		stdt::lock_guard<stdt::mutex> l(this->m_mutex);
+      this->m_remote_data[bytes_transferred] = 0;
+      this->m_last_incoming_msg = this->m_remote_data;
+      this->m_last_incoming_stamp = boost::get_system_time();
       if (global.m_in_data_log_file.is_open())
       {
-         this->m_remote_data[bytes_transferred] = 0;
          global.m_in_data_log_file << "[" << mylib::to_string(boost::get_system_time()) << "]" << this->m_remote_data;
       }
 		this->m_write_count = this->m_local_sockets.size();
 		for ( int index = 0; index < this->m_write_count; index++ )
 		{
-			boost::asio::ip::tcp::socket *psocket = &this->m_local_sockets[index]->socket(); // .get();
+			boost::asio::ip::tcp::socket *psocket = &this->m_local_sockets[index]->socket();
 			boost::asio::async_write( *psocket, boost::asio::buffer( this->m_remote_data, bytes_transferred), boost::bind(&LocalHost::handle_local_write, this, psocket, boost::asio::placeholders::error));
 		}
 	}
 	else
 	{
-		DOUT( "Error: " << error << ": " << error.message() << " bytes: " << bytes_transferred << " in " << __FUNCTION__ << ":" <<__LINE__);
+		DOUT("Error: " << error << ": " << error.message() << " bytes transferred: " << bytes_transferred);
+      DOUT("Last incoming msg: " << this->m_last_incoming_stamp << ":" << this->m_last_incoming_msg);
 		throw boost::system::system_error( error );
 	}
 }
@@ -295,8 +293,8 @@ void LocalHost::handle_accept( boost::asio::ip::tcp::socket *_socket, const boos
 	}
 	else
 	{
+		DOUT(local_address_port(*_socket) << " Local removed, now " << this->m_local_sockets.size() << " connections");
 		delete _socket; // NB!! This is not really the right way. Explore passing the shared_ptr as a parameter instead.
-		DOUT("Local accept error, now " << this->m_local_sockets.size() << " connections");
 	}
 
 	// Unconditionally we start looking for the next socket.
@@ -341,6 +339,18 @@ void LocalHost::check_deadline()
 }
 
 
+void LocalHost::go_out(boost::asio::io_service &io_service, boost::asio::ip::tcp::acceptor &acceptor, boost::asio::ip::tcp::socket &local_socket)
+{
+   try
+   {
+   }
+   catch (std::exception &exc)
+   {
+      this->dolog(exc.what());
+   }
+}
+
+
 void LocalHost::threadproc()
 {	
 	for ( ; this->m_thread.check_run() ; )
@@ -351,22 +361,9 @@ void LocalHost::threadproc()
 			DOUT(__FUNCTION__ << ":" << __LINE__);
 			boost::asio::io_service io_service;
 			mylib::protect_pointer<boost::asio::io_service> p_io_service( this->mp_io_service, io_service, this->m_mutex );
-			boost::asio::deadline_timer deadline(io_service);
-			mylib::protect_pointer<boost::asio::deadline_timer> p_deadline( this->m_pdeadline, deadline, this->m_mutex );
-
-			boost::asio::ssl::context ssl_context( io_service, boost::asio::ssl::context::tlsv12);
-
-			ssl_context.set_password_callback(boost::bind(&LocalHost::get_password,this));
-			ssl_context.set_verify_mode(boost::asio::ssl::context::verify_peer|boost::asio::ssl::context::verify_fail_if_no_peer_cert);
-			ssl_context.load_verify_file(my_certs_name);
-			ssl_context.use_certificate_chain_file(my_public_cert_name);
-			ssl_context.use_private_key_file(my_private_key_name, boost::asio::ssl::context::pem);
 
 			boost::asio::ip::tcp::socket *local_socket = new boost::asio::ip::tcp::socket(io_service);
 
-			ssl_socket remote_socket( io_service, ssl_context );
-
-			mylib::protect_pointer<ssl_socket> p2( this->mp_remote_socket, remote_socket, this->m_mutex );
 
 			// NB!! This will only support ipv4
 			boost::asio::ip::tcp::acceptor acceptor( io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), this->m_local_port) );
@@ -383,35 +380,47 @@ void LocalHost::threadproc()
 			auto p = std::make_shared<LocalHostSocket>(*this, local_socket);
 			this->m_local_sockets.push_back( p );	// NB!! redo by inserting line above directly
 			this->m_local_connected = true;
+         
+         boost::asio::deadline_timer deadline(io_service);
+         mylib::protect_pointer<boost::asio::deadline_timer> p_deadline( this->m_pdeadline, deadline, this->m_mutex );
 
-			this->dolog("Connecting to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) );
-			boost::asio::sockect_connect( remote_socket.lowest_layer(), io_service, this->remote_hostname(), this->remote_port() );
+         boost::asio::ssl::context ssl_context( io_service, boost::asio::ssl::context::tlsv12);
+         ssl_context.set_password_callback(boost::bind(&LocalHost::get_password,this));
+         ssl_context.set_verify_mode(boost::asio::ssl::context::verify_peer|boost::asio::ssl::context::verify_fail_if_no_peer_cert);
+         ssl_context.load_verify_file(my_certs_name);
+         ssl_context.use_certificate_chain_file(my_public_cert_name);
+         ssl_context.use_private_key_file(my_private_key_name, boost::asio::ssl::context::pem);
+         ssl_socket remote_socket( io_service, ssl_context );
+         mylib::protect_pointer<ssl_socket> p2( this->mp_remote_socket, remote_socket, this->m_mutex );
 
-			this->dolog("Connected to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) + " Attempting SSL handshake" );
-			DOUT( "handles: " << remote_socket.next_layer().native_handle() << " / " << remote_socket.lowest_layer().native_handle() );
+         this->dolog("Connecting to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) );
+         boost::asio::sockect_connect( remote_socket.lowest_layer(), io_service, this->remote_hostname(), this->remote_port() );
 
-			remote_socket.handshake( boost::asio::ssl::stream_base::client );
-			this->dolog("Succesfull SSL handshake to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) );
+         this->dolog("Connected to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) + " Attempting SSL handshake" );
+         DOUT( "handles: " << remote_socket.next_layer().native_handle() << " / " << remote_socket.lowest_layer().native_handle() );
 
-			boost::asio::socket_set_keepalive_to( *local_socket, std::chrono::seconds(20) );
-			boost::asio::socket_set_keepalive_to( remote_socket.lowest_layer(), std::chrono::seconds(20) );
+         remote_socket.handshake( boost::asio::ssl::stream_base::client );
+         this->dolog("Succesfull SSL handshake to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) );
 
-			DOUT("Prepare timeout at: " << this->m_read_timeout)
-			deadline.async_wait(boost::bind(&LocalHost::check_deadline, this));
-			deadline.expires_from_now(this->m_read_timeout);
-			local_socket->async_read_some( boost::asio::buffer( m_local_data, max_length), boost::bind(&LocalHostSocket::handle_local_read, p.get(), boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred) );
-			remote_socket.async_read_some( boost::asio::buffer( m_remote_data, max_length), boost::bind(&LocalHost::handle_remote_read, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred) );
+         boost::asio::socket_set_keepalive_to( *local_socket, std::chrono::seconds(20) );
+         boost::asio::socket_set_keepalive_to( remote_socket.lowest_layer(), std::chrono::seconds(20) );
 
-			if (this->m_max_connections > 1)
-			{
-				// NB!! The following line may leak....
-				boost::asio::ip::tcp::socket *new_socket = new boost::asio::ip::tcp::socket(io_service);
-				acceptor.async_accept( *new_socket, boost::bind(&LocalHost::handle_accept, this, new_socket, boost::asio::placeholders::error));
-			}
-			// Now let the io_service handle the session.
-			io_service.run();
+         DOUT(local_address_port(*local_socket) << " Prepare timeout at: " << this->m_read_timeout)
+         deadline.async_wait(boost::bind(&LocalHost::check_deadline, this));
+         deadline.expires_from_now(this->m_read_timeout);
+         local_socket->async_read_some( boost::asio::buffer( m_local_data, max_length), boost::bind(&LocalHostSocket::handle_local_read, p.get(), boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred) );
+         remote_socket.async_read_some( boost::asio::buffer( m_remote_data, max_length), boost::bind(&LocalHost::handle_remote_read, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred) );
 
-			deadline.cancel();
+         if (this->m_max_connections > 1)
+         {
+            // NB!! The following line may leak....
+            boost::asio::ip::tcp::socket *new_socket = new boost::asio::ip::tcp::socket(io_service);
+            acceptor.async_accept( *new_socket, boost::bind(&LocalHost::handle_accept, this, new_socket, boost::asio::placeholders::error));
+         }
+         // Now let the io_service handle the session.
+         io_service.run();
+
+         deadline.cancel();
 		}
 		catch( std::exception &exc )
 		{

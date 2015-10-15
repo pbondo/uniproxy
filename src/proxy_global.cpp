@@ -344,12 +344,18 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 			}
 
 			int help;
+         std::string shelp;
 			boost::posix_time::time_duration read_timeout = boost::posix_time::minutes(5);
 			if (cppcms::utils::check_int( item1, "timeout", help ) && help > 0)
 			{
 				read_timeout = boost::posix_time::minutes(help);
 				DOUT("Read timeout from configuration: " << read_timeout);
 			}
+         else if (cppcms::utils::check_string( item1, "timeout", shelp ) && !shelp.empty())
+         {
+            mylib::from_string(shelp, read_timeout);
+				DOUT("Read timeout from configuration: " << read_timeout);
+         }
 			int max_connections = cppcms::utils::check_int( item1, "max_connections", 1, false );
 			std::vector<RemoteEndpoint> proxy_endpoints;
 			std::vector<LocalEndpoint> provider_endpoints;
@@ -478,6 +484,7 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 	if ( (_json_acl & config) > 0 && obj["config"].type() == cppcms::json::is_object )
 	{
 		int i;
+      std::string shelp;
 		cppcms::json::value &config_obj( obj["config"] );
 		cppcms::utils::check_string( config_obj, "name", this->m_name );
 		cppcms::utils::check_bool( config_obj, "debug", this->m_debug );
@@ -486,6 +493,12 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 		if (cppcms::utils::check_int( config_obj, "activate.timeout", i ))
 		{
 			this->m_activate_timeout = boost::posix_time::seconds(i);
+         DOUT("Activate timeout: " << this->m_activate_timeout);
+		}
+		else if (cppcms::utils::check_string( config_obj, "activate.timeout", shelp))
+		{
+			mylib::from_string(shelp, this->m_activate_timeout);
+         DOUT("Activate timeout: " << this->m_activate_timeout);
 		}
 		cppcms::utils::check_port( config_obj, "activate.port", this->m_activate_port );
 

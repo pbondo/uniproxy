@@ -34,9 +34,9 @@
 #include <chrono>
 #include <atomic>
 
-#define DOUT( xx ) { mylib::dout() << mylib::time_stamp() << " id:"  << std::this_thread::get_id() << " " << xx << std::endl; }
-#define DERR( xx ) { mylib::derr() << mylib::time_stamp() << " "  << xx << std::endl; }
-#define COUT( xx ) { std::cout << " "  << xx << std::endl; }
+#define DOUT( xx ) { mylib::dout() << mylib::time_stamp() << " id:"  << uniproxy::mask(std::this_thread::get_id()) << " " << uniproxy::filename(__FILE__) << " " << __FUNCTION__ << ":" << __LINE__ << " " << xx << std::endl; }
+#define DERR( xx ) { mylib::derr() << mylib::time_stamp() << " id:"  << uniproxy::mask(std::this_thread::get_id()) << " " << uniproxy::filename(__FILE__) << " " << __FUNCTION__ << ":" << __LINE__ << " " << xx << std::endl; }
+#define COUT( xx ) { std::cout << xx << std::endl; }
 
 #define ASSERTD( xx, yy ) { if ( !(xx) ) throw std::runtime_error( yy ); };
 #define ASSERTEC( xx, yy, zz ) { if ( !(xx) ) throw std::system_error( yy, std::string( zz ) ); };
@@ -44,6 +44,9 @@
 
 namespace uniproxy
 {
+
+std::string mask(std::thread::id);
+std::string filename(const std::string &_filepath);
 
 //enum class error
 namespace error

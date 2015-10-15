@@ -72,11 +72,16 @@ public:
 	void handle_accept( boost::asio::ip::tcp::socket *_socket, const boost::system::error_code& error );
 	void cleanup();
 
+   void go_out(boost::asio::io_service &io_service, boost::asio::ip::tcp::acceptor &acceptor, boost::asio::ip::tcp::socket &local_socket);
+
 	std::vector<std::string> local_hostnames() const;
 
 	void check_deadline();
 
 protected:
+
+   std::string m_last_incoming_msg, m_last_outgoing_msg;
+   boost::posix_time::ptime m_last_incoming_stamp, m_last_outgoing_stamp;
 
 	std::vector<std::shared_ptr<LocalHostSocket> > m_local_sockets; // Elements are inserted here, once they have been accepted.
 

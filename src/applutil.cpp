@@ -30,6 +30,33 @@
 #endif
 
 
+namespace uniproxy
+{
+std::string filename(const std::string &_filepath)
+{
+   auto a = _filepath.find_last_of("\\/");
+   auto b = _filepath.find_last_of(".");
+   if(a != std::string::npos && b != std::string::npos && b > a)
+      return _filepath.substr(a+1, b-a-1);
+   return std::string();
+}
+
+std::string mask(std::thread::id id)
+{
+   std::ostringstream os;
+   os << id;
+   std::string sz = os.str();
+   if (sz.length() > 4)
+   {
+      return sz.substr(sz.length()-4);
+   }
+   return sz;
+}
+
+
+}
+
+
 namespace mylib
 {
 
