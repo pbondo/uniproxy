@@ -216,7 +216,12 @@ Status.prototype.on_status_update1 = function( data )
 			var linest = "<tr>";
 			linest += that.connection_string( true, client_data.connected_local, client_data.port );
 			linest += "<td></td>";
-			linest += "<td></td>";
+			linest += "<td>"
+         if (client_data.users)
+         {
+            linest += client_data.users + " connection";
+         }
+         linest += "</td>";
 			linest += "<td></td>";
 			linest += "<td></td>";
 			linest += "<td></td>";
@@ -264,7 +269,8 @@ Status.prototype.on_status_update1 = function( data )
 					}
 				}
 				linest += "</td>";
-				linest += "<td></td>";
+				linest += "<td>";
+            linest += "</td>";
 				if (remote_data.connected_remote)
 				{
 					linest += "<td>" + localhosts + "</td>";

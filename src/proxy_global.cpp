@@ -346,12 +346,7 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
          int help;
          std::string shelp;
          boost::posix_time::time_duration read_timeout = boost::posix_time::minutes(5);
-         if (cppcms::utils::check_int( item1, "timeout", help ) && help > 0)
-         {
-            read_timeout = boost::posix_time::minutes(help);
-            DOUT("Read timeout from configuration: " << read_timeout);
-         }
-         else if (cppcms::utils::check_string( item1, "timeout", shelp ) && !shelp.empty())
+         if (cppcms::utils::check_string( item1, "read_timeout", shelp ) && !shelp.empty())
          {
             mylib::from_string(shelp, read_timeout);
             DOUT("Read timeout from configuration: " << read_timeout);
@@ -389,7 +384,7 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
             }
             if (provider_endpoints.size() > 0 )
             {
-               baseclient_ptr local_ptr = std::make_shared<ProviderClient>(active, activate_port, provider_endpoints, proxy_endpoints, standard_plugin);
+               baseclient_ptr local_ptr = std::make_shared<ProviderClient>(active, activate_port, provider_endpoints, proxy_endpoints, standard_plugin, item1);
                this->localclients.push_back( local_ptr );
             }
             else
@@ -611,6 +606,7 @@ std::string proxy_global::save_json_status( bool readable )
                obj2["count_in"] = local.m_count_in.get();
                obj2["count_out"] = local.m_count_out.get();
             }
+            obj["users"] = local.local_user_count();
          }
          if (this->certificate_available(r.m_name))
          {
