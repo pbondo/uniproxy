@@ -32,15 +32,18 @@ public:
    ProviderClient(bool _active, mylib::port_type _activate_port,
          const std::vector<LocalEndpoint> &_local_endpoints, // Local data provider
          const std::vector<RemoteEndpoint> &_proxy_endpoints, // Remote proxy
-         PluginHandler &_plugin);
+         PluginHandler &_plugin, const cppcms::json::value &_json);
 
    void start();
    void stop();
 
-   void threadproc();
+   void threadproc_reader();
+   void threadproc_writer();
    void interrupt();
+   void interrupt_writer();
 
    bool is_local_connected() const;
+   int local_user_count() const;
    std::string local_hostname() const;
    std::string local_portname() const;
 
@@ -51,11 +54,19 @@ public:
 
 protected:
 
+
+   std::mutex m_buffer_mutex;
+   std::condition_variable m_buffer_condition;
+   std::vector<std::string> m_buffer;
+   std::size_t m_buffer_size = 1000000;
+   std::size_t m_buffer_count = 0;
+
    std::vector<LocalEndpoint> m_local_endpoints; // The list of local data providers to connect to in a round robin fashion.
    int m_local_connected_index;
 
+   mylib::thread m_thread_write;
    boost::asio::ip::tcp::socket *mp_local_socket;
-
+   const cppcms::json::value json;
 };
 
 bool is_provider(const BaseClient &client);

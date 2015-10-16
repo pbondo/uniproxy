@@ -33,6 +33,7 @@ public:
    virtual void stop() = 0;
    virtual void interrupt() = 0;
    virtual bool is_local_connected() const = 0;
+   virtual int local_user_count() const = 0;
    virtual std::vector<std::string> local_hostnames() const = 0;
    virtual std::string local_portname() const;
 

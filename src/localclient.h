@@ -73,6 +73,7 @@ public:
 
    void remove_socket( boost::asio::ip::tcp::socket &_socket );
    bool is_local_connected() const;
+   int local_user_count() const;
    void handle_accept( boost::asio::ip::tcp::socket *_socket, const boost::system::error_code& error );
    void cleanup();
 

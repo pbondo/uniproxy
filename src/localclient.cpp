@@ -74,6 +74,21 @@ bool LocalHost::is_local_connected() const
 }
 
 
+int LocalHost::local_user_count() const
+{
+   int result = 0;
+   std::lock_guard<std::mutex> l(this->m_mutex);
+   for ( auto iter = this->m_local_sockets.begin(); iter != this->m_local_sockets.end(); iter++ )
+   {
+      if ( (*iter)->socket().is_open() && this->m_local_connected )
+      {
+         result++;
+      }
+   }
+   return result;
+}
+
+
 std::vector<std::string> LocalHost::local_hostnames() const
 {
    std::vector<std::string> result;

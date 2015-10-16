@@ -321,7 +321,9 @@ public:
    size_t get();
 
    void cleanup( int64_t _stamp );
-   
+
+   void clear();
+
    #define data_flow_size 60
    
    // Modulate by 1 seconds.

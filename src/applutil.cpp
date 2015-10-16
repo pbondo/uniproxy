@@ -606,6 +606,15 @@ data_flow::data_flow( bool _debug )
 }
 
 
+void data_flow::clear()
+{
+   for (int index = 0; index < data_flow_size; index++)
+   {
+      this->m_buffer[index] = 0;
+   }
+}
+
+
 void data_flow::cleanup( int64_t _stamp )
 {
    if ( _stamp >= this->m_stamp + data_flow_size )

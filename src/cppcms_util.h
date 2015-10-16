@@ -11,7 +11,7 @@
 // This version is released under the GNU General Public License with restrictions.
 // See the doc/license.txt file.
 //
-// Copyright (C) 2011-2013 by GateHouse A/S
+// Copyright (C) 2011-2015 by GateHouse A/S
 // All Rights Reserved.
 // http://www.gatehouse.dk
 // mailto:gh@gatehouse.dk
@@ -28,7 +28,7 @@ class utils
    public:
 
 
-static bool check_int( cppcms::json::value &_input_obj, const std::string &_inputname, int &result )
+static bool check_int(const cppcms::json::value &_input_obj, const std::string &_inputname, int &result)
 {
    if ( _inputname.length() > 0 )
    {
@@ -49,7 +49,7 @@ static bool check_int( cppcms::json::value &_input_obj, const std::string &_inpu
 }
 
 
-static bool check_port( cppcms::json::value &_input_obj, const std::string &_inputname, unsigned short &result )
+static bool check_port(const cppcms::json::value &_input_obj, const std::string &_inputname, unsigned short &result)
 {
    int value;
    if (check_int(_input_obj,_inputname,value))
@@ -60,7 +60,7 @@ static bool check_port( cppcms::json::value &_input_obj, const std::string &_inp
    return false;
 }
 
-static int check_int( cppcms::json::value &_input_obj, const std::string &_inputname, const int _default_value, bool _required )
+static int check_int(const cppcms::json::value &_input_obj, const std::string &_inputname, const int _default_value, bool _required)
 {
    int result = _default_value;
    if ( _inputname.length() > 0 )
@@ -84,7 +84,7 @@ static int check_int( cppcms::json::value &_input_obj, const std::string &_input
    return result;
 }
 
-static bool check_bool( cppcms::json::value &_input_obj, const std::string &_inputname, bool &result )
+static bool check_bool(const cppcms::json::value &_input_obj, const std::string &_inputname, bool &result)
 {
    if ( _inputname.length() > 0 )
    {
@@ -111,7 +111,7 @@ static bool check_bool( cppcms::json::value &_input_obj, const std::string &_inp
 
 
 
-static bool check_bool( cppcms::json::value &_input_obj, const std::string &_inputname, const bool _default_value, bool _required )
+static bool check_bool(const cppcms::json::value &_input_obj, const std::string &_inputname, const bool _default_value, bool _required)
 {
    bool result = _default_value;
    bool found = false;
@@ -145,7 +145,7 @@ static bool check_bool( cppcms::json::value &_input_obj, const std::string &_inp
    return result;
 }
 
-static bool check_string( cppcms::json::value &_input_obj, const std::string &_inputname, std::string & result )
+static bool check_string(const cppcms::json::value &_input_obj, const std::string &_inputname, std::string & result)
 {
    if ( _inputname.length() > 0 )
    {
@@ -160,13 +160,13 @@ static bool check_string( cppcms::json::value &_input_obj, const std::string &_i
 }
 
 
-static bool check_date( cppcms::json::value &_input_obj, const std::string &_inputname, std::string & result )
+static bool check_date(const cppcms::json::value &_input_obj, const std::string &_inputname, std::string & result)
 {
    return check_string( _input_obj, _inputname, result );
 }
 
 
-static std::string check_string( cppcms::json::value &_input_obj, const std::string &_inputname, const std::string & _default_value, bool _required )
+static std::string check_string(const cppcms::json::value &_input_obj, const std::string &_inputname, const std::string & _default_value, bool _required)
 {
    std::string result = _default_value;
    if ( _inputname.length() > 0 )
