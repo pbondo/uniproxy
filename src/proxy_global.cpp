@@ -343,7 +343,6 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
             continue;
          }
 
-         int help;
          std::string shelp;
          boost::posix_time::time_duration read_timeout = boost::posix_time::minutes(5);
          if (cppcms::utils::check_string( item1, "read_timeout", shelp ) && !shelp.empty())

@@ -42,6 +42,8 @@ public:
    void interrupt();
    void interrupt_writer();
 
+   void connect_remote(boost::asio::io_service &io_service, ssl_socket &remote_socket);
+
    bool is_local_connected() const;
    int local_user_count() const;
    std::string local_hostname() const;
@@ -60,6 +62,7 @@ protected:
    std::vector<std::string> m_buffer;
    std::size_t m_buffer_size = 1000000;
    std::size_t m_buffer_count = 0;
+   bool m_use_buffer = false;
 
    std::vector<LocalEndpoint> m_local_endpoints; // The list of local data providers to connect to in a round robin fashion.
    int m_local_connected_index;
