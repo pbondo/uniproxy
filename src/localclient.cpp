@@ -286,8 +286,6 @@ void LocalHost::handle_remote_write(int id, const boost::system::error_code& err
 {
    if (!error)
    {
-      // Notice that if the first [0] failes, then we won't get to the next [0]. But that is also how it should be.
-      //if ( this->m_local_sockets.size() )
       for (int i = 0; i < this->m_local_sockets.size(); i++)
       {
          LocalHostSocket *ls = this->m_local_sockets[i].get();
@@ -296,10 +294,6 @@ void LocalHost::handle_remote_write(int id, const boost::system::error_code& err
             ls->socket().async_read_some( boost::asio::buffer( this->m_local_data, max_length), boost::bind(&LocalHostSocket::handle_local_read, ls, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
             break;
          }
-         //LocalHostSocket * p = this->m_local_sockets.front().get();
-         //LocalHostSocket * p = &_socket;
-         // NB!! Currently all will read to the same buffer, so it will crash eventually.
-         //p->socket().async_read_some( boost::asio::buffer( this->m_local_data, max_length), boost::bind(&LocalHostSocket::handle_local_read, p, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
       }
    }
    else
@@ -312,14 +306,25 @@ void LocalHost::handle_remote_write(int id, const boost::system::error_code& err
 
 void LocalHost::handle_accept( boost::asio::ip::tcp::socket *_socket, const boost::system::error_code& error )
 {
+   int count = this->m_local_sockets.size();
    DOUT(local_address_port(*_socket) << " error?: " << error << " Added extra local socket " << remote_address_port(*_socket) << " now " << this->m_local_sockets.size() << " connections");
    if (!error && _socket)
    {
-      auto p = std::make_shared<LocalHostSocket>(*this, _socket);
-      this->m_local_sockets.push_back(p);
+      if (count < this->m_max_connections)
+      {
+         auto p = std::make_shared<LocalHostSocket>(*this, _socket);
+         this->m_local_sockets.push_back(p);
 
-      // NB!! Currently all will read to the same buffer, so it will crash eventually.
-      _socket->async_read_some(boost::asio::buffer(m_local_data, max_length), boost::bind(&LocalHostSocket::handle_local_read, p.get(), boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+         // NB!! Currently all will read to the same buffer, so it will crash eventually.
+         _socket->async_read_some(boost::asio::buffer(m_local_data, max_length), boost::bind(&LocalHostSocket::handle_local_read, p.get(), boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+      }
+      else
+      {
+         DOUT("Already too many connections: " << count << " vs. " << this->m_max_connections);
+         boost::system::error_code ec;
+         _socket->close(ec);
+         delete _socket;
+      }
    }
    else
    {
@@ -449,12 +454,9 @@ void LocalHost::threadproc()
          boost::asio::socket_set_keepalive_to( *local_socket, std::chrono::seconds(20) );
          local_socket->async_read_some( boost::asio::buffer( m_local_data, max_length), boost::bind(&LocalHostSocket::handle_local_read, p.get(), boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred) );
 
-         if (this->m_max_connections > 1)
-         {
-            // NB!! The following line may leak....
-            boost::asio::ip::tcp::socket *new_socket = new boost::asio::ip::tcp::socket(io_service);
-            acceptor.async_accept( *new_socket, boost::bind(&LocalHost::handle_accept, this, new_socket, boost::asio::placeholders::error));
-         }
+         // NB!! The following line may leak.... but only very slow.
+         boost::asio::ip::tcp::socket *new_socket = new boost::asio::ip::tcp::socket(io_service);
+         acceptor.async_accept( *new_socket, boost::bind(&LocalHost::handle_accept, this, new_socket, boost::asio::placeholders::error));
 
          while(this->m_thread.check_run() && !this->m_local_sockets.empty())
          {

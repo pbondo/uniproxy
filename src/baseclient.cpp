@@ -37,6 +37,7 @@ BaseClient::BaseClient(bool _active, mylib::port_type _local_port, mylib::port_t
    this->m_proxy_endpoints = _proxy_endpoints;
    this->m_activate_stamp = boost::get_system_time();
    this->m_id = ++static_local_id;
+   DOUT("Client port: " << this->m_local_port << " max con: " << this->m_max_connections << " active? " << (int)this->m_active);
 }
 
 
