@@ -19,7 +19,7 @@
 #ifndef _cppcms_util_h
 #define _cppcms_util_h
 
-#include <cppcms/json.h>
+#include "applutil.h"
 
 namespace cppcms {
 

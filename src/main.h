@@ -20,7 +20,6 @@
 #define _main_h
 
 #include <cppcms/application.h>
-#include <cppcms/json.h>
 #include <cppcms/url_dispatcher.h>
 #include <cppcms/service.h>
 #include <cppcms/http_context.h>

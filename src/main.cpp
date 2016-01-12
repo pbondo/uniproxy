@@ -24,6 +24,7 @@
 #endif
 #include <boost/filesystem.hpp>
 
+#include "platform.h"
 #include "main.h"
 
 #include <cppcms/applications_pool.h>
@@ -513,7 +514,7 @@ int main(int argc,char ** argv)
    {
       try // Outer loop for reload exceptions.
       {
-         srand(time(NULL));
+         srand(static_cast<unsigned int>(time(nullptr)));
          cppcms::signal::reset_reload();
          log().clear();
          log().add( std::string("UniProxy starting" ) );

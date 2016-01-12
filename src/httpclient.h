@@ -3,7 +3,7 @@
 #ifndef _httpclient_h
 #define _httpclient_h
 
-#include <cppcms/json.h>
+#include "cppcms_util.h"
 
 class httpclient
 {

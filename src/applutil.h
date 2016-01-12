@@ -21,9 +21,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
-#include <cppcms/json.h>
 #include "platform.h"
-
 #include <boost/date_time/posix_time/posix_time.hpp>  // ptime
 #include <boost/thread/thread_time.hpp>               // get_system_time
 #include <boost/asio.hpp>

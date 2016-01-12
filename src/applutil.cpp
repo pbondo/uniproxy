@@ -720,7 +720,7 @@ std::string readfile( const std::string &_filename )
    int length;
    std::ifstream ifs( _filename );
    ifs.seekg( 0, std::ios::end );
-   length = ifs.tellg();
+   length = static_cast<int>(ifs.tellg());
    ifs.seekg( 0, std::ios::beg );
    if ( length > 0 )
    {

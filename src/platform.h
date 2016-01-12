@@ -89,9 +89,16 @@ namespace chronot
      return std::unique_ptr<T>(new T(std::forward<A1>(arg1)... ));
    }
 
+   #include <cppcms/json.h>
+
 #else
 
    #pragma warning( disable : 4996 )
+
+   #pragma warning( push )
+   #pragma warning( disable : 4101 )
+   #include <cppcms/json.h>
+   #pragma warning( pop )
 
 #endif
 

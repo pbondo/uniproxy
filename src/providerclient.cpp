@@ -151,7 +151,7 @@ void ProviderClient::connect_remote(boost::asio::io_service &io_service, ssl_soc
          }
          catch( std::exception &exc )
          {
-            this->dolog("Failed connection to remote: " + ep);
+            this->dolog("Failed connection to remote: " + ep + " " + exc.what());
          }
       }
       else
