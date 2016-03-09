@@ -396,10 +396,10 @@ void LocalHost::go_out(boost::asio::io_service &io_service)
       this->dolog("Connected to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) + " Attempting SSL handshake" );
       DOUT( "handles: " << remote_socket.next_layer().native_handle() << " / " << remote_socket.lowest_layer().native_handle() );
 
+      boost::asio::socket_set_keepalive_to(remote_socket.lowest_layer(), std::chrono::seconds(20));
+
       remote_socket.handshake( boost::asio::ssl::stream_base::client );
       this->dolog("Succesfull SSL handshake to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) );
-
-      boost::asio::socket_set_keepalive_to( remote_socket.lowest_layer(), std::chrono::seconds(20) );
 
       DOUT(" Prepare timeout at: " << this->m_read_timeout)
       deadline.async_wait(boost::bind(&LocalHost::check_deadline, this));
