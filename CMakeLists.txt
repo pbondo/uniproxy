@@ -8,7 +8,7 @@ project(uniproxy)
 
 IF (WIN32)
 	SET(VC 14)
-	SET(LANG v:/lang)
+	SET(LANG c:/lang)
 ELSE()
 	SET(LANG $ENV{HOME}/lang)
 ENDIF()

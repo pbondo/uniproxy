@@ -13,6 +13,21 @@ The documentation ie. the requirement specification is available but will not be
 Log:
 ========
 
+19/4-2016 PBondo
+----------------
+Release 1.2.2
+
+Fixed a possible hang
+
+
+9/3-2016 PBondo
+---------------
+Release 1.2.1
+
+Fixed the issue with blocking ssl handshake. The timeout was not initiated until after the handshake completed.
+
+
+
 29/9-2015 PBondo
 ----------------
 Moved Windows compile to VC14.

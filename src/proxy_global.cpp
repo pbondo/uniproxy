@@ -511,8 +511,9 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
                }
             }
          }
-         DOUT("Loaded proxies: " );
-         std::copy(this->uniproxies.begin(), this->uniproxies.end(),std::ostream_iterator<LocalEndpoint>(mylib::dout(), "\r\n"));
+         std::ostringstream oss;
+         std::copy(this->uniproxies.begin(), this->uniproxies.end(),std::ostream_iterator<LocalEndpoint>(oss, "\r\n"));
+         DOUT("Loaded proxies: " << oss.str());
       }
    }
 }
@@ -528,8 +529,9 @@ bool proxy_global::is_new_configuration(cppcms::json::value &newobj) const
       return true;
    cppcms::json::value proxies = newobj.find( "config.uniproxies" );
    int new_uniproxy_count = 0;
-   DOUT("uniproxies");
-   std::copy(this->uniproxies.begin(), this->uniproxies.end(),std::ostream_iterator<LocalEndpoint>(mylib::dout(), "\r\n"));
+   std::ostringstream oss;
+   std::copy(this->uniproxies.begin(), this->uniproxies.end(), std::ostream_iterator<LocalEndpoint>(oss, "\r\n"));
+   DOUT("Uniproxies: " << oss.str());
    if ( proxies.type() == cppcms::json::is_array )
    {
       for (auto &item : proxies.array())

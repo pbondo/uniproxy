@@ -32,6 +32,9 @@
 
 namespace uniproxy
 {
+std::mutex log_mutex;
+
+
 std::string filename(const std::string &_filepath)
 {
    auto a = _filepath.find_last_of("\\/");
@@ -566,17 +569,6 @@ void proxy_log::add( const std::string &_value )
    {
       this->m_log.erase(this->m_log.begin());
    }
-/*
-   // Check and write to log file.
-   if ((this->m_write_index % 10000) == 0) // cycle the log.
-   {
-      this->m_log_file_index = !this->m_log_file_index;
-      this->m_logfile.close();
-      this->m_logfile.open(this->filename(this->m_log_file_index));
-   }
-   this->m_logfile 
-*/
-   mylib::dout() << mylib::time_stamp() << ": " << _value << std::endl;
 }
 
 

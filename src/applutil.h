@@ -32,8 +32,8 @@
 #include <chrono>
 #include <atomic>
 
-#define DOUT( xx ) { mylib::dout() << mylib::time_stamp() << " id:"  << uniproxy::mask(std::this_thread::get_id()) << " " << uniproxy::filename(__FILE__) << " " << __FUNCTION__ << ":" << __LINE__ << " " << xx << std::endl; }
-#define DERR( xx ) { mylib::derr() << mylib::time_stamp() << " id:"  << uniproxy::mask(std::this_thread::get_id()) << " " << uniproxy::filename(__FILE__) << " " << __FUNCTION__ << ":" << __LINE__ << " " << xx << std::endl; }
+#define DOUT( xx ) { std::lock_guard<std::mutex> lock(uniproxy::log_mutex); mylib::dout() << mylib::time_stamp() << " id:"  << uniproxy::mask(std::this_thread::get_id()) << " " << uniproxy::filename(__FILE__) << " " << __FUNCTION__ << ":" << __LINE__ << " " << xx << std::endl; }
+#define DERR( xx ) { std::lock_guard<std::mutex> lock(uniproxy::log_mutex); mylib::derr() << mylib::time_stamp() << " id:"  << uniproxy::mask(std::this_thread::get_id()) << " " << uniproxy::filename(__FILE__) << " " << __FUNCTION__ << ":" << __LINE__ << " " << xx << std::endl; }
 #define COUT( xx ) { std::cout << xx << std::endl; }
 
 #define ASSERTD( xx, yy ) { if ( !(xx) ) throw std::runtime_error( yy ); };
@@ -42,6 +42,7 @@
 
 namespace uniproxy
 {
+extern std::mutex log_mutex;
 
 std::string mask(std::thread::id);
 std::string filename(const std::string &_filepath);
