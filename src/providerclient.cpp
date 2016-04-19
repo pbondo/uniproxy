@@ -161,11 +161,10 @@ void ProviderClient::connect_remote(boost::asio::io_service &io_service, ssl_soc
    }
    ASSERTE(this->is_remote_connected(), uniproxy::error::socket_invalid,"Provider failed connection to remote host");
 
+   boost::asio::socket_set_keepalive_to(remote_socket.lowest_layer(), std::chrono::seconds(20));
    this->dolog("Provider connected to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) + " Attempting SSL handshake" );
    remote_socket.handshake(boost::asio::ssl::stream_base::client);
    this->dolog("Succesfull SSL handshake to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()));
-
-   boost::asio::socket_set_keepalive_to( remote_socket.lowest_layer(), std::chrono::seconds(20) );
 }
 
 
