@@ -2,20 +2,27 @@
 #
 #
 
+install_prefix=/usr/local
 rootdir=/var/lib/uniproxy
 
 # Create user and home
 useradd -d ${rootdir} -g users -s /bin/bash -m --system uniproxy
 
-if [ ! -e /etc/init.d/uniproxy ]; then 
-	ln -s /lib/init/upstart-job /etc/init.d/uniproxy
+if [ ! -f  ${rootdir}/script/jquery.js ]; then
+  mkdir -p ${rootdir}/script/
+  ln -s ${install_prefix}/share/doc/uniproxy/jquery.js ${rootdir}/script/jquery.js
 fi
 
+#chown uniproxy:users ${rootdir}
+#echo "useradd: $?" 1>> /tmp/uniproxy.log 2>> /tmp/uniproxy.log
+#if [ ! -e /etc/init.d/uniproxy ]; then 
+#	ln -s /lib/init/upstart-job /etc/init.d/uniproxy
+#fi
+#service uniproxy start
+#echo "service uniproxy start: $?" 1>> /tmp/uniproxy.log 2>> /tmp/uniproxy.log
 
-echo "useradd: $?" 1>> /tmp/uniproxy.log 2>> /tmp/uniproxy.log
-
-service uniproxy start
-
-echo "service uniproxy start: $?" 1>> /tmp/uniproxy.log 2>> /tmp/uniproxy.log
+systemctl enable /etc/systemd/system/uniproxy.service
+systemctl start uniproxy.service
 
 exit 0
+

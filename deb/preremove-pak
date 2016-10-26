@@ -1,9 +1,11 @@
 #!/bin/bash
 
 # Stop all the services
-service uniproxy stop
+#service uniproxy stop
+#echo "service uniproxy stop: $?" 1>> /tmp/uniproxy.log 2>> /tmp/uniproxy.log
 
-echo "service uniproxy stop: $?" 1>> /tmp/uniproxy.log 2>> /tmp/uniproxy.log
-
+systemctl stop aisdaemon.service
+systemctl disable aisdaemon.service
 
 exit 0
+

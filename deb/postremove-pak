@@ -4,6 +4,8 @@
 
 rootdir=/var/lib/uniproxy
 
+rm -Rf ${rootdir}/script
+
 # Remove the user. We don't force -f. So it will be possible to avoid deleting the user by being logged in.
 userdel uniproxy
 
