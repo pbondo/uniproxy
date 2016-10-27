@@ -120,7 +120,7 @@ Python (www.python.org)
 cmake (www.cmake.org)
 openssl (www.openssl.org)
 boost (www.boost.org)
-# sudo apt-get install cmake libssl-dev libboost-all-dev
+# sudo apt-get install checkinstall cmake git g++ python libssl-dev libgcrypt20-dev libicu-dev libpcre++-dev
 cppcms (cppcms.com)
 # Must be installed and compiled manually.
 
