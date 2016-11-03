@@ -13,6 +13,12 @@ The documentation ie. the requirement specification is available but will not be
 Log:
 ========
 
+03/11-2016 PBondo
+-----------------
+Release 1.2.3
+
+Misc minor fixes for first Docker release
+
 19/4-2016 PBondo
 ----------------
 Release 1.2.2
