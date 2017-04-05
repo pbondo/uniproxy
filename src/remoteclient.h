@@ -47,7 +47,10 @@ public:
    bool is_active();
    bool is_local_connected();
    bool is_remote_connected();
-   
+
+   /// Attempt a local connection and report back with the result;
+   int test_local_connection(const std::string& name, const std::vector<LocalEndpoint> &_local_ep);
+
    boost::asio::ip::tcp::endpoint remote_endpoint();
    boost::asio::ip::tcp::endpoint local_endpoint();
 
@@ -96,6 +99,8 @@ public:
    void stop();
 
    std::string get_password() const;
+
+   int test_local_connection(const std::string& name);
 
    void interrupt();
    void threadproc();

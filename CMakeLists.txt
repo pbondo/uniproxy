@@ -111,7 +111,10 @@ IF (WIN32)
 ELSE (WIN32)
 
 	ADD_DEFINITIONS( -g -std=c++11 -Wall -Wno-sign-compare )
-	#include_directories(${LANG}/boost-ext/include)
+
+	include_directories(/opt/boost/1_63/include/)
+
+	LINK_DIRECTORIES(/opt/boost/1_63/lib/)
 
 ENDIF (WIN32)
 
@@ -125,6 +128,7 @@ ELSE (WIN32)
 
 	#-Wl,--whole-archive -lpthread -Wl,--no-while-archive
 	ADD_DEFINITIONS( -Wl,--whole-archive -Wl,--no-while-archive )
+
 
 	target_link_libraries(${PROJECT_NAME} boost_filesystem.a boost_system.a boost_chrono.a boost_regex.a boost_date_time.a boost_iostreams.a cppcms.a booster.a pthread pcre.a icuuc.a icui18n.a icudata.a icuuc.a gcrypt.a gpg-error.a dl z.a ssl.a crypto.a rt.a c)
 

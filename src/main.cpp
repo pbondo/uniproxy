@@ -69,6 +69,7 @@ proxy_app::proxy_app(cppcms::service &srv) : cppcms::application(srv), timer_(sr
    dispatcher().assign("^/command/client/active/name=(.*)&id=(.*)&check=(.*)&dummy=(.*)$",&proxy_app::client_active,this,1,2,3);
    dispatcher().assign("^/command/host/activate/name=(.*)&dummy=(.*)$",&proxy_app::host_activate,this,1);
    dispatcher().assign("^/command/host/active/name=(.*)&id=(.*)&check=(.*)&dummy=(.*)$",&proxy_app::host_active,this,1,2,3);
+   dispatcher().assign("^/command/host/test/name=(.*)&dummy=(.*)$",&proxy_app::host_test,this,1);
    dispatcher().assign("^/command/client/delete/name=(.*)&dummy=(.*)$",&proxy_app::certificate_delete,this,1);
    dispatcher().assign("^/command/host/delete/name=(.*)&dummy=(.*)$",&proxy_app::certificate_delete,this,1);
    dispatcher().assign("^/command/stop/(.*)$",&proxy_app::shutdown,this);
@@ -127,6 +128,7 @@ void proxy_app::script(const std::string)
 {
    int kb = 0;
    std::string filename; // NB! This is a security risc, therefore we start by hardcoding the single valid file to read.
+
    filename = "script/jquery.js";
    std::ifstream ifs(filename);
    DOUT("Reading from file: " << filename );
@@ -165,6 +167,28 @@ void proxy_app::host_activate(const std::string _param)
          }
       }
    }
+}
+
+
+void proxy_app::host_test(const std::string _param)
+{
+   DOUT(__FUNCTION__ <<  ": " << _param );
+   for (auto& host : global.remotehosts)
+   {
+      for (auto& ep : host->m_remote_ep)
+      {
+         if (ep.m_name == _param)
+         {
+            DOUT("Host test ep: " << ep.save());
+            int code = host->test_local_connection(_param);
+            DOUT("Host test completed result: " << code);
+            this->response().status(code);
+            return;
+         }
+      }
+   }
+   DOUT(__FUNCTION__ << " failed to find local " << _param);
+   this->response().status(422);
 }
 
 
