@@ -13,6 +13,12 @@ The documentation ie. the requirement specification is available but will not be
 Log:
 ========
 
+6/4-2017 PBondo
+---------------
+Release 1.3.0
+
+Add host test to test a local connection before sending the data to the client.
+
 03/11-2016 PBondo
 -----------------
 Release 1.2.3
