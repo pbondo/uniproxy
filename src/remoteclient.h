@@ -51,8 +51,8 @@ public:
    /// Attempt a local connection and report back with the result;
    int test_local_connection(const std::string& name, const std::vector<LocalEndpoint> &_local_ep);
 
-   boost::asio::ip::tcp::endpoint remote_endpoint();
-   boost::asio::ip::tcp::endpoint local_endpoint();
+   boost::asio::ip::tcp::endpoint remote_endpoint() const;
+   boost::asio::ip::tcp::endpoint local_endpoint() const;
 
    void dolog( const std::string &_line );
 
@@ -64,6 +64,8 @@ public:
 
    std::string m_last_incoming_msg, m_last_outgoing_msg;
    boost::posix_time::ptime m_last_incoming_stamp, m_last_outgoing_stamp;
+
+   std::string dinfo() const;
 
 protected:
 
@@ -124,6 +126,8 @@ public:
 
    void lock();
    void unlock();
+
+   std::string dinfo() const;
 
 protected:
 

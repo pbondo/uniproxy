@@ -67,9 +67,17 @@ RemoteProxyClient::RemoteProxyClient(boost::asio::io_service& io_service, boost:
 
 RemoteProxyClient::~RemoteProxyClient()
 {
-   DOUT( __FUNCTION__ );
+   DOUT(this->dinfo());
    delete[] this->m_remote_read_buffer;
    delete[] this->m_local_read_buffer;
+}
+
+
+std::string RemoteProxyClient::dinfo() const
+{
+   std::ostringstream oss;
+   oss << this->remote_endpoint() << " => " << this->local_endpoint() << " ";
+   return oss.str();
 }
 
 
@@ -91,7 +99,7 @@ bool RemoteProxyClient::is_remote_connected()
 }
 
 
-boost::asio::ip::tcp::endpoint RemoteProxyClient::local_endpoint()
+boost::asio::ip::tcp::endpoint RemoteProxyClient::local_endpoint() const
 {
    boost::system::error_code ec;
    boost::asio::ip::tcp::endpoint ep = this->m_local_socket.remote_endpoint(ec);
@@ -99,7 +107,7 @@ boost::asio::ip::tcp::endpoint RemoteProxyClient::local_endpoint()
 }
 
 
-boost::asio::ip::tcp::endpoint RemoteProxyClient::remote_endpoint()
+boost::asio::ip::tcp::endpoint RemoteProxyClient::remote_endpoint() const
 {
    boost::system::error_code ec;
    boost::asio::ip::tcp::endpoint ep = this->m_remote_socket.lowest_layer().remote_endpoint(ec);
@@ -137,7 +145,7 @@ void RemoteProxyClient::stop()
 void RemoteProxyClient::interrupt()
 {
    boost::system::error_code ec;
-   DOUT( __FUNCTION__ << ":" << __LINE__ );
+   DOUT(this->dinfo());
    if ( this->m_local_socket.is_open() )
    {
       TRY_CATCH( this->m_local_socket.shutdown( boost::asio::socket_base::shutdown_both, ec ) );
@@ -157,7 +165,7 @@ void RemoteProxyClient::local_threadproc()
 {
    try
    {
-      DOUT( __FUNCTION__ << ":" << __LINE__ );
+      DOUT(this->dinfo());
       boost::asio::socket_set_keepalive_to( this->m_local_socket, std::chrono::seconds(20) );
 
       if ( this->m_host.m_plugin.stream_local2remote(this->m_local_socket, this->m_remote_socket, this->m_local_thread ) )
@@ -175,8 +183,8 @@ void RemoteProxyClient::local_threadproc()
             length = this->m_local_socket.read_some( boost::asio::buffer( this->m_local_read_buffer, this->m_host.m_plugin.max_buffer_size() ), ec );
             if (ec.value() != 0 || length == 0)
             {
-               DOUT("Local read socket: " << this->local_endpoint() << " Failed reading data " << ec.category().name() << " val: " << (int)ec.value() << " msg: " << ec.category().message(ec.value()) << " length: " << length);
-               DOUT("Last outgoing message: " << this->m_last_outgoing_stamp << ":" << this->m_last_outgoing_msg);
+               DOUT(this->dinfo() << "Local read socket Failed reading data " << ec.category().name() << " val: " << (int)ec.value() << " msg: " << ec.category().message(ec.value()) << " length: " << length);
+               DOUT(this->dinfo() << "Last outgoing message: " << this->m_last_outgoing_stamp << ":" << this->m_last_outgoing_msg);
                break;
             }
             this->m_local_read_buffer[length] = 0;
@@ -201,12 +209,12 @@ void RemoteProxyClient::local_threadproc()
    {
       this->dolog( exc.what() );
    }
-   DOUT( "Thread RemoteProxyClient::local_threadproc stopping");
+   DOUT(this->dinfo() << "Thread stopping");
    this->interrupt();
    boost::system::error_code ec;
    this->m_remote_socket.shutdown(ec);
    this->m_remote_socket.lowest_layer().close(ec);
-   DOUT( "Thread RemoteProxyClient::local_threadproc stopped");
+   DOUT(this->dinfo() << "Thread stopped");
 }
 
 
@@ -224,7 +232,7 @@ int RemoteProxyClient::test_local_connection(const std::string& name, const std:
             break;
          }
       }
-      DOUT("Test host, found remote connection: " << this->m_endpoint.m_name << " is connected locally? " << this->m_local_connected);
+      DOUT(this->dinfo() << "Test host, found remote connection: " << this->m_endpoint.m_name << " is connected locally? " << this->m_local_connected);
       if (this->m_local_connected)
       {
          return 429;
@@ -238,7 +246,7 @@ int RemoteProxyClient::test_local_connection(const std::string& name, const std:
       std::shuffle(std::begin(indexes), std::end(indexes), std::default_random_engine(static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count())));
       for (int i = 0; i < indexes.size(); i++)
       {
-         DOUT("Test Host Random i: " << i << " index " << indexes[i] << " size: " << indexes.size());
+         DOUT(this->dinfo() << "Test Host Random i: " << i << " index " << indexes[i] << " size: " << indexes.size());
       }
       std::string ep;
       for (int index = 0; index < this->m_local_ep.size(); index++)
@@ -254,7 +262,7 @@ int RemoteProxyClient::test_local_connection(const std::string& name, const std:
          }
          catch( std::exception &exc )
          {
-            DOUT(  __FUNCTION__ << ":" << __LINE__ << " Failed connection to: " << ep << " " << exc.what() );
+            DOUT(this->dinfo() << " Failed connection to: " << ep << " " << exc.what() );
          }
       }
       if (!this->m_local_connected)
@@ -285,7 +293,7 @@ int RemoteProxyClient::test_local_connection(const std::string& name, const std:
    }
    catch(boost::system::system_error &boost_error)
    {
-      DOUT("Test Host Boost or system error");
+      DOUT(this->dinfo() << "Test Host Boost or system error");
       result = 500;
    }
    catch(std::exception &exc)
@@ -302,7 +310,7 @@ void RemoteProxyClient::remote_threadproc()
 {
    try
    {
-      DOUT( __FUNCTION__ << ":" << __LINE__ );
+      DOUT(this->dinfo());
       if ( this->m_local_ep.size() == 0 )
       {
          throw std::runtime_error("No local endpoints found");
@@ -323,7 +331,7 @@ void RemoteProxyClient::remote_threadproc()
          {
             common_name = result[1];
          }
-         DOUT("Received certificate CN= " << common_name );
+         DOUT(this->dinfo() << "Received certificate CN= " << common_name );
          for ( auto iter1 = this->m_host.m_remote_ep.begin(); iter1 != this->m_host.m_remote_ep.end(); iter1++ )
          {
             if ( common_name == (*iter1).m_name )
@@ -347,7 +355,7 @@ void RemoteProxyClient::remote_threadproc()
       std::shuffle(std::begin(indexes), std::end(indexes), std::default_random_engine(static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count())));
       for (int i = 0; i < indexes.size(); i++)
       {
-         DOUT("Random i: " << i << " index " << indexes[i] << " size: " << indexes.size());
+         DOUT(this->dinfo() << "Random i: " << i << " index " << indexes[i] << " size: " << indexes.size());
       }
       std::string ep;
       for (int index = 0; index < this->m_local_ep.size(); index++)
@@ -363,7 +371,7 @@ void RemoteProxyClient::remote_threadproc()
          }
          catch( std::exception &exc )
          {
-            DOUT(  __FUNCTION__ << ":" << __LINE__ << " Failed connection to: " << ep << " " << exc.what() );
+            DOUT(this->dinfo() << " Failed connection to: " << ep << " " << exc.what() );
          }
       }
       if ( !this->m_local_connected )
@@ -384,8 +392,8 @@ void RemoteProxyClient::remote_threadproc()
          int length = this->m_remote_socket.read_some(boost::asio::buffer(this->m_remote_read_buffer, this->m_host.m_plugin.max_buffer_size()), ec);
          if (ec.value() != 0 || length == 0)
          {
-            DOUT("Remote read socket: " << this->remote_endpoint() << " Failed reading data " << ec.category().name() << " val: " << (int)ec.value() << " msg: " << ec.category().message(ec.value()) << " length: " << length);
-            DOUT("Last received msg: " << this->m_last_incoming_stamp << ":" << this->m_last_incoming_msg);
+            DOUT(this->dinfo() << "Remote read socket Failed reading data " << ec.category().name() << " val: " << (int)ec.value() << " msg: " << ec.category().message(ec.value()) << " length: " << length);
+            DOUT(this->dinfo() << "Last received msg: " << this->m_last_incoming_stamp << ":" << this->m_last_incoming_msg);
             break;
          }
          if (length > 0)
@@ -421,12 +429,12 @@ void RemoteProxyClient::remote_threadproc()
    {
       this->dolog( exc.what() );
    }
-   DOUT( "Thread RemoteProxyClient::remote_threadproc stopping");
+   DOUT(this->dinfo() << "Thread stopping");
    this->interrupt();
    boost::system::error_code ec;
    this->m_remote_socket.shutdown(ec);
    this->m_remote_socket.lowest_layer().close(ec);
-   DOUT( "Thread RemoteProxyClient::remote_threadproc stopped");
+   DOUT(this->dinfo() << "Thread stopped");
 }
 
 
@@ -457,6 +465,14 @@ RemoteProxyHost::RemoteProxyHost( unsigned short _local_port, const std::vector<
    this->m_context.load_verify_file( my_certs_name );
    this->m_context.use_certificate_chain_file(my_public_cert_name);
    this->m_context.use_private_key_file(my_private_key_name, boost::asio::ssl::context::pem);
+}
+
+
+std::string RemoteProxyHost::dinfo() const
+{
+   std::ostringstream oss;
+   oss << "Port: " << m_local_port << " ";
+   return oss.str();
 }
 
 
@@ -502,7 +518,7 @@ void RemoteProxyHost::start()
 {
    if (this->m_thread.is_running())
    {
-      DOUT("RemoteProxyHost already running on port: " << this->m_local_port);
+      DOUT(this->dinfo() << "RemoteProxyHost already running on port: " << this->m_local_port);
       return;
    }
    // We do the following because we want it done in the main thread, so exceptions during start are propagated through.
@@ -512,7 +528,7 @@ void RemoteProxyHost::start()
    this->m_acceptor.open(ep.protocol());
    this->m_acceptor.set_option(boost::asio::ip::tcp::acceptor::reuse_address(false));
    this->m_acceptor.bind(ep);
-   DOUT("Bind ok for " << ep);
+   DOUT(this->dinfo() << "Bind ok for " << ep);
    this->m_thread.start( [this]{ this->threadproc(); } );
 }
 
@@ -577,7 +593,7 @@ void RemoteProxyHost::interrupt()
 
 void RemoteProxyHost::stop()
 {
-   DOUT("RemoteProxyHost::stop() stopping port: " << this->port());
+   DOUT(this->dinfo() << "Stopping port: " << this->port());
    this->m_thread.stop();
    std::lock_guard<stdt::mutex> l(this->m_mutex);
    // Clean up the current client list and remove any non active clients.
@@ -585,7 +601,7 @@ void RemoteProxyHost::stop()
    {
       item->stop();
    }
-   DOUT("RemoteProxyHost::stop() stopped all on port: " << this->port());
+   DOUT(this->dinfo() << "Stopped all on port: " << this->port());
 }
 
 
@@ -602,7 +618,7 @@ void RemoteProxyHost::handle_accept(RemoteProxyClient* new_session, const boost:
 {
    try
    {
-      DOUT( __FUNCTION__ << ":" << __LINE__ );
+      DOUT(this->dinfo());
       if (!error )
       {
          stdt::lock_guard<stdt::mutex> l(this->m_mutex);
@@ -622,13 +638,13 @@ void RemoteProxyHost::handle_accept(RemoteProxyClient* new_session, const boost:
                iter2++;
             }
          }
-         DOUT( __FUNCTION__ << ":" << __LINE__ );
+         DOUT(this->dinfo());
          this->m_context.load_verify_file( my_certs_name );
          this->m_clients.push_back( new_session );
          new_session->start( this->m_local_ep );
 
          mylib::msleep(1000);
-         DOUT("Trying to reload verify file");
+         DOUT(this->dinfo() << "Trying to reload verify file");
          this->m_context.load_verify_file( my_certs_name );
          // This call is not multithread safe. load_certificate_names( my_certs_name );
 

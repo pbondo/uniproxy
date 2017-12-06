@@ -789,8 +789,6 @@ int process::execute_process( const std::string& _command, const std::string& _p
    namespace bp = boost::process;
    using namespace boost::iostreams;
 
-   bp::pipe pout = bp::create_pipe();
-   bp::pipe perr = bp::create_pipe();
    std::unique_ptr<bp::child> pc;
    int exit_code = -1;
    {
@@ -804,26 +802,20 @@ int process::execute_process( const std::string& _command, const std::string& _p
       param = " -c \"" + _command + " " + _param + "\"";
 #endif
       DOUT("Execute process: " << cmd << param );
-      file_descriptor_sink sinkout(pout.sink, close_handle);
-      file_descriptor_sink sinkerr(perr.sink, close_handle);
-      pc = std2::make_unique<bp::child>( bp::execute(
-         bp::initializers::run_exe( cmd ), bp::initializers::set_cmd_line(param),
-         bp::initializers::bind_stdout(sinkout), bp::initializers::bind_stderr(sinkerr), bp::initializers::inherit_env() ) );
+      bp::ipstream pout, perr;
+      bp::child c(cmd+param, bp::std_out > pout, bp::std_err > perr);
+      std::string line;
+      while (pout && std::getline(pout, line) && !line.empty())
+      {
+         if ( _out ) _out(line);
+      }
+      while (perr && std::getline(perr, line) && !line.empty())
+      {
+         if ( _err ) _err(line);
+      }
+      c.wait();
+      exit_code = c.exit_code();
    }
-   file_descriptor_source sourceout(pout.source, close_handle);
-   file_descriptor_source sourceerr(perr.source, close_handle);
-   stream<file_descriptor_source> isout(sourceout);
-   stream<file_descriptor_source> iserr(sourceerr);
-   std::string line;
-   while (std::getline(isout, line))
-   {
-      if ( _out ) _out(line);
-   }
-   while (std::getline(iserr, line))
-   {
-      if ( _err ) _err(line);
-   }
-   exit_code = bp::wait_for_exit(*pc);
    return exit_code;
 }
 
