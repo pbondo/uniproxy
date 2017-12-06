@@ -65,7 +65,7 @@ namespace mylib
 
 std::ostream &dout()
 {
-   if ((++log().m_log_access_count % 100000) == 0) // cycle the log.
+   if ((++log().m_log_access_count % 1000000) == 0) // cycle the log.
    {
       log().m_log_file_index = !log().m_log_file_index;
       log().m_logfile.close();

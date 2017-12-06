@@ -65,7 +65,7 @@ public:
    std::string m_last_incoming_msg, m_last_outgoing_msg;
    boost::posix_time::ptime m_last_incoming_stamp, m_last_outgoing_stamp;
 
-   std::string dinfo() const;
+   std::string dinfo();
 
 protected:
 
@@ -79,6 +79,8 @@ protected:
    mylib::thread m_remote_thread, m_local_thread;
    std::vector<LocalEndpoint> m_local_ep;
    boost::asio::io_service& m_io_service;
+
+   boost::asio::ip::tcp::endpoint m_remote_cache, m_local_cache;
 
    RemoteProxyHost &m_host;
 };

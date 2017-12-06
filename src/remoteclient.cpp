@@ -73,10 +73,27 @@ RemoteProxyClient::~RemoteProxyClient()
 }
 
 
-std::string RemoteProxyClient::dinfo() const
+std::string RemoteProxyClient::dinfo()
 {
+   std::string cached;
+   boost::system::error_code ec;
+   boost::asio::ip::tcp::endpoint ep_local = this->m_local_socket.lowest_layer().remote_endpoint(ec);
+   if (!ec)
+   {
+      this->m_local_cache = ep_local;
+   }
+   boost::asio::ip::tcp::endpoint ep_remote = this->m_remote_socket.lowest_layer().remote_endpoint(ec);
+   if (!ec)
+   {
+      this->m_remote_cache = ep_remote;
+   }
+   else
+   {
+      cached = " Cached.";
+   }
+
    std::ostringstream oss;
-   oss << this->remote_endpoint() << " => " << this->local_endpoint() << " ";
+   oss << this->m_remote_cache << " => " << this->m_local_cache << cached << " ";
    return oss.str();
 }
 
@@ -207,7 +224,7 @@ void RemoteProxyClient::local_threadproc()
    }
    catch( std::exception &exc )
    {
-      this->dolog( exc.what() );
+      this->dolog(dinfo() + exc.what());
    }
    DOUT(this->dinfo() << "Thread stopping");
    this->interrupt();
@@ -255,7 +272,7 @@ int RemoteProxyClient::test_local_connection(const std::string& name, const std:
          ep = this->m_local_ep[proxy_index].m_hostname + ":" + mylib::to_string(this->m_local_ep[proxy_index].m_port);
          try
          {
-            this->dolog("Test Host Performing local connection to: " + ep );
+            this->dolog(this->dinfo() + "Test Host Performing local connection to: " + ep );
             boost::asio::sockect_connect(this->m_local_socket, this->m_io_service, this->m_local_ep[proxy_index].m_hostname, this->m_local_ep[proxy_index].m_port);
             this->m_local_connected = true;
             break;
@@ -271,18 +288,18 @@ int RemoteProxyClient::test_local_connection(const std::string& name, const std:
       }
       try
       {
-         this->dolog("Performing logon procedure to " + ep);
+         this->dolog(this->dinfo() + "Performing logon procedure to " + ep);
          if (this->m_host.m_plugin.connect_handler(this->m_local_socket, this->m_endpoint))
          {
             result = 200;
-            this->dolog("Test Host Completed successfully " + ep);
+            this->dolog(this->dinfo() + "Test Host Completed successfully " + ep);
          }
       }
       catch(std::exception& exc)
       {
          result = 401;
       }
-      this->dolog("Test Host done test logon procedure to " + ep);
+      this->dolog(this->dinfo() + "Test Host done test logon procedure to " + ep);
       this->m_local_connected = false;
       if (this->m_local_socket.is_open())
       {
@@ -298,7 +315,7 @@ int RemoteProxyClient::test_local_connection(const std::string& name, const std:
    }
    catch(std::exception &exc)
    {
-      this->dolog(exc.what());
+      this->dolog(this->dinfo() + exc.what());
       result = 500;
    }
    return result;
@@ -316,9 +333,9 @@ void RemoteProxyClient::remote_threadproc()
          throw std::runtime_error("No local endpoints found");
       }
       this->m_remote_connected = true; // Should perhaps be after the SSL handshake.
-      this->dolog("Performing SSL hansdshake connection");
+      this->dolog(this->dinfo() + "Performing SSL hansdshake connection");
       this->m_remote_socket.handshake( boost::asio::ssl::stream_base::server );
-      this->dolog("SSL connection ok");
+      this->dolog(this->dinfo() + "SSL connection ok");
 
       bool hit = false;
       // See if we can find the relevant
@@ -364,7 +381,7 @@ void RemoteProxyClient::remote_threadproc()
          ep = this->m_local_ep[proxy_index].m_hostname + ":" + mylib::to_string(this->m_local_ep[proxy_index].m_port);
          try
          {
-            this->dolog("Performing local connection to: " + ep );
+            this->dolog(this->dinfo() + "Performing local connection to: " + ep );
             boost::asio::sockect_connect( this->m_local_socket, this->m_io_service, this->m_local_ep[proxy_index].m_hostname, this->m_local_ep[proxy_index].m_port );
             this->m_local_connected = true;
             break;
@@ -378,12 +395,12 @@ void RemoteProxyClient::remote_threadproc()
       {
          throw std::runtime_error("Failed connection to local host");
       }
-      this->dolog("Performing logon procedure to " + ep);
+      this->dolog(this->dinfo() + "Performing logon procedure to " + ep);
       if ( ! this->m_host.m_plugin.connect_handler( this->m_local_socket, this->m_endpoint ) )
       {     
          throw std::runtime_error("Failed plugin connect_handler for type: " + this->m_host.m_plugin.m_type );
       }
-      this->dolog("Completed logon procedure to " + ep);
+      this->dolog(this->dinfo() + "Completed logon procedure to " + ep);
       this->m_local_thread.start( [&]{this->local_threadproc(); } );
       boost::asio::socket_set_keepalive_to( this->m_remote_socket.lowest_layer(), std::chrono::seconds(20) );
       for ( ; this->m_remote_thread.check_run(); )
@@ -415,7 +432,7 @@ void RemoteProxyClient::remote_threadproc()
             else
             {
                // This should not happen too often.
-               this->dolog("Data overflow");
+               this->dolog(this->dinfo() + "Data overflow");
             }
          }
       }
@@ -423,11 +440,11 @@ void RemoteProxyClient::remote_threadproc()
    catch( boost::system::system_error &boost_error )
    {
       std::ostringstream oss; oss << "SSL: " << boost_error.code() << " what: " << boost_error.what();
-      this->dolog( oss.str() );
+      this->dolog(this->dinfo() + oss.str());
    }
    catch( std::exception &exc )
    {
-      this->dolog( exc.what() );
+      this->dolog(this->dinfo() + exc.what());
    }
    DOUT(this->dinfo() << "Thread stopping");
    this->interrupt();
@@ -523,7 +540,7 @@ void RemoteProxyHost::start()
    }
    // We do the following because we want it done in the main thread, so exceptions during start are propagated through.
    // In particular we want to ensure that we dont have 2 servers with the same port number.
-   this->dolog( std::string("opening connection on port: ") + mylib::to_string( this->m_local_port ) );
+   this->dolog(this->dinfo() + std::string("opening connection on port: ") + mylib::to_string(this->m_local_port));
    boost::asio::ip::tcp::endpoint ep(boost::asio::ip::tcp::v4(), this->m_local_port);
    this->m_acceptor.open(ep.protocol());
    this->m_acceptor.set_option(boost::asio::ip::tcp::acceptor::reuse_address(false));
@@ -552,7 +569,7 @@ void RemoteProxyHost::threadproc()
 {
    try
    {
-      this->dolog( std::string("Waiting for remote connection on port: ") + mylib::to_string( this->m_local_port ) );
+      this->dolog(this->dinfo() + std::string("Waiting for remote connection on port: ") + mylib::to_string(this->m_local_port));
       this->m_acceptor.listen();
 
       RemoteProxyClient* new_session = new RemoteProxyClient(m_io_service, m_context, *this);
@@ -566,14 +583,14 @@ void RemoteProxyHost::threadproc()
          }
          catch( std::exception &exc )
          {
-            this->dolog(exc.what() );
+            this->dolog(this->dinfo() + exc.what() );
          }
          this->m_thread.sleep( 1000 );
       }
    }
    catch( std::exception &exc )
    {
-      this->dolog(exc.what() );
+      this->dolog(this->dinfo() + exc.what() );
    }
 }
 
@@ -586,7 +603,7 @@ void RemoteProxyHost::interrupt()
    }
    catch( std::exception &exc )
    {
-      this->dolog(exc.what() );
+      this->dolog(this->dinfo() + exc.what() );
    }
 }
 
@@ -660,7 +677,7 @@ void RemoteProxyHost::handle_accept(RemoteProxyClient* new_session, const boost:
    }
    catch( std::exception &exc )
    {
-      this->dolog(exc.what() );
+      this->dolog(this->dinfo() + exc.what() );
    }
 }
 
