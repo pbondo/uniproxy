@@ -21,7 +21,7 @@ IF (WIN32)
 
 add_custom_command(
   OUTPUT views.cpp
-  COMMAND python "${LANG}/cppcms-1.0.5/bin/vc14x64/cppcms_tmpl_cc" ../webserver/master.tmpl ../webserver/view_config.tmpl ../webserver/view_status.tmpl -o views.cpp
+  COMMAND python "${LANG}/cppcms-1.0.5/bin/cppcms_tmpl_cc" ../webserver/master.tmpl ../webserver/view_config.tmpl ../webserver/view_status.tmpl -o views.cpp
   #COMMAND cppcms_tmpl_cc.py ../webserver/master.tmpl ../webserver/view_config.tmpl ../webserver/view_status.tmpl -o views.cpp
   DEPENDS webserver/master.tmpl webserver/view_config.tmpl webserver/view_status.tmpl
   WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
