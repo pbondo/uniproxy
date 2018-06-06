@@ -181,7 +181,7 @@ void ProviderClient::threadproc_writer()
             timeout += 1000;
 
          boost::asio::io_service io_service;
-         boost::asio::ssl::context ssl_context( io_service, boost::asio::ssl::context::tlsv12);
+         boost::asio::ssl::context ssl_context(boost::asio::ssl::context::tlsv12);
          ssl_context.set_password_callback(boost::bind(&ProviderClient::get_password,this));
          ssl_context.set_verify_mode(boost::asio::ssl::context::verify_peer|boost::asio::ssl::context::verify_fail_if_no_peer_cert);
          ssl_context.load_verify_file(my_certs_name);
@@ -324,7 +324,7 @@ void ProviderClient::threadproc_reader()
          }
          else
          {
-            boost::asio::ssl::context ssl_context( io_service, boost::asio::ssl::context::tlsv12);
+            boost::asio::ssl::context ssl_context(boost::asio::ssl::context::tlsv12);
             ssl_context.set_password_callback(boost::bind(&ProviderClient::get_password,this));
             ssl_context.set_verify_mode(boost::asio::ssl::context::verify_peer|boost::asio::ssl::context::verify_fail_if_no_peer_cert);
             ssl_context.load_verify_file(my_certs_name);

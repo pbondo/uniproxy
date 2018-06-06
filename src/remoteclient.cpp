@@ -457,7 +457,7 @@ void RemoteProxyClient::remote_threadproc()
 
 RemoteProxyHost::RemoteProxyHost( unsigned short _local_port, const std::vector<RemoteEndpoint> &_remote_ep, const std::vector<LocalEndpoint> &_local_ep, PluginHandler &_plugin )
 :  m_io_service(),
-   m_context(m_io_service, boost::asio::ssl::context::tlsv12),
+   m_context(boost::asio::ssl::context::tlsv12),
    m_acceptor(m_io_service),
    m_plugin( _plugin ),
    m_local_port(_local_port),

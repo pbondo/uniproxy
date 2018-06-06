@@ -32,8 +32,15 @@
 #include <chrono>
 #include <atomic>
 
+#undef _SYSTEMD_ // Change to enable in Linux
+
+#ifdef _SYSTEMD_
+#define DOUT( xx ) { std::lock_guard<std::mutex> lock(uniproxy::log_mutex); std::ostringstream oss; oss << mylib::time_stamp() << " id:"  << uniproxy::mask(std::this_thread::get_id()) << " " << uniproxy::filename(__FILE__) << " " << __FUNCTION__ << ":" << __LINE__ << " " << xx; proxy_log::do_log(oss.str()); }
+#define DERR( xx ) { std::lock_guard<std::mutex> lock(uniproxy::log_mutex); std::ostringstream oss; oss << mylib::time_stamp() << " id:"  << uniproxy::mask(std::this_thread::get_id()) << " " << uniproxy::filename(__FILE__) << " " << __FUNCTION__ << ":" << __LINE__ << " " << xx; proxy_log::do_log(oss.str()); }
+#else
 #define DOUT( xx ) { std::lock_guard<std::mutex> lock(uniproxy::log_mutex); mylib::dout() << mylib::time_stamp() << " id:"  << uniproxy::mask(std::this_thread::get_id()) << " " << uniproxy::filename(__FILE__) << " " << __FUNCTION__ << ":" << __LINE__ << " " << xx << std::endl; }
 #define DERR( xx ) { std::lock_guard<std::mutex> lock(uniproxy::log_mutex); mylib::derr() << mylib::time_stamp() << " id:"  << uniproxy::mask(std::this_thread::get_id()) << " " << uniproxy::filename(__FILE__) << " " << __FUNCTION__ << ":" << __LINE__ << " " << xx << std::endl; }
+#endif
 #define COUT( xx ) { std::cout << xx << std::endl; }
 
 #define ASSERTD( xx, yy ) { if ( !(xx) ) throw std::runtime_error( yy ); };
@@ -343,6 +350,11 @@ public:
    proxy_log( const std::string &_name );
 
    void add( const std::string &_value );
+
+#ifdef _SYSTEMD_
+   // do log a statement.
+   static void do_log(const std::string& s);
+#endif
 
    void clear();
 

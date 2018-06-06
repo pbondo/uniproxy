@@ -26,13 +26,38 @@
 #include <boost/iostreams/stream.hpp>
 
 #ifdef _WIN32
-#include <mstcpip.h>
+ #include <mstcpip.h>
+#endif
+
+#ifdef _SYSTEMD_
+ #include <systemd/sd-journal.h>
+ #include <systemd/sd-daemon.h>
 #endif
 
 
 namespace uniproxy
 {
 std::mutex log_mutex;
+
+std::string replace(const std::string& source, const std::string& what, const std::string& with)
+{
+   std::string result;
+   std::string::size_type start = 0;
+   std::string::size_type end = source.find(what);
+   result += source.substr(start, end - start);
+   while (end != std::string::npos)
+   {
+      result += with;
+      start = end + what.size();
+      if (start >= source.size())
+      {
+         break;
+      }
+      end = source.find(what, start);
+      result += source.substr(start, end - start);
+   }
+   return result;
+}
 
 
 std::string filename(const std::string &_filepath)
@@ -67,7 +92,7 @@ std::ostream &dout()
 {
    if ((++log().m_log_access_count % 1000000) == 0) // cycle the log.
    {
-      log().m_log_file_index = !log().m_log_file_index;
+      log().m_log_file_index = (log().m_log_file_index + 1) % 10;
       log().m_logfile.close();
       log().m_logfile.open(log().filename(log().m_log_file_index));
    }
@@ -215,20 +240,20 @@ void socket_set_keepalive_to( ip::tcp::socket::lowest_layer_type &_socket, std::
    #else
       socklen_t optlen = sizeof(optval);
       optval = _timeout.count();
-      result = setsockopt(_socket.native(), SOL_TCP, TCP_KEEPIDLE, &optval, optlen);
-      result = getsockopt(_socket.native(), SOL_TCP, TCP_KEEPIDLE, &optval, &optlen);
+      result = setsockopt(_socket.native_handle(), SOL_TCP, TCP_KEEPIDLE, &optval, optlen);
+      result = getsockopt(_socket.native_handle(), SOL_TCP, TCP_KEEPIDLE, &optval, &optlen);
       optval = 3;
-      result = setsockopt(_socket.native(), SOL_TCP, TCP_KEEPCNT, &optval, optlen);
-      result = getsockopt(_socket.native(), SOL_TCP, TCP_KEEPCNT, &optval, &optlen);
+      result = setsockopt(_socket.native_handle(), SOL_TCP, TCP_KEEPCNT, &optval, optlen);
+      result = getsockopt(_socket.native_handle(), SOL_TCP, TCP_KEEPCNT, &optval, &optlen);
       optval = 10;
-      result = setsockopt(_socket.native(), SOL_TCP, TCP_KEEPINTVL, &optval, optlen);
-      result = getsockopt(_socket.native(), SOL_TCP, TCP_KEEPINTVL, &optval, &optlen);
+      result = setsockopt(_socket.native_handle(), SOL_TCP, TCP_KEEPINTVL, &optval, optlen);
+      result = getsockopt(_socket.native_handle(), SOL_TCP, TCP_KEEPINTVL, &optval, &optlen);
       if ( result){}
    #endif
       optval = true;
    }
    socklen_t optlen = sizeof(optval);
-   result = setsockopt(_socket.native(), SOL_SOCKET, SO_KEEPALIVE, (const char*)&optval, optlen);
+   result = setsockopt(_socket.native_handle(), SOL_SOCKET, SO_KEEPALIVE, (const char*)&optval, optlen);
    //result = getsockopt(_socket.native(), SOL_SOCKET, SO_KEEPALIVE, (char*)&optval, &optlen);
 }
 
@@ -241,7 +266,7 @@ void socket_shutdown( ip::tcp::socket::lowest_layer_type &_socket, boost::system
 
 void socket_shutdown( boost::asio::ip::tcp::acceptor &_acceptor, boost::system::error_code &ec )
 {
-   shutdown( _acceptor.native(), ip::tcp::socket::shutdown_both );
+   shutdown( _acceptor.native_handle(), ip::tcp::socket::shutdown_both );
    ec = make_error_code(boost::system::errc::success);
 }
 
@@ -554,21 +579,30 @@ void proxy_log::add( const std::string &_value )
    stdt::lock_guard<stdt::mutex> l(this->m_mutex);
    if (this->m_write_index == 0)
    {
-      boost::system::error_code ec0,ec1;
-      std::time_t t0 = boost::filesystem::last_write_time(this->filename(0), ec0);
-      std::time_t t1 = boost::filesystem::last_write_time(this->filename(1), ec1);
-      if (!ec0 && (ec1 || (!ec1 && t0 > t1))) // if 0 exist and either 1 does not exist or time 0 > time 1
+      boost::system::error_code ec;
+      int i0 = 0;
+      std::time_t t0 = boost::filesystem::last_write_time(this->filename(i0), ec);;
+      for (int i = 1; i < 10; i++)
       {
-         this->m_log_file_index = !this->m_log_file_index;
+         std::time_t t1 = boost::filesystem::last_write_time(this->filename(i), ec); // t1 = -1 if file not found
+         //COUT(i << " ec: " << ec << " t: " << t1);
+         if (t1 < t0) // Look for the lowest number of log file that doesn't exist or has the oldest file time.
+         {
+            t0 = t1;
+            i0 = i;
+         }
       }
+      this->m_log_file_index = i0;
       this->m_logfile.open(this->filename(this->m_log_file_index));
    }
-
    this->m_log.push_back(std::make_pair(this->m_write_index++, mylib::time_stamp() + ": " + _value));
    while (this->m_log.size() > 50)
    {
       this->m_log.erase(this->m_log.begin());
    }
+  #ifdef _SYSTEMD_
+   do_log(_value);
+  #endif
 }
 
 
@@ -576,6 +610,19 @@ void proxy_log::clear()
 {
    stdt::lock_guard<stdt::mutex> l(this->m_mutex);
 }
+
+
+#ifdef _SYSTEMD_
+void proxy_log::do_log(const std::string& s)
+{
+   if (!s.empty())
+   {
+      // We must escape percent signs before calling sd_journal_send()
+      std::string msg = "MESSAGE=" + uniproxy::replace(s, "%", "%%");
+      sd_journal_send(msg.data(), "PRIORITY=%i", LOG_INFO, "GROUP=gatehouse", NULL);
+   }
+}
+#endif
 
 
 int64_t data_flow::timestamp()
@@ -734,7 +781,7 @@ proxy_log &log()
 
 bool operator==( boost::asio::ip::tcp::socket &p1, boost::asio::ip::tcp::socket &p2 )
 {
-   return p1.native() == p2.native();
+   return p1.native_handle() == p2.native_handle();
 }
 
 
