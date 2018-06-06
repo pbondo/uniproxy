@@ -236,7 +236,7 @@ void socket_set_keepalive_to( ip::tcp::socket::lowest_layer_type &_socket, std::
       keepalive.onoff = 1;
       keepalive.keepalivetime = (u_long)(std::chrono::duration_cast<std::chrono::milliseconds>(_timeout)).count();
       keepalive.keepaliveinterval = 1000;
-      result = WSAIoctl(_socket.native(), SIO_KEEPALIVE_VALS, &keepalive, sizeof(keepalive), NULL, 0, &uiBytes, 0, 0);
+      result = WSAIoctl(_socket.native_handle(), SIO_KEEPALIVE_VALS, &keepalive, sizeof(keepalive), NULL, 0, &uiBytes, 0, 0);
    #else
       socklen_t optlen = sizeof(optval);
       optval = _timeout.count();
