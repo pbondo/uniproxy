@@ -12,7 +12,6 @@ Description = Uniproxy
 #Requires=
 
 [Service]
-# Toggle the next lines when X is required for olserver/dbserver/apachegateway usage.
 ExecStart=/usr/local/bin/uniproxy
 User=uniproxy
 WorkingDirectory=/var/lib/uniproxy/

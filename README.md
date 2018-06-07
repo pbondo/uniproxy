@@ -13,6 +13,13 @@ The documentation ie. the requirement specification is available but will not be
 Log:
 ========
 
+2018-06-07 PBondo
+-----------------
+Release 1.3.2
+
+Added additional log files (10)
+
+
 6/4-2017 PBondo
 ---------------
 Release 1.3.0

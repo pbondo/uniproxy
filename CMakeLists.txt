@@ -132,6 +132,8 @@ ELSE (WIN32)
 
 	target_link_libraries(${PROJECT_NAME} boost_filesystem.a boost_system.a boost_chrono.a boost_regex.a boost_date_time.a boost_iostreams.a cppcms.a booster.a pthread pcre.a icuuc.a icui18n.a icudata.a icuuc.a gcrypt.a gpg-error.a dl z.a ssl.a crypto.a rt.a systemd c)
 
+	SET(UNIPROXY_INSTALL_PREFIX /usr/local)
+	SET(CMAKE_INSTALL_PREFIX ${UNIPROXY_INSTALL_PREFIX})
 	INSTALL(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/)
 	#INSTALL(DIRECTORY DESTINATION /var/lib/uniproxy)
 	#INSTALL(DIRECTORY DESTINATION /var/lib/uniproxy/script)
