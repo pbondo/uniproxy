@@ -13,17 +13,17 @@ if [ ! -f  ${rootdir}/script/jquery.js ]; then
   ln -s ${install_prefix}/share/doc/uniproxy/jquery.js ${rootdir}/script/jquery.js
 fi
 
+# Restart rsyslog to avoid writing stuff to kernel.log
+if [ -f /.dockerenv ]; then
+    # There is no rsyslog in docker
+    echo "Running in Docker";
+else
 cat > /etc/rsyslog.d/42-uniproxy.conf << EOF
 # Begin /etc/rsyslog.d/42-uniproxy.conf
 if \$programname == 'uniproxy' then stop
 # End /etc/rsyslog.d/42-uniproxy.conf
 EOF
 
-# Restart rsyslog to avoid writing stuff to kernel.log
-if [ -f /.dockerenv ]; then
-    # There is no rsyslog in docker
-    echo "Running in Docker";
-else
     # setup rsyslog
     systemctl restart rsyslog.service
 fi
