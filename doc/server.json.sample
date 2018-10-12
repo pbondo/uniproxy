@@ -1,0 +1,14 @@
+{
+	"hosts" : [
+		{
+			"port" : 8750,
+			"locals" : [ { "hostname" : "localhost", "port" : 2000 } ],
+			"remotes" : [
+				{ "name" : "client_username_1" },
+				{ "name" : "client_username_2" },
+				{ "name" : "client_username_3" }
+			]
+		}
+	],
+	"config" : { "name" : "server_certificate", "activate" : { "port" : 25500 } }
+}

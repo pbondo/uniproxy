@@ -1,0 +1,12 @@
+{
+	"clients" : [
+		{
+			"port" : 1240,
+			"activate" : { "port" : 25500 },
+			"remotes" : [
+				{ "name" : "server_certificate", "hostname" : "server_hostname.com", "port":8750 }
+			]
+		}
+	],
+	"config" : { "name" : "client_username_1" }
+}

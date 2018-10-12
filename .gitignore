@@ -1,5 +1,5 @@
 /installer/Output
-build
+build*
 dummy.txt
 .*~
 *~
