@@ -534,10 +534,12 @@ int main(int argc,char ** argv)
 #ifdef _WIN32
    EnableFirewallRule();
 #endif
+   int exit_code = 0;
    do
    {
       try // Outer loop for reload exceptions.
       {
+         exit_code = 0;
          srand(static_cast<unsigned int>(time(nullptr)));
          cppcms::signal::reset_reload();
          log().clear();
@@ -582,6 +584,7 @@ int main(int argc,char ** argv)
       catch( std::exception &exc )
       {
          log().add( exc.what() );
+         exit_code = 1;
       }
       catch( mylib::reload_exception &)
       {
@@ -590,9 +593,8 @@ int main(int argc,char ** argv)
       }
    }
    while( cppcms::signal::reload() );
-   DOUT( "Stop all connections" );
+   DOUT("Stop all connections");
    global.stopall();
-   DOUT( "Application stopping" );
-   return 0;
+   DOUT("Application stopping " << exit_code);
+   return exit_code;
 }
-
