@@ -297,6 +297,7 @@ int RemoteProxyClient::test_local_connection(const std::string& name, const std:
       }
       catch(std::exception& exc)
       {
+         this->dolog(this->dinfo() + exc.what());
          result = 401;
       }
       this->dolog(this->dinfo() + "Test Host done test logon procedure to " + ep);
@@ -310,7 +311,9 @@ int RemoteProxyClient::test_local_connection(const std::string& name, const std:
    }
    catch(boost::system::system_error &boost_error)
    {
-      DOUT(this->dinfo() << "Test Host Boost or system error");
+      std::ostringstream oss;
+      oss << boost_error.code() << " what: " << boost_error.what();
+      DOUT(this->dinfo() << "Test Host Boost or system error " + oss.str());
       result = 500;
    }
    catch(std::exception &exc)
@@ -439,7 +442,8 @@ void RemoteProxyClient::remote_threadproc()
    }
    catch( boost::system::system_error &boost_error )
    {
-      std::ostringstream oss; oss << "SSL: " << boost_error.code() << " what: " << boost_error.what();
+      std::ostringstream oss;
+      oss << "SSL: " << boost_error.code() << " what: " << boost_error.what();
       this->dolog(this->dinfo() + oss.str());
    }
    catch( std::exception &exc )
