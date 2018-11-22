@@ -35,6 +35,12 @@
 #endif
 
 
+std::string info(const boost::asio::ip::tcp::socket& s)
+{
+   return "";
+}
+
+
 namespace uniproxy
 {
 std::mutex log_mutex;

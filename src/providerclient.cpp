@@ -60,7 +60,7 @@ void ProviderClient::start()
 {
    if (this->m_thread.is_running())
    {
-      DOUT("Provider client is already running on port: " << this->port());
+      DOUT(info() << "Provider client is already running on port: " << this->port());
       return;
    }
    this->m_thread.start( [this]{ this->threadproc_reader(); } );
@@ -108,7 +108,7 @@ void ProviderClient::interrupt()
    {
       this->dolog( exc.what() );
    }
-   DOUT(__FUNCTION__ << ":" << __LINE__ );
+   DOUT(info() << __FUNCTION__ << ":" << __LINE__ );
 }
 
 
@@ -156,7 +156,7 @@ void ProviderClient::connect_remote(boost::asio::io_service &io_service, ssl_soc
       }
       else
       {
-         DOUT("Ignored due to missing certificate: " << ep);
+         DOUT(info() << "Ignored due to missing certificate: " << ep);
       }
    }
    ASSERTE(this->is_remote_connected(), uniproxy::error::socket_invalid,"Provider failed connection to remote host");
@@ -175,7 +175,7 @@ void ProviderClient::threadproc_writer()
    {
       try
       {
-         DOUT("Provider writer start");
+         DOUT(info() << "Provider writer start");
          this->m_count_out.clear();
          while(timeout < 10000)
             timeout += 1000;
@@ -225,7 +225,6 @@ void ProviderClient::threadproc_writer()
                      int length = remote_socket.write_some(boost::asio::buffer( buffer.m_buffer, buffer.m_size));
 
                      this->m_count_out.add(length);
-                     //DOUT("data size sent: " << length);
                   }
                }               
             }
@@ -289,7 +288,7 @@ void ProviderClient::threadproc_reader()
             }
             catch( std::exception &exc )
             {
-               DOUT(  __FUNCTION__ << ":" << __LINE__ << " Failed connection to: " << ep << " " << exc.what() );
+               DOUT(info() << __FUNCTION__ << ":" << __LINE__ << " Failed connection to: " << ep << " " << exc.what() );
             }
          }
          ASSERTE(this->is_local_connected(), uniproxy::error::socket_invalid,"Provider failed connection to local host: " + ep);
@@ -348,7 +347,6 @@ void ProviderClient::threadproc_reader()
                      length = remote_socket.write_some(boost::asio::buffer(buffer.m_buffer, buffer.m_size));
 
                      this->m_count_out.add(length);
-                     //DOUT("data size sent: " << length);
                   }
                }
             }            

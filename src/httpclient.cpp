@@ -9,7 +9,7 @@
 
 using boost::asio::ip::tcp;
 
-bool httpclient::sync(const std::string &hostnameport, const std::string &url, std::string &result)
+bool httpclient::sync(const std::string &hostnameport, const std::string &url, std::string &result, const std::string& info)
 {
    try
    {
@@ -63,12 +63,12 @@ bool httpclient::sync(const std::string &hostnameport, const std::string &url, s
       std::getline(response_stream, status_message);
       if (!response_stream || http_version.substr(0, 5) != "HTTP/")
       {
-         DOUT("Invalid response");
+         DOUT(info << "Invalid response");
          return false;
       }
       if (status_code != 200)
       {
-         DOUT( "Response returned with status code " << status_code );
+         DOUT(info << "Response returned with status code " << status_code );
          return false;
       }
 
@@ -98,7 +98,7 @@ bool httpclient::sync(const std::string &hostnameport, const std::string &url, s
    }
    catch (std::exception& e)
    {
-      DOUT("Exception: " << e.what());
+      DOUT(info << "Exception: " << e.what());
    }
    return false;
 }
