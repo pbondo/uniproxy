@@ -32,7 +32,10 @@ using boost::asio::ip::tcp;
 extern const char * release;
 extern const char * version;
 
+#define OSS(xxx) [&]{std::ostringstream oss_help; oss_help << xxx; return oss_help.str();}()
+
 PGHPFilter m_PGHPFilter;
+
 
 PGHPFilter::track::track( unsigned int _mmsi )
 {
@@ -151,7 +154,8 @@ bool PGHPFilter::connect_handler( boost::asio::ip::tcp::socket &local_socket, Re
 							{
 								TclAISMessageLogonReply reply;
 								reply.Decode( mail );
-								DOUT("Reply: " << reply.GetLogonReply() );
+								DOUT("Got reply: " << reply.GetLogonReply() );
+                        std::string info = " certificate name: " + _remote_ep.m_name + " user: " + _remote_ep.m_username + " ";
 								switch( reply.GetLogonReply() )
 								{
 								case LOGON_REPLY_OK:
@@ -159,12 +163,25 @@ bool PGHPFilter::connect_handler( boost::asio::ip::tcp::socket &local_socket, Re
 									SendStartMesg( local_socket );
 									return true;
 								case LOGON_REPLY_USER_INVALID:
-									throw std::system_error( make_error_code( uniproxy::error::logon_username_password_invalid ), " for user: " + _remote_ep.m_username );
+									throw std::system_error(make_error_code(uniproxy::error::logon_username_password_invalid), info + "Username invalid");
 								case LOGON_REPLY_PASSWORD_INVALID:
-									DOUT("Logon Invalid password");
-									break;
+									throw std::system_error(make_error_code(uniproxy::error::logon_username_password_invalid), info + "Password invalid");
+                        case LOGON_REPLY_NO_LSS_GROUP:
+									throw std::system_error(make_error_code(uniproxy::error::logon_username_password_invalid), info + "No LSS Group Assigned");
+                        case LOGON_REPLY_ALLREADY_CONNECTED:
+									throw std::system_error(make_error_code(uniproxy::error::logon_username_password_invalid), info + "Already connected");
+                        case LOGON_REPLY_PASSWORD_EXPIRED:
+									throw std::system_error(make_error_code(uniproxy::error::logon_username_password_invalid), info + "User or group expired");
+                        case LOGON_REPLY_LOCKED:
+									throw std::system_error(make_error_code(uniproxy::error::logon_username_password_invalid), info + "User or group locked");
+                        case LOGON_REPLY_DISABLED:
+									throw std::system_error(make_error_code(uniproxy::error::logon_username_password_invalid), info + "User or group disabled");
+                        case LOGON_REPLY_LOAD_BALANCE_MOVE:
+									throw std::system_error(make_error_code(uniproxy::error::logon_username_password_invalid), info + "Load balancer problem");
+                        case LOGON_REPLY_SERVER_BUSY:
+									throw std::system_error(make_error_code(uniproxy::error::logon_username_password_invalid), info + "Server Busy");
 								default:
-									throw std::system_error( make_error_code( uniproxy::error::logon_failed ), "unknown response" );
+									throw std::system_error(make_error_code( uniproxy::error::logon_failed ), OSS(info + "Unknown response: " << reply.GetLogonReply()));
 								}
 							}
 							break;

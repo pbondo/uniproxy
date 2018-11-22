@@ -32,7 +32,11 @@
 #include <chrono>
 #include <atomic>
 
+#ifdef _WIN32
 #undef _SYSTEMD_ // Change to enable in Linux
+#else
+#define _SYSTEMD_ // Enable in Linux
+#endif
 
 #ifdef _SYSTEMD_
 #define DOUT( xx ) { std::lock_guard<std::mutex> lock(uniproxy::log_mutex); std::ostringstream oss; oss << mylib::time_stamp() << " id:"  << uniproxy::mask(std::this_thread::get_id()) << " " << uniproxy::filename(__FILE__) << " " << __FUNCTION__ << ":" << __LINE__ << " " << xx; proxy_log::do_log(oss.str()); }
@@ -46,6 +50,9 @@
 #define ASSERTD( xx, yy ) { if ( !(xx) ) throw std::runtime_error( yy ); };
 #define ASSERTEC( xx, yy, zz ) { if ( !(xx) ) throw std::system_error( yy, std::string( zz ) ); };
 #define ASSERTE( xx, yy, zz ) { if ( !(xx) ) throw std::system_error( make_error_code(yy), std::string( zz ) ); };
+
+// Get debug info from a socket.
+std::string info(const boost::asio::ip::tcp::socket& s);
 
 namespace uniproxy
 {

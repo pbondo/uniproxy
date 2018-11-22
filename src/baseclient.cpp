@@ -37,7 +37,7 @@ BaseClient::BaseClient(bool _active, mylib::port_type _local_port, mylib::port_t
    this->m_proxy_endpoints = _proxy_endpoints;
    this->m_activate_stamp = boost::get_system_time();
    this->m_id = ++static_local_id;
-   DOUT("Client port: " << this->m_local_port << " max con: " << this->m_max_connections << " active? " << (int)this->m_active);
+   DOUT(info() << "Client port: " << this->m_local_port << " max con: " << this->m_max_connections << " active? " << (int)this->m_active);
 }
 
 
@@ -45,6 +45,12 @@ ssl_socket &BaseClient::remote_socket()
 {
    ASSERTE(this->mp_remote_socket, uniproxy::error::socket_invalid, "");
    return *this->mp_remote_socket;
+}
+
+
+std::string BaseClient::info() const
+{
+   return "";
 }
 
 
@@ -106,7 +112,7 @@ void BaseClient::threadproc_activate(int index)
       std::string epz = this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) + "(" + mylib::to_string(this->m_activate_port) + ")";
       try
       {
-         DOUT("Activate: " << index << " starting");
+         DOUT(info() << "Activate: " << index << " starting");
          boost::asio::io_service io_service;
          boost::asio::io_service::work session_work(io_service);
          boost::asio::ip::tcp::socket socket(io_service);

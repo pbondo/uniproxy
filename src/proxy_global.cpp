@@ -930,7 +930,7 @@ bool proxy_global::load_certificate_names( const std::string & _filename )
 }
 
 
-std::string proxy_global::SetupCertificatesServer(boost::asio::ip::tcp::socket &_remote_socket, const std::vector<std::string> &_certnames)
+std::string proxy_global::SetupCertificatesServer(boost::asio::ip::tcp::socket &_remote, const std::vector<std::string> &_certnames)
 {
    try
    {
@@ -940,19 +940,19 @@ std::string proxy_global::SetupCertificatesServer(boost::asio::ip::tcp::socket &
       memset(buffer,0,buffer_size);
       ASSERTE( _certnames.size() > 0, uniproxy::error::connection_name_unknown, "" );
 
-      int length = _remote_socket.read_some( boost::asio::buffer( buffer, buffer_size ) );
-      DOUT("Received: " << length << " bytes");
+      int length = _remote.read_some( boost::asio::buffer( buffer, buffer_size ) );
+      DOUT(info(_remote) << "Received: " << length << " bytes");
       ASSERTE( length > 0 && length < buffer_size, uniproxy::error::certificate_invalid, "received" ); // NB!! Check the overflow situation.....
-      DOUT("SSL Possible Certificate received: " << buffer );
+      DOUT(info(_remote) << "SSL Possible Certificate received: " << buffer );
       std::vector<certificate_type> remote_certs, local_certs;
 
       ASSERTE(load_certificates_string( buffer, remote_certs ) && remote_certs.size() == 1, uniproxy::error::certificate_invalid, "received");
       std::string remote_name = get_common_name( remote_certs[0] );
-      DOUT("Received certificate name: " << remote_name << " for connection: " << _certnames);
+      DOUT(info(_remote) << "Received certificate name: " << remote_name << " for connection: " << _certnames);
       
       if (std::find(_certnames.begin(),_certnames.end(),remote_name) == _certnames.end())
       {
-         DOUT("Certificate exchange attempt by: " << remote_name << " did not match any expected: " << _certnames);
+         DOUT(info(_remote) << "Certificate exchange attempt by: " << remote_name << " did not match any expected: " << _certnames);
          return std::string();
       }
 
@@ -962,7 +962,7 @@ std::string proxy_global::SetupCertificatesServer(boost::asio::ip::tcp::socket &
       {
          if ( remote_name == get_common_name( *iter ) )
          {
-            DOUT("Removing old existing certificate name for replacement: " << remote_name );
+            DOUT(info(_remote) << "Removing old existing certificate name for replacement: " << remote_name );
             iter = local_certs.erase( iter );
          }
          else
@@ -977,18 +977,18 @@ std::string proxy_global::SetupCertificatesServer(boost::asio::ip::tcp::socket &
    }
    catch( std::exception &exc )
    {
-      DOUT( __FUNCTION__ << " exception: " << exc.what() );
+      DOUT(info(_remote) << __FUNCTION__ << " exception: " << exc.what() );
       log().add(exc.what());
    }
    return std::string();
 }
 
 
-bool proxy_global::SetupCertificatesClient(boost::asio::ip::tcp::socket &_remote_socket, const std::string &_connection_name)
+bool proxy_global::SetupCertificatesClient(boost::asio::ip::tcp::socket &_remote, const std::string &_connection_name)
 {
    try
    {
-      DOUT( __FUNCTION__ << " connection name: " << _connection_name );
+      DOUT(info(_remote) << __FUNCTION__ << " connection name: " << _connection_name );
       const int buffer_size = 4000;
       char buffer[buffer_size]; //
       memset(buffer,0,buffer_size);
@@ -996,13 +996,13 @@ bool proxy_global::SetupCertificatesClient(boost::asio::ip::tcp::socket &_remote
 
       std::string cert = readfile( my_public_cert_name );
       ASSERTE( cert.length() > 0, uniproxy::error::certificate_not_found, std::string( " certificate not found in file: ") + my_certs_name );
-      int count = _remote_socket.write_some( boost::asio::buffer( cert, cert.length() ) );
-      DOUT("Wrote certificate: " << count << " of " << cert.length() << " bytes ");
+      int count = _remote.write_some( boost::asio::buffer( cert, cert.length() ) );
+      DOUT(info(_remote) << "Wrote certificate: " << count << " of " << cert.length() << " bytes ");
       return true;
    }
    catch( std::exception &exc )
    {
-      DOUT( __FUNCTION__ << " exception: " << exc.what() );
+      DOUT(info(_remote) << __FUNCTION__ << " exception: " << exc.what() );
       log().add(exc.what());
    }
    return false;
