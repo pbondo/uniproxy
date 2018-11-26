@@ -13,6 +13,17 @@ The documentation ie. the requirement specification is available but will not be
 Log:
 ========
 
+2018-11-26 PBondo
+-----------------
+Fixed an issue where using asio sync SSL handshake would not timeout. Replaced with an async SSL handshake.
+
+Fixed an issue where starting uniproxy with the main ports already taken (typically from a quick restart) would return exit code 0.
+Changed to return 1.
+
+Added some additional information on some of the log messages so it will more often include remote host:port information.
+
+
+
 2018-06-07 PBondo
 -----------------
 Release 1.3.2

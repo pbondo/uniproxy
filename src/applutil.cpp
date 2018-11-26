@@ -388,7 +388,7 @@ bool delete_certificate_file( const std::string &_filename, const std::string &_
          {
             if ( _name == get_common_name( *iter ) )
             {
-               DOUT("Deleting: " << _name );
+               DOUT("Deleting certificate: " << _name);
                hit = true;
                local_certs.erase(iter);
                break;

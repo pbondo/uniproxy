@@ -522,6 +522,29 @@ void RemoteProxyHost::remove_remotes(const std::vector<RemoteEndpoint> &_remote_
 }
 
 
+void RemoteProxyHost::stop_by_name(const std::string& certname)
+{
+   std::lock_guard<std::mutex> l(this->m_mutex);
+
+   // Clean up the current client list and remove any non active clients.
+   for (auto iter2 = this->m_clients.begin(); iter2 != this->m_clients.end(); )
+   {
+      RemoteProxyClient *pHelp = *iter2;
+      if (pHelp->m_endpoint.m_name == certname)
+      {
+         DOUT(dinfo() << "Found and stopping host connection: " << certname);
+         pHelp->stop();
+         iter2++;
+         DOUT(dinfo() << "Done stopping host connection: " << certname);
+      }
+      else
+      {
+         iter2++;
+      }
+   }
+}
+
+
 void RemoteProxyHost::dolog( const std::string &_line )
 {
    this->m_log = _line;

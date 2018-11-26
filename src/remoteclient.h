@@ -96,6 +96,7 @@ public:
 
    void add_remotes(const std::vector<RemoteEndpoint> &_remote_ep);
    void remove_remotes(const std::vector<RemoteEndpoint> &_remote_ep);
+   void stop_by_name(const std::string& certname);
 
    void handle_accept( RemoteProxyClient* new_session, const boost::system::error_code& error);
 

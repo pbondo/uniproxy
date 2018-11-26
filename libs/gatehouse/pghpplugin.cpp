@@ -32,8 +32,6 @@ using boost::asio::ip::tcp;
 extern const char * release;
 extern const char * version;
 
-#define OSS(xxx) [&]{std::ostringstream oss_help; oss_help << xxx; return oss_help.str();}()
-
 PGHPFilter m_PGHPFilter;
 
 

@@ -218,13 +218,42 @@ void proxy_app::host_active(const std::string _param, const std::string _id, con
 }
 
 
-void proxy_app::certificate_delete(const std::string _param)
+void proxy_app::certificate_delete(const std::string certname)
 {
-   DOUT( __FUNCTION__ << ": " << _param );
-   if ( delete_certificate_file( my_certs_name, _param ) )
+   DOUT(__FUNCTION__ << ": " << certname);
+   if (delete_certificate_file(my_certs_name, certname))
    {
-      throw mylib::reload_exception();
+      for (auto& client : global.localclients) // Look through all the client connections. If one is found then we reload.
+      {
+         for (int index = 0; index < client.get()->m_proxy_endpoints.size(); index++)
+         {
+            auto &r = client.get()->m_proxy_endpoints[index];
+            if (r.m_name == certname)
+            {
+               log().add(OSS(std::string("Found matching certificate ") << std::string(r.m_name) << " on client connection: " << r.m_hostname << ":" << r.m_port << " reloading configuration"));
+               throw mylib::reload_exception();
+            }
+         }
+      }
+
+      throw mylib::reload_exception(); // NB!! The following doesn't work yet, so we unconditionally throw.
+
+      // Run through the host connections and drop anyone mathing the name
+      for (auto& host : global.remotehosts)
+      {
+         for (const auto& remote : host->m_remote_ep)
+         {
+            if (remote.m_name == certname)
+            {
+               log().add(OSS("Found matching certificate " << remote.m_name << " attempt to disconnect " << remote.m_hostname << ":" << remote.m_port));
+               host->stop_by_name(certname);
+               global.load_certificate_names(my_certs_name);
+               DOUT("Done stopping certificate holder " << remote.m_name << " host: " << remote.m_hostname << ":" << remote.m_port);
+            }
+         }
+      }
    }
+   log().add("Completed deleting certificate " + certname);
 }
 
 

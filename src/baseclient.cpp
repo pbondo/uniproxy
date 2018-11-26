@@ -50,14 +50,14 @@ ssl_socket &BaseClient::remote_socket()
 
 std::string BaseClient::info() const
 {
-   return "";
+   return this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) + " => :" + mylib::to_string(this->port()) + " ";
 }
 
 
 void BaseClient::dolog( const std::string &_line )
 {
    this->m_log = _line;
-   log().add( " hostname: " + this->remote_hostname() + " port: " + mylib::to_string(this->remote_port()) + ": " + _line );
+   log().add(_line);
 }
 
 

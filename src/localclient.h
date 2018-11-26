@@ -70,6 +70,7 @@ public:
 
    void handle_local_write(boost::asio::ip::tcp::socket *_socket, const boost::system::error_code& error);
    void handle_remote_write(int id, const boost::system::error_code& error);
+   void handle_handshake(const boost::system::error_code &err);
 
    void remove_socket( boost::asio::ip::tcp::socket &_socket );
    bool is_local_connected() const;

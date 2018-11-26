@@ -33,7 +33,7 @@
 #include <atomic>
 
 #ifdef _WIN32
-#undef _SYSTEMD_ // Change to enable in Linux
+#undef _SYSTEMD_
 #else
 #define _SYSTEMD_ // Enable in Linux
 #endif
@@ -53,6 +53,8 @@
 
 // Get debug info from a socket.
 std::string info(const boost::asio::ip::tcp::socket& s);
+
+#define OSS(xxx) [&]{std::ostringstream oss_help; oss_help << xxx; return oss_help.str();}()
 
 namespace uniproxy
 {
