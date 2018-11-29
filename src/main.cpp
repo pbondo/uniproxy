@@ -236,7 +236,7 @@ void proxy_app::certificate_delete(const std::string certname)
          }
       }
 
-      throw mylib::reload_exception(); // NB!! The following doesn't work yet, so we unconditionally throw.
+      //throw mylib::reload_exception(); // NB!! The following doesn't work yet, so we unconditionally throw.
 
       // Run through the host connections and drop anyone mathing the name
       for (auto& host : global.remotehosts)
@@ -245,13 +245,11 @@ void proxy_app::certificate_delete(const std::string certname)
          {
             if (remote.m_name == certname)
             {
-               log().add(OSS("Found matching certificate " << remote.m_name << " attempt to disconnect " << remote.m_hostname << ":" << remote.m_port));
-               host->stop_by_name(certname);
-               global.load_certificate_names(my_certs_name);
-               DOUT("Done stopping certificate holder " << remote.m_name << " host: " << remote.m_hostname << ":" << remote.m_port);
+               log().add(OSS("Found matching certificate " << remote.m_name << " will be removed " << remote.m_hostname << ":" << remote.m_port));
             }
          }
       }
+      global.load_certificate_names(my_certs_name);
    }
    log().add("Completed deleting certificate " + certname);
 }
