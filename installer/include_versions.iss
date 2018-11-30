@@ -6,5 +6,5 @@
 ;============================================================================
 
 #define BUILDNUMBER "1"
-#define VERSIONNUMBER "v1.3.2"
+#define VERSIONNUMBER "v1.4.0"
 
