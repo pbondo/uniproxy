@@ -3,7 +3,12 @@
 #
 #!/bin/bash
 
-#version=0.3.7
+if [ "$(basename $PWD)" = "deb" ]
+then
+   echo "Run this in the build dir!"
+   exit 1
+fi
+
 version=`sed -n -e  's/const.*version.*"\(.*\)";/\1/p' ../release.cpp`
 release=1
 
