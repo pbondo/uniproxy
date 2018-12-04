@@ -1043,6 +1043,7 @@ void client_certificate_exchange::start( const std::vector<LocalEndpoint> &eps )
 void client_certificate_exchange::thread_proc( const std::vector<LocalEndpoint> eps )
 {
    DOUT("Certificates thread started with params: " << eps.size());
+   this->sleep(5000);
    for (auto ep : eps)
    {
       DOUT(": " << ep.m_hostname << ":" << ep.m_port);

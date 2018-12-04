@@ -585,6 +585,13 @@ int main(int argc,char ** argv)
          boost::filesystem::create_directory(global.m_log_path);
 
          stdt::lock_guard<proxy_global> lock(global);
+
+         DOUT( "Loaded config: " << global.save_json_config( true ) );
+         // Create settings object data
+         cppcms::json::value settings_object;
+         proxy_app::setup_config( settings_object );
+         cppcms::service srv(settings_object);
+
          client_certificate_exchange cert_exch;
          stdt::lock_guard<client_certificate_exchange> certificate_exchange_lock(cert_exch);
          if (!global.uniproxies.empty())
@@ -592,11 +599,6 @@ int main(int argc,char ** argv)
             cert_exch.start(global.uniproxies);
          }
 
-         DOUT( "Loaded config: " << global.save_json_config( true ) );
-         // Create settings object data
-         cppcms::json::value settings_object;
-         proxy_app::setup_config( settings_object );
-         cppcms::service srv(settings_object);
          if ( global.m_debug )
          {
             srv.applications_pool().mount(cppcms::applications_factory<proxy_app>());
