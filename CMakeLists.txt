@@ -33,7 +33,7 @@ ELSE (WIN32)
 
 add_custom_command(
   OUTPUT views.cpp
-  COMMAND /opt/cppcms/1.2.0/bin/cppcms_tmpl_cc ../webserver/master.tmpl ../webserver/view_config.tmpl ../webserver/view_status.tmpl -o views.cpp
+  COMMAND cppcms_tmpl_cc ../webserver/master.tmpl ../webserver/view_config.tmpl ../webserver/view_status.tmpl -o views.cpp
   DEPENDS webserver/master.tmpl webserver/view_config.tmpl webserver/view_status.tmpl
   WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
   COMMENT "Precompiling views"
@@ -112,9 +112,9 @@ ELSE (WIN32)
 
 	ADD_DEFINITIONS( -g -std=c++11 -Wall -Wno-sign-compare )
 
-	include_directories(/opt/boost/1.67.0/include/ /opt/cppcms/1.2.0/include)
+	include_directories(/opt/boost/1_67_0/include/ /opt/cppcms/1.2.0/include)
 
-	LINK_DIRECTORIES(/opt/boost/1.67.0/lib/ /opt/cppcms/1.2.0/lib)
+	LINK_DIRECTORIES(/opt/boost/1_67_0/lib/ /opt/cppcms/1.2.0/lib)
 
 ENDIF (WIN32)
 
