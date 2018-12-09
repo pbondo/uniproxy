@@ -360,6 +360,7 @@ void LocalHost::check_deadline()
          {
             this->mp_io_service->stop();
          }
+
          boost::system::error_code ec;
          this->remote_socket().shutdown(ec);
          this->remote_socket().lowest_layer().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
@@ -376,6 +377,9 @@ void LocalHost::check_deadline()
    if (call_interrupt)
    {  // Must happen outside the mutex
       this->interrupt();
+
+      boost::system::error_code ec = make_error_code(boost::system::errc::timed_out);
+      throw boost::system::system_error(ec);
    }
 }
 
@@ -396,7 +400,7 @@ void LocalHost::handle_handshake(const boost::system::error_code& error)
    }
    else
    {
-      this->dolog(info() + "Failed SSL handshake to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()));
+      this->dolog(info() + "Failed SSL handshake to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) + " error: " + OSS(error));
       throw boost::system::system_error(error);
    }
 }
@@ -406,6 +410,7 @@ void LocalHost::go_out(boost::asio::io_service &io_service)
 {
    try
    {
+      io_service.reset();
       boost::asio::deadline_timer deadline(io_service);
       mylib::protect_pointer<boost::asio::deadline_timer> p_deadline( this->m_pdeadline, deadline, this->m_mutex );
       boost::asio::ssl::context ssl_context(boost::asio::ssl::context::tlsv12);
@@ -427,16 +432,24 @@ void LocalHost::go_out(boost::asio::io_service &io_service)
       DOUT(info() << "Prepare timeout at: " << this->m_read_timeout)
       deadline.async_wait(boost::bind(&LocalHost::check_deadline, this));
       deadline.expires_from_now(boost::posix_time::seconds(20));
+      boost::system::error_code ec;
+#if 1
       rem_socket.async_handshake(boost::asio::ssl::stream_base::client, boost::bind(&LocalHost::handle_handshake, this, _1));
+#else
+      rem_socket.handshake( boost::asio::ssl::stream_base::client, ec);
+      this->dolog("Succesfull SSL handshake to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) + " ec: " + OSS(ec));
+      deadline.expires_from_now(this->m_read_timeout);
+      rem_socket.async_read_some(boost::asio::buffer( m_remote_data, max_length), boost::bind(&LocalHost::handle_remote_read, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+#endif
       // Now let the io_service handle the session.
       DOUT(info() << "async_handshake started, now start ioservice");
-      io_service.run();
-      DOUT(info() << "ioservice stopped");
+      io_service.run(ec);
+      DOUT(info() << "ioservice stopped error code: " << ec);
       deadline.cancel();
    }
    catch (std::exception &exc)
    {
-      this->dolog(info() + exc.what());
+      this->dolog(info() + "exception: " + exc.what() + " local count: " + OSS(this->m_local_sockets.size()));
       if (this->m_local_sockets.empty())
       {
          throw;
@@ -481,7 +494,10 @@ void LocalHost::threadproc()
          boost::asio::ip::tcp::socket *new_socket = new boost::asio::ip::tcp::socket(io_service);
          acceptor.async_accept( *new_socket, boost::bind(&LocalHost::handle_accept, this, new_socket, boost::asio::placeholders::error));
 
-         while(this->m_thread.check_run() && !this->m_local_sockets.empty() && this->is_local_connected())
+         // Unstable. Uncertain about the actual cause. Does not work with either async or sync handshake.
+         // io_service.run() terminates immediately, nothing (no handler) is called and no error code is returned.
+         // Happens after timeout but appears to work ok if the remote end terminates the connection.
+         // NB!! while(this->m_thread.check_run() && !this->m_local_sockets.empty() && this->is_local_connected())
          {
             this->m_proxy_index = 0;
             if (!this->m_proxy_endpoints.empty()) // Pick a new random access value.
@@ -489,7 +505,7 @@ void LocalHost::threadproc()
                this->m_proxy_index = std::rand() % this->m_proxy_endpoints.size();
             }
             this->go_out(io_service);
-            this->m_thread.sleep(2000);
+            this->m_thread.sleep(5000);
          }
       }
       catch( std::exception &exc )

@@ -662,8 +662,8 @@ void RemoteProxyHost::handle_accept(RemoteProxyClient* new_session, const boost:
 {
    try
    {
-      DOUT(this->dinfo());
-      if (!error )
+      DOUT(this->dinfo() << " error state " << error);
+      if (!error)
       {
          stdt::lock_guard<stdt::mutex> l(this->m_mutex);
          // Clean up the current client list and remove any non active clients.
@@ -699,6 +699,7 @@ void RemoteProxyHost::handle_accept(RemoteProxyClient* new_session, const boost:
       }
       else
       {
+         DOUT(this->dinfo() << "failed to accept, deleting session");
          delete new_session;
       }
    }
