@@ -71,6 +71,7 @@ public:
    void host_active(const std::string _param, const std::string _id, const std::string _checked);
    void certificate_delete(const std::string);
    void get_certificates(const std::string _param);
+   void get_public_certificate(const std::string _param);
    void timeout_handle();
    void log_file(const std::string _param);
 

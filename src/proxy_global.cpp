@@ -1069,8 +1069,11 @@ void client_certificate_exchange::thread_proc( const std::vector<LocalEndpoint> 
             if (result)
             {
                std::vector<certificate_type> own,remotes;
-               ASSERTE(load_certificates_string(output, remotes) && !remotes.empty(), uniproxy::error::parse_file_failed, "Failed to load certificates from remote host" );
-
+               ASSERTE(load_certificates_string(output, remotes), uniproxy::error::parse_file_failed, "Failed to load certificates from remote host");
+               if (remotes.empty())
+               {
+                  continue;
+               }
                load_certificates_file(my_certs_name,own);
                int ownsize = own.size();
                for (auto rem : remotes)
@@ -1101,10 +1104,19 @@ void client_certificate_exchange::thread_proc( const std::vector<LocalEndpoint> 
                   global.load_certificate_names( my_certs_name );
                }
             }
+            output = "";
+            result = httpclient::sync(host,"/json/command/certificate/public/",output);
+            if (result)
+            {
+               std::vector<certificate_type> own_cert, rem_cert;
+               ASSERTE(load_certificates_string(output, rem_cert) && rem_cert.size() == 1, uniproxy::error::parse_file_failed, "Failed to load public certificate from remote host: " + output);
+               ASSERTE(load_certificates_file(my_public_cert_name, own_cert) && own_cert.size() == 1, uniproxy::error::parse_file_failed, "Failed to load own public certificate");
+               ASSERTE(equal(own_cert.front(), rem_cert.front()), uniproxy::error::parse_file_failed, "Own public Certificate are NOT equal between self and " + host);
+            }
          }
-         catch (std::exception exc)
+         catch (std::exception& exc)
          {
-            DERR(__FUNCTION__ << " failed to exchange certificates with " << ep.m_hostname);
+            log().add("Failed to exchange certificates with " + ep.m_hostname + ":" + mylib::to_string(ep.m_port) + " => " + exc.what());
          }
       }
    }

@@ -80,6 +80,7 @@ proxy_app::proxy_app(cppcms::service &srv) : cppcms::application(srv), timer_(sr
    dispatcher().assign("^/status/(.*)$",&proxy_app::status_get,this);
    dispatcher().assign("^/logger/(.*)$",&proxy_app::logger_get,this);
    dispatcher().assign("^/command/certificate/get/(.*)$",&proxy_app::get_certificates,this,1);
+   dispatcher().assign("^/command/certificate/public/(.*)$",&proxy_app::get_public_certificate,this,1);
    dispatcher().assign("^/$",&proxy_app::index,this);
 }
 
@@ -147,6 +148,13 @@ void proxy_app::script(const std::string)
 void proxy_app::get_certificates(const std::string _param)
 {
    std::string certs = readfile( my_certs_name );
+   this->response().out() << certs;
+}
+
+
+void proxy_app::get_public_certificate(const std::string _param)
+{
+   std::string certs = readfile(my_public_cert_name);
    this->response().out() << certs;
 }
 
@@ -507,7 +515,7 @@ void proxy_app::main(std::string url)
       {
          url = param;
       }
-      if ( url.find("/logger") == std::string::npos && url.find( "/status" ) == std::string::npos && url.find("/command/certificate/get/") == std::string::npos)
+      if ( url.find("/logger") == std::string::npos && url.find( "/status" ) == std::string::npos && url.find("/command/certificate/") == std::string::npos)
       {
          DOUT("main url: " << url );
       }
