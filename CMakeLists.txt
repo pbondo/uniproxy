@@ -37,15 +37,10 @@ ADD_SUBDIRECTORY(src uniproxy)
 
 IF (WIN32)
 
-
 ELSE (WIN32)
-
-	#-Wl,--whole-archive -lpthread -Wl,--no-while-archive
-	#ADD_DEFINITIONS( -Wl,--whole-archive -Wl,--no-while-archive, -Wno-deprecated-declarations )
 
 	SET(UNIPROXY_INSTALL_PREFIX /usr/local)
 	SET(CMAKE_INSTALL_PREFIX ${UNIPROXY_INSTALL_PREFIX})
-	#INSTALL(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/)
 	INSTALL(DIRECTORY DESTINATION ${CMAKE_INSTALL_PREFIX}/share/doc/uniproxy/)
 	INSTALL(FILES script/jquery.js DESTINATION ${CMAKE_INSTALL_PREFIX}/share/doc/uniproxy/)
 	INSTALL(FILES doc/license.txt DESTINATION ${CMAKE_INSTALL_PREFIX}/share/doc/uniproxy/)
