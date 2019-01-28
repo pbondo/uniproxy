@@ -13,6 +13,14 @@ The documentation ie. the requirement specification is available but will not be
 Log:
 ========
 
+
+Timeout on server end when data stops flowing from LSS?
+
+2019-01-28 PBondo
+-----------------
+Rearranged CMakeLists.txt files.
+
+
 2018-11-26 PBondo
 -----------------
 Fixed an issue where using asio sync SSL handshake would not timeout. Replaced with an async SSL handshake.

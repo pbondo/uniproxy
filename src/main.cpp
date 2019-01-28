@@ -41,6 +41,7 @@
 #include <boost/process.hpp>
 #include "proxy_global.h"
 #include "httpclient.h"
+#include <gatehouse/pghpplugin.h>
 
 #ifdef _WIN32
 #include "win_util.h"
@@ -58,7 +59,7 @@ cppcms::service *signal::m_psrv = NULL;
 std::vector<PluginHandler*> *PluginHandler::m_plugins = NULL;
 class cppcms::form c;
 
-
+PGHPFilter m_PGHPFilter;
 
 
 ////////////////////////////////////////////

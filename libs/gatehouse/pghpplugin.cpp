@@ -32,8 +32,6 @@ using boost::asio::ip::tcp;
 extern const char * release;
 extern const char * version;
 
-PGHPFilter m_PGHPFilter;
-
 
 PGHPFilter::track::track( unsigned int _mmsi )
 {
