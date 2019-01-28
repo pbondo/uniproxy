@@ -163,6 +163,7 @@ void RemoteProxyClient::interrupt()
 {
    boost::system::error_code ec;
    DOUT(this->dinfo());
+   std::lock_guard<std::mutex> lock(this->m_mutex);
    if ( this->m_local_socket.is_open() )
    {
       TRY_CATCH( this->m_local_socket.shutdown( boost::asio::socket_base::shutdown_both, ec ) );
@@ -228,9 +229,12 @@ void RemoteProxyClient::local_threadproc()
    }
    DOUT(this->dinfo() << "Thread stopping");
    this->interrupt();
-   boost::system::error_code ec;
-   this->m_remote_socket.shutdown(ec);
-   this->m_remote_socket.lowest_layer().close(ec);
+   {
+      std::lock_guard<std::mutex> lock(this->m_mutex);
+      boost::system::error_code ec;
+      this->m_remote_socket.shutdown(ec);
+      this->m_remote_socket.lowest_layer().close(ec);
+   }
    DOUT(this->dinfo() << "Thread stopped");
 }
 
@@ -452,9 +456,12 @@ void RemoteProxyClient::remote_threadproc()
    }
    DOUT(this->dinfo() << "Thread stopping");
    this->interrupt();
-   boost::system::error_code ec;
-   this->m_remote_socket.shutdown(ec);
-   this->m_remote_socket.lowest_layer().close(ec);
+   {
+      std::lock_guard<std::mutex> lock(this->m_mutex);
+      boost::system::error_code ec;
+      this->m_remote_socket.shutdown(ec);
+      this->m_remote_socket.lowest_layer().close(ec);
+   }
    DOUT(this->dinfo() << "Thread stopped");
 }
 

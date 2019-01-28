@@ -59,6 +59,7 @@ public:
    RemoteEndpoint m_endpoint;
    boost::asio::ip::tcp::socket m_local_socket;
    ssl_socket m_remote_socket;
+   std::mutex m_mutex;
 
    data_flow m_count_in, m_count_out;
 
