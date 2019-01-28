@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 
-project(uniproxy)
+project(uniproxy_proj)
 
 IF (WIN32)
 	SET(VC 14)
@@ -15,8 +15,8 @@ include_directories(. src/ libs/)
 IF (WIN32)
 
 	ADD_DEFINITIONS( -D_WIN32_WINNT=0x0501 /wd4250 /wd4018  /wd4267 /wd4996)
-	include_directories (${uniproxy_SOURCE_DIR} ${LANG}/w64-vc${VC}/include ${LANG}/cppcms-1.2.0/include ${LANG}/boost/1_67_0  ${LANG}/openssl-1.0.2d/include/)
-	LINK_DIRECTORIES( "${LANG}/w64-vc${VC}/lib" "${LANG}/openssl-1.0.2d/lib/vc${VC}x64/" ${LANG}/boost/1_67_0/lib64-msvc-${VC}.1/ ${LANG}/cppcms-1.2.0/lib/release)
+	include_directories (${uniproxy_SOURCE_DIR} ${LANG}/w64-vc${VC}/include ${LANG}/cppcms-1.2.0/include ${LANG}/boost/1_67_0  ${LANG}/openssl-1.1.0e/include/)
+	LINK_DIRECTORIES( "${LANG}/w64-vc${VC}/lib" "${LANG}/openssl-1.1.0e/lib/" ${LANG}/boost/1_67_0/lib64-msvc-${VC}.1/ ${LANG}/cppcms-1.2.0/lib/release)
 	# Use multi cores
 	SET(VISUAL_STUDIO_MP_FLAG "/MP")
 
@@ -37,7 +37,6 @@ ADD_SUBDIRECTORY(src uniproxy)
 
 IF (WIN32)
 
-	target_link_libraries (${PROJECT_NAME} cppcms booster libeay64vc14 ssleay64vc14 ) ##zlib pcre dbghelp )
 
 ELSE (WIN32)
 
