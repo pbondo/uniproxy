@@ -11,7 +11,7 @@
 // This version is released under the GNU General Public License with restrictions.
 // See the doc/license.txt file.
 //
-// Copyright (C) 2011-2013 by GateHouse A/S
+// Copyright (C) 2011-2019 by GateHouse A/S
 // All Rights Reserved.
 // http://www.gatehouse.dk
 // mailto:gh@gatehouse.dk
@@ -91,6 +91,159 @@ void proxy_global::stopall()
       this->localclients.clear();
    }
    this->m_activate_host.stop(true);
+}
+
+
+bool proxy_global::host_activate(const std::string& param)
+{
+   DOUT(__FUNCTION__ <<  ": " << param );
+   std::lock_guard<std::mutex> l(this->m_mutex_list);
+   for (auto& host : this->remotehosts)
+   {
+      for(auto& ep : host->m_remote_ep)
+      {
+         if (ep.m_name == param)
+         {
+            this->m_activate_host.add(param);
+            return true;
+         }
+      }
+   }
+   return false;
+}
+
+
+bool proxy_global::client_activate(const std::string& param, const std::string& sid)
+{
+   bool result = false;
+   DOUT(__FUNCTION__ << ": " << param << " ID: " << sid);
+   std::lock_guard<std::mutex> l(this->m_mutex_list);
+   for (auto& client : this->localclients)
+   {
+      int id;
+      if (client->m_id == mylib::from_string(sid, id))
+      {
+         int index = 0;
+         for (auto& r : client->m_proxy_endpoints)
+         {
+            if (r.m_name == param)
+            {
+               client->m_activate_stamp = boost::get_system_time() + boost::posix_time::seconds(30); // The client should timeout quickly
+               client->stop_activate();
+               client->start_activate(index);
+               result = true;
+               break;
+            }
+            index++;
+         }
+      }
+   }
+   return result;
+}
+
+
+void proxy_global::client_set_active(const std::string& param, int id, bool active)
+{
+   DOUT(__FUNCTION__ << ": " << param << " ID: " << id << " Checked: " << active);
+   std::lock_guard<std::mutex> l(this->m_mutex_list);
+   for (auto& client : this->localclients)
+   {
+      if (client->m_id == id)
+      {
+         client->m_active = active;
+         if (client->m_active)
+         {
+            client->start();
+         }
+         else
+         {
+            client->stop();
+         }
+         DOUT("Updated active state for: " << param << " new value: " << client->m_active);
+         return;
+      }
+   }
+}
+
+
+int proxy_global::host_test(const std::string& param)
+{
+   DOUT(__FUNCTION__ <<  ": " << param );
+   std::lock_guard<std::mutex> l(this->m_mutex_list);
+   for (auto& host : this->remotehosts)
+   {
+      for (auto& ep : host->m_remote_ep)
+      {
+         if (ep.m_name == param)
+         {
+            this->m_mutex_list.unlock();
+            DOUT("Host test ep: " << ep.save());
+            int code = host->test_local_connection(param);
+            DOUT("Host test completed result: " << code);
+            return code;
+         }
+      }
+   }
+   return 422;
+}
+
+
+void proxy_global::host_set_active(const std::string& param, int id, bool active)
+{
+   DOUT(__FUNCTION__ << ": " << param << " Checked: " << active);
+   std::lock_guard<std::mutex> l(this->m_mutex_list);
+   for (auto& host : this->remotehosts)
+   {
+      if (host->m_id == id)
+      {
+         if (active)
+         {
+            host->m_active = true;
+            host->start();
+         }
+         else
+         {
+            host->m_active = false;
+            host->stop(); // NB!! Is this a problem since it may be blocking?
+         }
+         DOUT("Updated active state for host: " << id << " new value: " << active);
+      }
+   }
+}
+
+
+bool proxy_global::client_certificate_exists(const std::string& certname) const
+{
+   std::lock_guard<std::mutex> l(this->m_mutex_list);
+   for (auto& client : this->localclients) // Look through all the client connections. If one is found then we reload.
+   {
+      for (int index = 0; index < client.get()->m_proxy_endpoints.size(); index++)
+      {
+         auto &r = client.get()->m_proxy_endpoints[index];
+         if (r.m_name == certname)
+         {
+            return true;
+         }
+      }
+   }
+   return false;
+}
+
+
+bool proxy_global::host_certificate_exists(const std::string& certname) const
+{
+   std::lock_guard<std::mutex> l(this->m_mutex_list);
+   for (auto& host : this->remotehosts)
+   {
+      for (const auto& remote : host->m_remote_ep)
+      {
+         if (remote.m_name == certname)
+         {
+            return true;
+         }
+      }
+   }
+   return false;
 }
 
 

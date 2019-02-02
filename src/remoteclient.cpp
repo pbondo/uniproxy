@@ -11,7 +11,7 @@
 // This version is released under the GNU General Public License with restrictions.
 // See the doc/license.txt file.
 //
-// Copyright (C) 2011-2013 by GateHouse A/S
+// Copyright (C) 2011-2019 by GateHouse A/S
 // All Rights Reserved.
 // http://www.gatehouse.dk
 // mailto:gh@gatehouse.dk
@@ -67,6 +67,7 @@ RemoteProxyClient::RemoteProxyClient(boost::asio::io_service& io_service, boost:
 
 RemoteProxyClient::~RemoteProxyClient()
 {
+   std::lock_guard<std::mutex> lock(this->m_mutex);
    DOUT(this->dinfo());
    delete[] this->m_remote_read_buffer;
    delete[] this->m_local_read_buffer;
@@ -106,12 +107,14 @@ void RemoteProxyClient::dolog( const std::string &_line )
 
 bool RemoteProxyClient::is_local_connected()
 {
+   std::lock_guard<std::mutex> lock(this->m_mutex);
    return this->m_local_socket.is_open() && this->m_local_connected;
 }
 
 
 bool RemoteProxyClient::is_remote_connected()
 {
+   std::lock_guard<std::mutex> lock(this->m_mutex);
    return this->m_remote_socket.lowest_layer().is_open() && this->m_remote_connected;
 }
 
@@ -147,6 +150,7 @@ void RemoteProxyClient::start( std::vector<LocalEndpoint> &_local_ep )
 
 bool RemoteProxyClient::is_active()
 {
+   std::lock_guard<std::mutex> lock(this->m_mutex);
    return this->m_local_thread.is_running() || this->m_remote_thread.is_running();
 }
 

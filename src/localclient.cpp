@@ -11,7 +11,7 @@
 // This version is released under the GNU General Public License with restrictions.
 // See the doc/license.txt file.
 //
-// Copyright (C) 2011-2015 by GateHouse A/S
+// Copyright (C) 2011-2019 by GateHouse A/S
 // All Rights Reserved.
 // http://www.gatehouse.dk
 // mailto:gh@gatehouse.dk
@@ -351,7 +351,12 @@ void LocalHost::check_deadline()
       std::lock_guard<std::mutex> l(this->m_mutex);
       if (this->m_pdeadline == nullptr || this->m_pdeadline->expires_at() <= deadline_timer::traits_type::now())
       {
-         DERR(":" << this->port() << " Timeout read from remote socket");
+         DERR(":" << this->port() << " Timeout read from remote socket pdeadline: " << (this->m_pdeadline != nullptr) << " io " << (this->mp_io_service != nullptr));
+         boost::system::error_code ec;
+         this->remote_socket().shutdown(ec);
+         this->remote_socket().lowest_layer().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+         this->remote_socket().lowest_layer().close(ec);
+
          if (this->m_pdeadline != nullptr)
          {
             this->m_pdeadline->expires_at(boost::posix_time::pos_infin);
@@ -361,10 +366,6 @@ void LocalHost::check_deadline()
             this->mp_io_service->stop();
          }
 
-         boost::system::error_code ec;
-         this->remote_socket().shutdown(ec);
-         this->remote_socket().lowest_layer().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
-         this->remote_socket().lowest_layer().close(ec);
          // This call should stop all local connections.
          call_interrupt = true;
       }

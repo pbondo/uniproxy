@@ -11,7 +11,7 @@
 // This version is released under the GNU General Public License with restrictions.
 // See the doc/license.txt file.
 //
-// Copyright (C) 2011-2013 by GateHouse A/S
+// Copyright (C) 2011-2019 by GateHouse A/S
 // All Rights Reserved.
 // http://www.gatehouse.dk
 // mailto:gh@gatehouse.dk
@@ -126,6 +126,7 @@ void proxy_app::status_get()
    this->response().out() << this->status_get_json();
 }
 
+
 void proxy_app::script(const std::string)
 {
    int kb = 0;
@@ -162,67 +163,22 @@ void proxy_app::get_public_certificate(const std::string _param)
 
 void proxy_app::host_activate(const std::string _param)
 {
-   DOUT(__FUNCTION__ <<  ": " << _param );
-   for ( auto iter = global.remotehosts.begin(); iter != global.remotehosts.end(); iter++ )
-   {
-      RemoteProxyHost *p = iter->get();
-      for ( auto iter = p->m_remote_ep.begin(); iter != p->m_remote_ep.end(); iter++ )
-      {
-         RemoteEndpoint &ep = *iter;
-         if ( ep.m_name == _param )
-         {
-            global.m_activate_host.add(_param);
-            return; // No need to add it more than once.
-         }
-      }
-   }
+   global.host_activate(_param);
 }
 
 
-void proxy_app::host_test(const std::string _param)
+void proxy_app::host_test(const std::string param)
 {
-   DOUT(__FUNCTION__ <<  ": " << _param );
-   for (auto& host : global.remotehosts)
-   {
-      for (auto& ep : host->m_remote_ep)
-      {
-         if (ep.m_name == _param)
-         {
-            DOUT("Host test ep: " << ep.save());
-            int code = host->test_local_connection(_param);
-            DOUT("Host test completed result: " << code);
-            this->response().status(code);
-            return;
-         }
-      }
-   }
-   DOUT(__FUNCTION__ << " failed to find local " << _param);
-   this->response().status(422);
+   int code = global.host_test(param);
+   this->response().status(code);
 }
 
 
 void proxy_app::host_active(const std::string _param, const std::string _id, const std::string _checked)
 {
-   DOUT(__FUNCTION__ << ": " << _param << " Checked: " << _checked);
-
-   for ( auto iter = global.remotehosts.begin(); iter != global.remotehosts.end(); iter++ )
+   if (int id; mylib::from_string(_id, id))
    {
-      RemoteProxyHost *p = iter->get();
-      int id;
-      if (p->m_id == mylib::from_string(_id,id) )
-      {
-         if (_checked == "true")
-         {
-            p->m_active = true;
-            p->start();
-         }
-         else
-         {
-            p->m_active = false;
-            p->stop();
-         }
-         DOUT("Updated active state for host: " << id << " new value: " << _checked);
-      }
+      global.host_set_active(_param, id, _checked == "true");
    }
 }
 
@@ -232,31 +188,14 @@ void proxy_app::certificate_delete(const std::string certname)
    DOUT(__FUNCTION__ << ": " << certname);
    if (delete_certificate_file(my_certs_name, certname))
    {
-      for (auto& client : global.localclients) // Look through all the client connections. If one is found then we reload.
+      if (global.client_certificate_exists(certname))
       {
-         for (int index = 0; index < client.get()->m_proxy_endpoints.size(); index++)
-         {
-            auto &r = client.get()->m_proxy_endpoints[index];
-            if (r.m_name == certname)
-            {
-               log().add(OSS(std::string("Found matching certificate ") << std::string(r.m_name) << " on client connection: " << r.m_hostname << ":" << r.m_port << " reloading configuration"));
-               throw mylib::reload_exception();
-            }
-         }
+         log().add(OSS("Found matching client certificate " << certname)); // << std::string(r.m_name) << " on client connection: " << r.m_hostname << ":" << r.m_port << " reloading configuration"));
+         throw mylib::reload_exception();
       }
-
-      //throw mylib::reload_exception(); // NB!! The following doesn't work yet, so we unconditionally throw.
-
-      // Run through the host connections and drop anyone mathing the name
-      for (auto& host : global.remotehosts)
+      if (global.host_certificate_exists(certname))
       {
-         for (const auto& remote : host->m_remote_ep)
-         {
-            if (remote.m_name == certname)
-            {
-               log().add(OSS("Found matching certificate " << remote.m_name << " will be removed " << remote.m_hostname << ":" << remote.m_port));
-            }
-         }
+         log().add(OSS("Found matching host certificate " << certname));
       }
       global.load_certificate_names(my_certs_name);
    }
@@ -293,7 +232,6 @@ void proxy_app::log_file(const std::string _param)
       global.m_out_data_log_file.close();
    }
 }
-
 
 
 // NB!! kludge! Should be possible inline with a simple regex
@@ -424,51 +362,16 @@ void proxy_app::shutdown()
 void proxy_app::client_activate(const std::string _param, const std::string _id)
 {
    DOUT(__FUNCTION__ << ": " << _param << " ID: " << _id);
-
-   for ( auto iter = global.localclients.begin(); iter != global.localclients.end(); iter++ )
-   {
-      BaseClient *p = iter->get();
-      int id;
-      if (p->m_id == mylib::from_string(_id,id) )
-      {
-         for ( int index = 0; index < p->m_proxy_endpoints.size(); index++ )
-         {
-            auto &r = p->m_proxy_endpoints[index];
-            if ( r.m_name == _param )
-            {
-               p->m_activate_stamp = boost::get_system_time() + boost::posix_time::seconds(30); // The client should timeout quickly
-               p->stop_activate();
-               p->start_activate(index);
-               break;
-            }
-         }
-      }
-   }
+   global.client_activate(_param, _id);
 }
 
 
 void proxy_app::client_active(const std::string _param, const std::string _id, const std::string _checked)
 {
    DOUT(__FUNCTION__ << ": " << _param << " ID: " << _id << " Checked: " << _checked);
-
-   for ( auto iter = global.localclients.begin(); iter != global.localclients.end(); iter++ )
+   if (int id; mylib::from_string(_id, id))
    {
-      BaseClient *p = iter->get();
-      int id;
-      if (p->m_id == mylib::from_string(_id,id) )
-      {
-         p->m_active = (_checked == "true") ? true : false;
-         if (p->m_active)
-         {
-            p->start();
-         }
-         else
-         {
-            p->stop();
-         }
-         DOUT("Updated active state for: " << _param << " new value: " << p->m_active);
-         return;
-      }
+      global.client_set_active(_param, id, _checked == "true");
    }
 }
 
@@ -538,7 +441,6 @@ void proxy_app::main(std::string url)
 //-------------------------------------------------------
 
 
-
 session_data::session_data( int _id )
 {
    this->m_id = _id;
@@ -553,11 +455,9 @@ void session_data::update_timestamp()
 }
 
 
-
 //-----------------------------------
 
 const char help_text[] = "Usage: uniproxy [-l/--working-dir=<working directory>]\nLog on with webbrowser http://localhost:8085/\n";
-
 
 
 int main(int argc,char ** argv)
@@ -603,9 +503,9 @@ int main(int argc,char ** argv)
 
          client_certificate_exchange cert_exch;
          stdt::lock_guard<client_certificate_exchange> certificate_exchange_lock(cert_exch);
-         if (!global.uniproxies.empty())
+         if (auto ups = global.get_uniproxies(); !ups.empty())
          {
-            cert_exch.start(global.uniproxies);
+            cert_exch.start(ups);
          }
 
          if ( global.m_debug )

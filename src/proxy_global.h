@@ -11,7 +11,7 @@
 // This version is released under the GNU General Public License with restrictions.
 // See the doc/license.txt file.
 //
-// Copyright (C) 2011-2013 by GateHouse A/S
+// Copyright (C) 2011-2019 by GateHouse A/S
 // All Rights Reserved.
 // http://www.gatehouse.dk
 // mailto:gh@gatehouse.dk
@@ -127,12 +127,31 @@ public:
    bool load_configuration();
    bool is_new_configuration(cppcms::json::value &obj) const;
 
+   bool host_activate(const std::string& param);
+   bool client_activate(const std::string& param, const std::string& sid);
+
+   void host_set_active(const std::string& param, int id, bool active);
+   void client_set_active(const std::string& param, int id, bool active);
+
+   int host_test(const std::string& param);
+
+   bool client_certificate_exists(const std::string& certname) const;
+   bool host_certificate_exists(const std::string& certname) const;
+
+   std::vector<LocalEndpoint> get_uniproxies() const
+   {
+      return uniproxies;
+   }
+
+
+private:
    // lists with associated mutex
-   stdt::mutex m_mutex_list;
+   mutable std::mutex m_mutex_list;
    std::vector<remotehost_ptr> remotehosts;
    std::vector<baseclient_ptr> localclients;
    std::vector<LocalEndpoint> uniproxies;
 
+public:
    mylib::port_type m_web_port = 8085;
    std::string m_ip4_mask;
    bool m_debug;
