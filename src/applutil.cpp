@@ -761,20 +761,11 @@ std::error_condition make_error_condition(uniproxy::error::error_t e)
 
 std::string readfile( const std::string &_filename )
 {
-   std::string result;
-   int length;
    std::ifstream ifs( _filename );
-   ifs.seekg( 0, std::ios::end );
-   length = static_cast<int>(ifs.tellg());
-   ifs.seekg( 0, std::ios::beg );
-   if ( length > 0 )
-   {
-      std::unique_ptr<char> buffer( new char[length] );
-      ifs.read( buffer.get(), length );
-      result = buffer.get();
-   }
-   ifs.close();
-   return result;
+   std::stringstream buffer;
+   buffer << ifs.rdbuf();
+
+   return buffer.str();
 }
 
 

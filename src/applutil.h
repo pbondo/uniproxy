@@ -249,7 +249,7 @@ public:
       return this->m_thread;
    }
 
-   bool m_stop;
+   std::atomic<bool> m_stop;
    std::function<void()> m_interrupt_function;
    stdt::thread m_thread;
 
