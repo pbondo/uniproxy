@@ -804,6 +804,8 @@ std::string proxy_global::save_json_status( bool readable )
             auto div = timeout - boost::get_system_time();
             obj["activate"] = div.total_seconds();
          }
+
+	 //!!VFT move to remote_client, can't store the RemoteProxyClient in to std::lists since we delete them in remote_client
          for ( auto iter3 = host.m_clients.begin(); iter3 != host.m_clients.end(); iter3++ )
          {
             RemoteProxyClient &client( *(*iter3) );
