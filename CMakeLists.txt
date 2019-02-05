@@ -22,7 +22,7 @@ IF (WIN32)
 
 ELSE (WIN32)
 
-	ADD_DEFINITIONS( -g -std=c++17 -Wall -Wno-sign-compare )
+	ADD_DEFINITIONS( -g -std=c++11 -Wall -Wno-sign-compare )
 	ADD_DEFINITIONS( -Wl,--whole-archive -Wl,--no-while-archive, -Wno-deprecated-declarations )
 
 	include_directories(/opt/boost/1_67_0/include/ /opt/cppcms/1.2.0/include)

@@ -176,7 +176,8 @@ void proxy_app::host_test(const std::string param)
 
 void proxy_app::host_active(const std::string _param, const std::string _id, const std::string _checked)
 {
-   if (int id; mylib::from_string(_id, id))
+   int id;
+   if (mylib::from_string(_id, id))
    {
       global.host_set_active(_param, id, _checked == "true");
    }
@@ -369,7 +370,8 @@ void proxy_app::client_activate(const std::string _param, const std::string _id)
 void proxy_app::client_active(const std::string _param, const std::string _id, const std::string _checked)
 {
    DOUT(__FUNCTION__ << ": " << _param << " ID: " << _id << " Checked: " << _checked);
-   if (int id; mylib::from_string(_id, id))
+   int id;
+   if (mylib::from_string(_id, id))
    {
       global.client_set_active(_param, id, _checked == "true");
    }
@@ -503,7 +505,8 @@ int main(int argc,char ** argv)
 
          client_certificate_exchange cert_exch;
          stdt::lock_guard<client_certificate_exchange> certificate_exchange_lock(cert_exch);
-         if (auto ups = global.get_uniproxies(); !ups.empty())
+         auto ups = global.get_uniproxies();
+         if (!ups.empty())
          {
             cert_exch.start(ups);
          }
