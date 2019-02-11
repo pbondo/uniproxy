@@ -4,8 +4,8 @@
 #service uniproxy stop
 #echo "service uniproxy stop: $?" 1>> /tmp/uniproxy.log 2>> /tmp/uniproxy.log
 
-systemctl stop aisdaemon.service
-systemctl disable aisdaemon.service
+systemctl stop uniproxy.service
+systemctl disable uniproxy.service
 
 exit 0
 
