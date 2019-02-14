@@ -43,8 +43,7 @@ Source: "third/vcredist_x64-vc14.exe"; Flags: dontcopy
 Source: "third/openssl.exe"; DestDir: "{app}"
 Source: "third/openssl.cnf"; DestDir: "{app}"
 Source: "third/libeay32.dll"; DestDir: "{app}"
-Source: "third/libeay64vc14.dll"; DestDir: "{app}"
-Source: "third/ssleay64vc14.dll"; DestDir: "{app}"
+Source: "third/ssleay32.dll"; DestDir: "{app}"
 Source: "third/libcrypto-1_1-x64.dll"; DestDir: "{app}"
 Source: "third/libssl-1_1-x64.dll"; DestDir: "{app}"
 Source: "third/nssm.exe"; DestDir: "{app}"; Check: GetInstallService()
