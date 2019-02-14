@@ -44,6 +44,8 @@ Source: "third/openssl.exe"; DestDir: "{app}"
 Source: "third/openssl.cnf"; DestDir: "{app}"
 Source: "third/libeay64vc14.dll"; DestDir: "{app}"
 Source: "third/ssleay64vc14.dll"; DestDir: "{app}"
+Source: "third/libcrypto-1_1-x64.dll"; DestDir: "{app}"
+Source: "third/libssl-1_1-x64.dll"; DestDir: "{app}"
 Source: "third/nssm.exe"; DestDir: "{app}"; Check: GetInstallService()
 ;Source: "third/zlib.dll"; DestDir: "{app}"
 Source: "third/nc.exe"; DestDir: "{app}"
