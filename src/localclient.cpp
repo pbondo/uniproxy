@@ -21,6 +21,7 @@
 #include <boost/bind.hpp>
 #include "proxy_global.h"
 
+
 using boost::asio::ip::tcp;
 using boost::asio::deadline_timer;
 
@@ -48,12 +49,14 @@ boost::asio::ip::tcp::socket &LocalHostSocket::socket()
 }
 
 
-LocalHost::LocalHost(bool _active, mylib::port_type _local_port, mylib::port_type _activate_port, const std::vector<RemoteEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin, const boost::posix_time::time_duration &_read_timeout)
+LocalHost::LocalHost(bool _active, mylib::port_type _local_port, mylib::port_type _activate_port, const std::vector<RemoteEndpoint> &_proxy_endpoints,
+   const int _max_connections, PluginHandler &_plugin, const boost::posix_time::time_duration &_read_timeout, bool auto_reconnect)
    : BaseClient(_active, _local_port, _activate_port, _proxy_endpoints, _max_connections, _plugin),
    mp_io_service( nullptr ),
    mp_acceptor( nullptr ),
    m_pdeadline( nullptr ),
-   m_read_timeout(_read_timeout)
+   m_read_timeout(_read_timeout),
+   m_auto_reconnect(auto_reconnect)
 {
    this->m_local_connected = false; 
 }
@@ -361,19 +364,25 @@ void LocalHost::check_deadline()
          {
             this->m_pdeadline->expires_at(boost::posix_time::pos_infin);
          }
-         if (this->mp_io_service != nullptr)
+         if (!this->m_auto_reconnect)
          {
-            this->mp_io_service->stop();
+            if (this->mp_io_service != nullptr)
+            {
+               this->mp_io_service->stop();
+            }
+            // This call should stop all local connections.
+            call_interrupt = true;
          }
-
-         // This call should stop all local connections.
-         call_interrupt = true;
       }
       // Put the actor back to sleep.
       if (this->m_pdeadline != nullptr)
       {  // This is called for every transmission.
          this->m_pdeadline->async_wait(boost::bind(&LocalHost::check_deadline, this));
       }
+   }
+   if (this->m_pdeadline == nullptr)
+   {
+      DOUT("deadline is null!");
    }
    if (call_interrupt)
    {  // Must happen outside the mutex
@@ -498,7 +507,8 @@ void LocalHost::threadproc()
          // Unstable. Uncertain about the actual cause. Does not work with either async or sync handshake.
          // io_service.run() terminates immediately, nothing (no handler) is called and no error code is returned.
          // Happens after timeout but appears to work ok if the remote end terminates the connection.
-         // NB!! while(this->m_thread.check_run() && !this->m_local_sockets.empty() && this->is_local_connected())
+         // NB!!while(this->m_thread.check_run() && !this->m_local_sockets.empty() && this->is_local_connected())
+         do
          {
             this->m_proxy_index = 0;
             if (!this->m_proxy_endpoints.empty()) // Pick a new random access value.
@@ -508,6 +518,7 @@ void LocalHost::threadproc()
             this->go_out(io_service);
             this->m_thread.sleep(5000);
          }
+         while(this->m_auto_reconnect && this->m_thread.check_run() && !this->m_local_sockets.empty() && this->is_local_connected());
       }
       catch( std::exception &exc )
       {

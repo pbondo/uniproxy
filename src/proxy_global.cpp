@@ -503,6 +503,11 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
             mylib::from_string(shelp, read_timeout);
             DOUT("Read timeout from configuration: " << read_timeout);
          }
+         bool auto_reconnect = false;
+         if (cppcms::utils::check_bool(item1, "auto_reconnect", auto_reconnect))
+         {
+            DOUT("Auto reconnect: " << auto_reconnect);
+         }
          int max_connections = cppcms::utils::check_int( item1, "max_connections", 1, false );
          std::vector<RemoteEndpoint> proxy_endpoints;
          std::vector<LocalEndpoint> provider_endpoints;
@@ -548,7 +553,7 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
          else if ( active && proxy_endpoints.size() > 0 )
          {
             // NB!! Search for the correct plugin version
-            baseclient_ptr local_ptr( new LocalHost( active, client_port, activate_port, proxy_endpoints, max_connections, standard_plugin, read_timeout ) );
+            baseclient_ptr local_ptr(new LocalHost(active, client_port, activate_port, proxy_endpoints, max_connections, standard_plugin, read_timeout, auto_reconnect));
             this->localclients.push_back( local_ptr );
          } // NB!! What else if one of them is empty
       }
