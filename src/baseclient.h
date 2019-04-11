@@ -29,15 +29,45 @@ public:
 
    BaseClient(bool _active, mylib::port_type _local_port, mylib::port_type _activate_port, const std::vector<RemoteEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin);
 
-   virtual std::string info() const;
+   virtual cppcms::json::value save_json_status();
+   virtual cppcms::json::value save_json_config() const;
 
    virtual void start() = 0;
    virtual void stop() = 0;
    virtual void interrupt() = 0;
+
+   bool is_active() const
+   {
+      return this->m_active;
+   }
+
+   // Return true if the name if found.
+   bool activate(const std::string& name);
+
+   virtual std::string local_portname() const;
+
+   bool set_active(const std::string& param, int id, bool active);
+
+   bool certificate_exists(const std::string& certname) const;
+
+   int id() const
+   {
+      return this->m_id;
+   }
+
+   friend std::ostream &operator << (std::ostream &os, const BaseClient &client);
+
+   mylib::port_type port() const { return this->m_local_port; }
+
+   mylib::port_type activate_port() const { return this->m_activate_port; }
+
+protected:
+
+   virtual std::string info() const;
+
    virtual bool is_local_connected() const = 0;
    virtual int local_user_count() const = 0;
    virtual std::vector<std::string> local_hostnames() const = 0;
-   virtual std::string local_portname() const;
 
    // The remote connections does not need to be virtual.
    std::string remote_hostname() const;
@@ -46,7 +76,7 @@ public:
 
    ssl_socket &remote_socket();
 
-   const std::string dolog();
+   const std::string dolog() const;
    void dolog( const std::string &_line );
 
    std::string get_password() const;
@@ -64,27 +94,19 @@ public:
    ssl_socket *mp_remote_socket;
    data_flow m_count_in, m_count_out;
    
-   mylib::port_type port() const { return this->m_local_port; }
-   mylib::port_type activate_port() const { return this->m_activate_port; }
-
-protected:
 
    mylib::port_type m_local_port;
    mylib::port_type m_activate_port;
 
-public:
-
    int m_max_connections;
    boost::posix_time::ptime m_activate_stamp;
-
-protected:
 
    std::string m_log;
    mylib::thread m_thread_activate;
    mylib::thread m_thread;
    PluginHandler &m_plugin;
 
-   mutable stdt::mutex m_mutex;
+   mutable std::mutex m_mutex_base;
 
    enum { max_length = 1024 };
    char m_local_data[max_length+1];

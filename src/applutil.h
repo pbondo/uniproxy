@@ -344,7 +344,7 @@ public:
    // Modulate by 1 seconds.
    size_t m_buffer[data_flow_size];
 
-   int64_t timestamp();
+   int64_t timestamp() const;
 
    int64_t m_stamp;
 

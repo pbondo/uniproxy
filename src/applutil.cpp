@@ -631,7 +631,7 @@ void proxy_log::do_log(const std::string& s)
 #endif
 
 
-int64_t data_flow::timestamp()
+int64_t data_flow::timestamp() const
 {
    auto time = boost::chrono::steady_clock::now();       // get the current time
    auto since_epoch = time.time_since_epoch();     // get the duration since epoch

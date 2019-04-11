@@ -34,6 +34,8 @@ public:
          const std::vector<RemoteEndpoint> &_proxy_endpoints, // Remote proxy
          PluginHandler &_plugin, const cppcms::json::value &_json);
 
+protected:
+
    void start();
    void stop();
 
@@ -50,6 +52,8 @@ public:
    std::string local_portname() const;
 
    std::vector<std::string> local_hostnames() const;
+
+public:
 
    void lock();
    void unlock();

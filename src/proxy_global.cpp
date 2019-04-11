@@ -51,9 +51,9 @@ void proxy_global::lock()
    for ( auto iter = this->localclients.begin(); iter != this->localclients.end(); iter++ )
    {
       baseclient_ptr p = *iter;
-      if ( p->m_active )
+      if (p->is_active())
       {
-         DOUT("Starting localhost at: " << p->local_portname() );
+         DOUT("Starting localhost at: " << p->local_portname());
          p->start();
       }
    }
@@ -121,20 +121,11 @@ bool proxy_global::client_activate(const std::string& param, const std::string& 
    for (auto& client : this->localclients)
    {
       int id;
-      if (client->m_id == mylib::from_string(sid, id))
+      if (client->id() == mylib::from_string(sid, id))
       {
-         int index = 0;
-         for (auto& r : client->m_proxy_endpoints)
+         if (client->activate(param))
          {
-            if (r.m_name == param)
-            {
-               client->m_activate_stamp = boost::get_system_time() + boost::posix_time::seconds(30); // The client should timeout quickly
-               client->stop_activate();
-               client->start_activate(index);
-               result = true;
-               break;
-            }
-            index++;
+            return true;
          }
       }
    }
@@ -148,18 +139,8 @@ void proxy_global::client_set_active(const std::string& param, int id, bool acti
    std::lock_guard<std::mutex> l(this->m_mutex_list);
    for (auto& client : this->localclients)
    {
-      if (client->m_id == id)
+      if (client->set_active(param, id, active))
       {
-         client->m_active = active;
-         if (client->m_active)
-         {
-            client->start();
-         }
-         else
-         {
-            client->stop();
-         }
-         DOUT("Updated active state for: " << param << " new value: " << client->m_active);
          return;
       }
    }
@@ -217,13 +198,9 @@ bool proxy_global::client_certificate_exists(const std::string& certname) const
    std::lock_guard<std::mutex> l(this->m_mutex_list);
    for (auto& client : this->localclients) // Look through all the client connections. If one is found then we reload.
    {
-      for (int index = 0; index < client.get()->m_proxy_endpoints.size(); index++)
+      if (client->certificate_exists(certname))
       {
-         auto &r = client.get()->m_proxy_endpoints[index];
-         if (r.m_name == certname)
-         {
-            return true;
-         }
+         return true;
       }
    }
    return false;
@@ -252,17 +229,9 @@ bool is_provider(const BaseClient &client)
    return dynamic_cast<const ProviderClient*>(&client) != nullptr;
 }
 
-bool has_array(const cppcms::json::value &obj, const std::string &name)
-{
-   cppcms::json::value res = obj.find( name );
-   return res.type() == cppcms::json::is_array;
-}
-
-
 std::ostream &operator << (std::ostream &os, const BaseClient &client)
 {
    os << "port: " << client.port() << " provider: " << (int)is_provider(client) << "[";
-
    for (auto item : client.m_proxy_endpoints)
    {
       os << " " << item.m_hostname << " " << item.m_port;
@@ -271,14 +240,22 @@ std::ostream &operator << (std::ostream &os, const BaseClient &client)
    return os;
 }
 
+bool has_array(const cppcms::json::value &obj, const std::string &name)
+{
+   cppcms::json::value res = obj.find( name );
+   return res.type() == cppcms::json::is_array;
+}
+
+
+
 
 bool proxy_global::is_same( const BaseClient &client, cppcms::json::value &obj1, bool &param_changed, bool &remotes_changed ) const
 {
-   // This function does not currently work correctly if changing a port on the remote part.
+   //NB!! This function does not currently work correctly if changing a port on the remote part.
 param_changed = true;
 remotes_changed = true;
 return false;
-
+/*
    bool result = false;
    param_changed = false;
    remotes_changed = false;
@@ -314,6 +291,7 @@ return false;
    }
    DOUT("Compare clients: " << client << " <=> " << obj1 << " result: " << result << " param: " << (int)param_changed << " remotes_changed: " << (int)remotes_changed);
    return result;
+*/
 }
 
 
@@ -722,63 +700,7 @@ std::string proxy_global::save_json_status( bool readable )
    // ---- THE CLIENT PART ----
    for ( int index1 = 0; index1 < this->localclients.size(); index1++ )
    {
-      BaseClient &local = *this->localclients[index1];
-      cppcms::json::object obj;
-      obj["id"] = local.m_id;
-      obj["active"] = local.m_active;
-      obj["port"] = local.local_portname();
-      obj["activate"]["port"] = local.activate_port();
-      obj["connected_local"] = local.is_local_connected();
-      obj["log"] = local.dolog();
-
-      // Fill in the list of attached local hosts.
-      std::vector<std::string> hostnames = local.local_hostnames();
-      for (int index3 = 0; index3 < hostnames.size(); index3++)
-      {
-         std::string sz = hostnames[index3];
-         if ( sz.length() )
-         {
-            obj["local_hostname"][index3] = sz;
-         }
-      }
-
-      bool remote_conn = false;
-      for ( int index2 = 0; index2 < local.m_proxy_endpoints.size(); index2++ )
-      {
-         if ( local.is_remote_connected(index2) )
-         {
-            remote_conn = true;
-         }
-      }
-      for ( int index2 = 0; index2 < local.m_proxy_endpoints.size(); index2++ )
-      {
-         auto &r = local.m_proxy_endpoints[index2];
-         cppcms::json::object obj2;
-         obj2["name"] = r.m_name;
-         obj2["hostname"] = r.m_hostname;
-         obj2["port"] = r.m_port;
-         if ((local.is_local_connected() && local.is_remote_connected(index2)) || !remote_conn)
-         {
-            obj2["connected_remote"] = local.is_remote_connected(index2);
-            if ( local.is_remote_connected(index2) )
-            {
-               obj2["count_in"] = local.m_count_in.get();
-               obj2["count_out"] = local.m_count_out.get();
-            }
-            obj["users"] = local.local_user_count();
-         }
-         if (this->certificate_available(r.m_name))
-         {
-            obj2["cert"] = true;
-         }
-         if ( local.m_proxy_index == index2 && local.m_activate_stamp > boost::get_system_time())
-         {           
-            auto div = local.m_activate_stamp - boost::get_system_time();
-            obj2["activate"] = div.total_seconds();
-         }
-
-         obj["remotes"][index2] = obj2;
-      }
+      cppcms::json::value obj = this->localclients[index1]->save_json_status();
       glob["clients"][index1] = obj;
    }
 
@@ -977,13 +899,7 @@ std::string proxy_global::save_json_config( bool readable )
    for ( int index = 0; index < this->localclients.size(); index++ )
    {
       BaseClient &host( *this->localclients[index] );
-      cppcms::json::object obj;
-      obj["id"] = host.m_id;
-      obj["active"] = host.m_active;
-      obj["local_port"] = host.local_portname();
-      obj["remote_hostname"] = host.remote_hostname();
-      obj["remote_port"] = host.remote_port();
-      obj["max_connections"] = host.m_max_connections;
+      cppcms::json::value obj = this->localclients[index]->save_json_config();
       glob["clients"][index] = obj;
    }
    // The host part

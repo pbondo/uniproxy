@@ -61,7 +61,7 @@ void BaseClient::dolog( const std::string &_line )
 }
 
 
-const std::string BaseClient::dolog()
+const std::string BaseClient::dolog() const
 {
    return this->m_log;
 }
@@ -81,9 +81,10 @@ std::string BaseClient::remote_hostname() const
 
 bool BaseClient::is_remote_connected(int index) const
 {
-   stdt::lock_guard<stdt::mutex> l(this->m_mutex);
-   return this->mp_remote_socket != nullptr && this->mp_remote_socket->lowest_layer().is_open() && //this->m_remote_connected && 
-      is_connected(this->mp_remote_socket->lowest_layer())
+   std::lock_guard<std::mutex> l(this->m_mutex_base);
+   return this->mp_remote_socket != nullptr
+      && this->mp_remote_socket->lowest_layer().is_open()
+      && is_connected(this->mp_remote_socket->lowest_layer())
       && (this->m_proxy_index == index || index == -1);
 }
 
@@ -161,4 +162,123 @@ std::string BaseClient::local_portname() const
    return mylib::to_string(this->m_local_port);
 }
 
+bool BaseClient::activate(const std::string& name)
+{
+   int index = 0;
+   for (auto& r : this->m_proxy_endpoints)
+   {
+      if (r.m_name == name)
+      {
+         this->m_activate_stamp = boost::get_system_time() + boost::posix_time::seconds(30); // The client should timeout quickly
+         this->stop_activate();
+         this->start_activate(index);
+         return true;
+      }
+      index++;
+   }
+   return false;
+}
 
+bool BaseClient::set_active(const std::string& param, int id, bool active)
+{
+   if (this->m_id == id)
+   {
+      this->m_active = active;
+      if (this->m_active)
+      {
+         this->start();
+      }
+      else
+      {
+         this->stop();
+      }
+      DOUT("Updated active state for: " << param << " new value: " << this->m_active);
+      return true;
+   }
+   return false;
+}
+
+bool BaseClient::certificate_exists(const std::string& certname) const
+{
+   for (int index = 0; index < this->m_proxy_endpoints.size(); index++)
+   {
+      auto &r = this->m_proxy_endpoints[index];
+      if (r.m_name == certname)
+      {
+         return true;
+      }
+   }
+   return false;
+}
+
+cppcms::json::value BaseClient::save_json_status()
+{
+   cppcms::json::object obj;
+   obj["id"] = this->m_id;
+   obj["active"] = this->m_active;
+   obj["port"] = this->local_portname();
+   obj["activate"]["port"] = this->activate_port();
+   obj["connected_local"] = this->is_local_connected();
+   obj["log"] = this->dolog();
+
+   // Fill in the list of attached local hosts.
+   std::vector<std::string> hostnames = this->local_hostnames();
+   for (int index3 = 0; index3 < hostnames.size(); index3++)
+   {
+      std::string sz = hostnames[index3];
+      if (sz.length())
+      {
+         obj["local_hostname"][index3] = sz;
+      }
+   }
+
+   bool remote_conn = false;
+   for (int index2 = 0; index2 < this->m_proxy_endpoints.size(); index2++)
+   {
+      if (this->is_remote_connected(index2))
+      {
+         remote_conn = true;
+      }
+   }
+   for (int index2 = 0; index2 < this->m_proxy_endpoints.size(); index2++)
+   {
+      auto &r = this->m_proxy_endpoints[index2];
+      cppcms::json::object obj2;
+      obj2["name"] = r.m_name;
+      obj2["hostname"] = r.m_hostname;
+      obj2["port"] = r.m_port;
+      if ((this->is_local_connected() && this->is_remote_connected(index2)) || !remote_conn)
+      {
+         obj2["connected_remote"] = this->is_remote_connected(index2);
+         if (this->is_remote_connected(index2))
+         {
+            obj2["count_in"] = this->m_count_in.get();
+            obj2["count_out"] = this->m_count_out.get();
+         }
+         obj["users"] = this->local_user_count();
+      }
+      if (global.certificate_available(r.m_name))
+      {
+         obj2["cert"] = true;
+      }
+      if (this->m_proxy_index == index2 && this->m_activate_stamp > boost::get_system_time())
+      {
+         auto div = this->m_activate_stamp - boost::get_system_time();
+         obj2["activate"] = div.total_seconds();
+      }
+      obj["remotes"][index2] = obj2;
+   }
+   return obj;
+}
+
+cppcms::json::value BaseClient::save_json_config() const
+{
+   cppcms::json::value obj;
+   obj["id"] = this->m_id;
+   obj["active"] = this->m_active;
+   obj["local_port"] = this->local_portname();
+   obj["remote_hostname"] = this->remote_hostname();
+   obj["remote_port"] = this->remote_port();
+   obj["max_connections"] = this->m_max_connections;
+   return obj;
+}

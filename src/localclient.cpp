@@ -65,7 +65,7 @@ LocalHost::LocalHost(bool _active, mylib::port_type _local_port, mylib::port_typ
 bool LocalHost::is_local_connected() const
 {
    bool result = false;
-   std::lock_guard<std::mutex> l(this->m_mutex);
+   std::lock_guard<std::mutex> l(this->m_mutex_base);
    for ( auto iter = this->m_local_sockets.begin(); iter != this->m_local_sockets.end(); iter++ )
    {
       if ( (*iter)->socket().is_open() && this->m_local_connected )
@@ -80,7 +80,7 @@ bool LocalHost::is_local_connected() const
 int LocalHost::local_user_count() const
 {
    int result = 0;
-   std::lock_guard<std::mutex> l(this->m_mutex);
+   std::lock_guard<std::mutex> l(this->m_mutex_base);
    for ( auto iter = this->m_local_sockets.begin(); iter != this->m_local_sockets.end(); iter++ )
    {
       if ( (*iter)->socket().is_open() && this->m_local_connected )
@@ -95,7 +95,7 @@ int LocalHost::local_user_count() const
 std::vector<std::string> LocalHost::local_hostnames() const
 {
    std::vector<std::string> result;
-   std::lock_guard<std::mutex> l(this->m_mutex);
+   std::lock_guard<std::mutex> l(this->m_mutex_base);
    for ( auto iter = this->m_local_sockets.begin(); iter != this->m_local_sockets.end(); iter++ )
    {
       boost::asio::ip::tcp::socket &socket((*iter)->socket());
@@ -130,7 +130,7 @@ void LocalHost::cleanup()
 {
    try
    {
-      std::lock_guard<std::mutex> l(this->m_mutex);
+      std::lock_guard<std::mutex> l(this->m_mutex_base);
       while ( this->m_local_sockets.size() > 0 )
       {
          boost::system::error_code ec;
@@ -153,7 +153,7 @@ void LocalHost::interrupt()
    {
       DOUT(info() << "Enter");
       {
-         std::lock_guard<std::mutex> l(this->m_mutex);
+         std::lock_guard<std::mutex> l(this->m_mutex_base);
          if ( this->mp_acceptor != nullptr )
          {
             boost::system::error_code ec;
@@ -162,7 +162,7 @@ void LocalHost::interrupt()
          }
       }
       {
-         std::lock_guard<std::mutex> l(this->m_mutex);
+         std::lock_guard<std::mutex> l(this->m_mutex_base);
 
          for ( int index = 0; index < this->m_local_sockets.size(); index++ )
          {
@@ -171,7 +171,7 @@ void LocalHost::interrupt()
          }
       }
       {
-         std::lock_guard<std::mutex> l(this->m_mutex);
+         std::lock_guard<std::mutex> l(this->m_mutex_base);
          if ( this->mp_remote_socket != nullptr )
          {
             boost::system::error_code ec;
@@ -189,7 +189,7 @@ void LocalHost::interrupt()
 
 void LocalHost::remove_socket( boost::asio::ip::tcp::socket &_socket )
 {
-   std::lock_guard<std::mutex> l(this->m_mutex);
+   std::lock_guard<std::mutex> l(this->m_mutex_base);
    for ( auto iter = this->m_local_sockets.begin(); iter != this->m_local_sockets.end(); iter++ )
    {
       if ( (*iter)->socket() == _socket )
@@ -261,7 +261,7 @@ void LocalHost::handle_remote_read(const boost::system::error_code& error,size_t
    if (!error)
    {
       this->m_count_in.add( bytes_transferred );
-      std::lock_guard<std::mutex> l(this->m_mutex);
+      std::lock_guard<std::mutex> l(this->m_mutex_base);
       this->m_remote_data[bytes_transferred] = 0;
       this->m_last_incoming_msg = this->m_remote_data;
       this->m_last_incoming_stamp = boost::get_system_time();
@@ -351,7 +351,7 @@ void LocalHost::check_deadline()
 {
    bool call_interrupt = false;
    {
-      std::lock_guard<std::mutex> l(this->m_mutex);
+      std::lock_guard<std::mutex> l(this->m_mutex_base);
       if (this->m_pdeadline == nullptr || this->m_pdeadline->expires_at() <= deadline_timer::traits_type::now())
       {
          DERR(":" << this->port() << " Timeout read from remote socket pdeadline: " << (this->m_pdeadline != nullptr) << " io " << (this->mp_io_service != nullptr));
@@ -400,7 +400,7 @@ void LocalHost::handle_handshake(const boost::system::error_code& error)
    {
       this->dolog(info() + "Succesfull SSL handshake to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()));
       {
-         std::lock_guard<std::mutex> l(this->m_mutex);
+         std::lock_guard<std::mutex> l(this->m_mutex_base);
          if (this->m_pdeadline != nullptr)
          {
             this->m_pdeadline->expires_from_now(this->m_read_timeout);
@@ -422,7 +422,7 @@ void LocalHost::go_out(boost::asio::io_service &io_service)
    {
       io_service.reset();
       boost::asio::deadline_timer deadline(io_service);
-      mylib::protect_pointer<boost::asio::deadline_timer> p_deadline( this->m_pdeadline, deadline, this->m_mutex );
+      mylib::protect_pointer<boost::asio::deadline_timer> p_deadline( this->m_pdeadline, deadline, this->m_mutex_base );
       boost::asio::ssl::context ssl_context(boost::asio::ssl::context::tlsv12);
       ssl_context.set_password_callback(boost::bind(&LocalHost::get_password,this));
       ssl_context.set_verify_mode(boost::asio::ssl::context::verify_peer|boost::asio::ssl::context::verify_fail_if_no_peer_cert);
@@ -430,7 +430,7 @@ void LocalHost::go_out(boost::asio::io_service &io_service)
       ssl_context.use_certificate_chain_file(my_public_cert_name);
       ssl_context.use_private_key_file(my_private_key_name, boost::asio::ssl::context::pem);
       ssl_socket rem_socket( io_service, ssl_context );
-      mylib::protect_pointer<ssl_socket> p2( this->mp_remote_socket, rem_socket, this->m_mutex );
+      mylib::protect_pointer<ssl_socket> p2( this->mp_remote_socket, rem_socket, this->m_mutex_base );
 
       this->dolog(info() + "Connecting to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()) );
       boost::asio::sockect_connect(rem_socket.lowest_layer(), io_service, this->remote_hostname(), this->remote_port() );
@@ -477,7 +477,7 @@ void LocalHost::threadproc()
       {
          DOUT(info() << __FUNCTION__ << ":" << __LINE__);
          boost::asio::io_service io_service;
-         mylib::protect_pointer<boost::asio::io_service> p_io_service( this->mp_io_service, io_service, this->m_mutex );
+         mylib::protect_pointer<boost::asio::io_service> p_io_service( this->mp_io_service, io_service, this->m_mutex_base );
 
          // We make this as a pointer because there may be more than one.
          boost::asio::ip::tcp::socket *local_socket = new boost::asio::ip::tcp::socket(io_service);
@@ -485,7 +485,7 @@ void LocalHost::threadproc()
          // NB!! This will only support ipv4
          boost::asio::ip::tcp::acceptor acceptor( io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), this->m_local_port) );
 
-         mylib::protect_pointer<boost::asio::ip::tcp::acceptor> p3( this->mp_acceptor, acceptor, this->m_mutex );
+         mylib::protect_pointer<boost::asio::ip::tcp::acceptor> p3( this->mp_acceptor, acceptor, this->m_mutex_base );
          boost::asio::io_service::work session_work(io_service);
 
          std::shared_ptr<void> ptr( NULL, [this](void*){ DOUT(info() << "local exit loop"); this->interrupt(); this->cleanup();} );

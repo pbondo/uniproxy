@@ -45,7 +45,7 @@ ProviderClient::ProviderClient(bool _active, mylib::port_type _activate_port, co
 
 bool ProviderClient::is_local_connected() const
 {
-   stdt::lock_guard<stdt::mutex> l(this->m_mutex);
+   stdt::lock_guard<stdt::mutex> l(this->m_mutex_base);
    return this->mp_local_socket != nullptr && is_connected(this->mp_local_socket->lowest_layer());
 }
 
@@ -91,7 +91,7 @@ void ProviderClient::interrupt()
 {
    try
    {
-      stdt::lock_guard<stdt::mutex> l(this->m_mutex);
+      stdt::lock_guard<stdt::mutex> l(this->m_mutex_base);
 
       if ( this->mp_local_socket != nullptr )
       {
@@ -189,7 +189,7 @@ void ProviderClient::threadproc_writer()
          ssl_context.use_private_key_file(my_private_key_name, boost::asio::ssl::context::pem);
          ssl_socket remote_socket( io_service, ssl_context );
 
-         mylib::protect_pointer<ssl_socket> p2( this->mp_remote_socket, remote_socket, this->m_mutex );
+         mylib::protect_pointer<ssl_socket> p2( this->mp_remote_socket, remote_socket, this->m_mutex_base );
 
          this->connect_remote(io_service, remote_socket);
 
@@ -274,7 +274,7 @@ void ProviderClient::threadproc_reader()
          boost::asio::io_service::work session_work(io_service);
 
          boost::asio::ip::tcp::socket local_socket(io_service);
-         mylib::protect_pointer<boost::asio::ip::tcp::socket> p1( this->mp_local_socket, local_socket, this->m_mutex );
+         mylib::protect_pointer<boost::asio::ip::tcp::socket> p1( this->mp_local_socket, local_socket, this->m_mutex_base );
          std::string ep;
          for ( int index = 0; index < this->m_local_endpoints.size(); index++ )
          {
@@ -330,7 +330,7 @@ void ProviderClient::threadproc_reader()
             ssl_context.use_certificate_chain_file(my_public_cert_name);
             ssl_context.use_private_key_file(my_private_key_name, boost::asio::ssl::context::pem);
             ssl_socket remote_socket( io_service, ssl_context );
-            mylib::protect_pointer<ssl_socket> p2( this->mp_remote_socket, remote_socket, this->m_mutex );
+            mylib::protect_pointer<ssl_socket> p2( this->mp_remote_socket, remote_socket, this->m_mutex_base );
             
             this->connect_remote(io_service, remote_socket);
 
