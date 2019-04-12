@@ -229,16 +229,6 @@ bool is_provider(const BaseClient &client)
    return dynamic_cast<const ProviderClient*>(&client) != nullptr;
 }
 
-std::ostream &operator << (std::ostream &os, const BaseClient &client)
-{
-   os << "port: " << client.port() << " provider: " << (int)is_provider(client) << "[";
-   for (auto item : client.m_proxy_endpoints)
-   {
-      os << " " << item.m_hostname << " " << item.m_port;
-   }
-   os << "]";
-   return os;
-}
 
 bool has_array(const cppcms::json::value &obj, const std::string &name)
 {
@@ -247,14 +237,12 @@ bool has_array(const cppcms::json::value &obj, const std::string &name)
 }
 
 
-
-
 bool proxy_global::is_same( const BaseClient &client, cppcms::json::value &obj1, bool &param_changed, bool &remotes_changed ) const
 {
    //NB!! This function does not currently work correctly if changing a port on the remote part.
-param_changed = true;
-remotes_changed = true;
-return false;
+   param_changed = true;
+   remotes_changed = true;
+   return false;
 /*
    bool result = false;
    param_changed = false;
@@ -1219,7 +1207,7 @@ void activate_host::start(int _port)
    else
    {
       int port = -1;
-      std::lock_guard<std::mutex> lock(this->m_mutex);
+      std::lock_guard<std::mutex> lock(this->m_mutex_activate);
       if (this->mp_acceptor != nullptr)
       {
          boost::system::error_code ec;
@@ -1233,25 +1221,21 @@ void activate_host::start(int _port)
 
 void activate_host::interrupt()
 {
-   std::lock_guard<std::mutex> l(this->m_mutex);
-   if ( this->mp_acceptor != nullptr )
+   if (int sock = get_socket(this->mp_acceptor, this->m_mutex_activate); sock != 0)
    {
-      boost::system::error_code ec;
-      TRY_CATCH( (*this->mp_acceptor).cancel(ec) );
-      TRY_CATCH( boost::asio::socket_shutdown( *this->mp_acceptor,ec ) );
+      // Do we need a cancel??
+      shutdown(sock, SD_BOTH);
    }
-   if (this->mp_socket != nullptr)
+   if (int sock = get_socket(this->mp_socket, this->m_mutex_activate); sock != 0)
    {
-      boost::system::error_code ec;
-      TRY_CATCH( (*this->mp_socket).cancel(ec) );
-      TRY_CATCH( boost::asio::socket_shutdown( *this->mp_socket,ec ) );
+      shutdown(sock, SD_BOTH);
    }
 }
 
 
 void activate_host::add(std::string _certname)
 {
-   std::lock_guard<std::mutex> l(this->m_mutex);
+   std::lock_guard<std::mutex> l(this->m_mutex_activate);
 
    this->cleanup();
 
@@ -1278,15 +1262,15 @@ void activate_host::threadproc(int _port)
          boost::asio::io_service io_service;
          boost::asio::ip::tcp::acceptor acceptor( io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), _port) );
          boost::asio::ip::tcp::socket socket(io_service);
-         mylib::protect_pointer<boost::asio::ip::tcp::socket> socket_lock(this->mp_socket, socket, this->m_mutex);
-         mylib::protect_pointer<boost::asio::ip::tcp::acceptor> acceptor_lock(this->mp_acceptor, acceptor, this->m_mutex);
+         mylib::protect_pointer<boost::asio::ip::tcp::socket> socket_lock(this->mp_socket, socket, this->m_mutex_activate);
+         mylib::protect_pointer<boost::asio::ip::tcp::acceptor> acceptor_lock(this->mp_acceptor, acceptor, this->m_mutex_activate);
          DOUT(__FUNCTION__ << " acceptor ready");
 
          acceptor.accept(socket);
          DOUT(__FUNCTION__ << " new certificate client connected");
          std::vector<std::string> activate_names;
          {
-            std::lock_guard<std::mutex> lock(this->m_mutex);
+            std::lock_guard<std::mutex> lock(this->m_mutex_activate);
             for (auto &elm : this->m_activate)
             {
                if (elm.m_activate_stamp > boost::get_system_time())
@@ -1299,7 +1283,7 @@ void activate_host::threadproc(int _port)
          if (!certname.empty() && global.SetupCertificatesClient(socket, certname))
          {
             DOUT("Succeeded in exchanging certificates for " << certname);
-            std::lock_guard<std::mutex> lock(this->m_mutex);
+            std::lock_guard<std::mutex> lock(this->m_mutex_activate);
             for (auto iter = this->m_activate.begin(); iter != this->m_activate.end(); iter++)
             {
                if (iter->m_activate_name == certname)
@@ -1325,7 +1309,7 @@ void activate_host::threadproc(int _port)
 
 bool activate_host::remove(const std::string &certname)
 {
-   std::lock_guard<std::mutex> lock(this->m_mutex);
+   std::lock_guard<std::mutex> lock(this->m_mutex_activate);
    this->cleanup();
    for (auto iter = this->m_activate.begin(); iter != this->m_activate.end(); iter++)
    {
@@ -1342,7 +1326,7 @@ bool activate_host::remove(const std::string &certname)
 
 bool activate_host::is_in_list(const std::string &_certname, boost::posix_time::ptime &_timeout)
 {
-   std::lock_guard<std::mutex> lock(this->m_mutex);
+   std::lock_guard<std::mutex> lock(this->m_mutex_activate);
    this->cleanup();
    auto iter = std::find_if(this->m_activate.begin(), this->m_activate.end(), [&](const activate_t&ac){ return ac.m_activate_name == _certname;});
    if (iter != this->m_activate.end())

@@ -74,10 +74,9 @@ protected:
    mylib::thread m_thread_write;
    boost::asio::ip::tcp::socket *mp_local_socket;
    const cppcms::json::value json;
+   mylib::thread m_thread;
 };
 
 bool is_provider(const BaseClient &client);
-
-std::ostream &operator << (std::ostream &os, const ProviderClient &client);
 
 #endif

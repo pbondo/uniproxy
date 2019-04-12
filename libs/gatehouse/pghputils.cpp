@@ -27,14 +27,13 @@ using namespace std;
 std::string TrimNmeaString(const std::string& _s)
 {
    std::string s(_s);
-   mylib::ltrim(s);
+   s = mylib::strip(s);
    
    int iPos = s.find('@');
    if (iPos >= 0)
    {
 	  s = s.substr(iPos);
    }
-   mylib::rtrim(s);
    return s;
 }
 

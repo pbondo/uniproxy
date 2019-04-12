@@ -138,26 +138,20 @@ public:
    stdt::mutex &m_mutex;
 };
 
-
-// trim from start
-static inline std::string &ltrim(std::string &s)
+static inline std::string strip(const std::string& _s, const std::string& space = " \t")
 {
-   s.erase(s.begin(), std::find_if(s.begin(), s.end(), std::not1(std::ptr_fun<int, int>(std::isspace))));
+   std::string s = _s;
+   while (!s.empty() && space.find(s.front()) != std::string::npos)
+   {
+      s.erase(s.begin());
+   }
+   while (!s.empty() && space.find(s.back()) != std::string::npos)
+   {
+      s.erase(s.length() - 1);
+   }
    return s;
 }
 
-// trim from end
-static inline std::string &rtrim(std::string &s)
-{
-   s.erase(std::find_if(s.rbegin(), s.rend(), std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
-   return s;
-}
-
-// trim from both ends
-static inline std::string &trim(std::string &s)
-{
-   return ltrim(rtrim(s));
-}
 
 // This exception is used for terminating a thread. 
 // It is by design not inherited by std::exception because we don't want the threads to catch the exception.
@@ -270,12 +264,6 @@ namespace asio {
 // _timeout [seconds]
 void socket_set_keepalive_to( ip::tcp::socket::lowest_layer_type &_socket, std::chrono::seconds _timeout );
 
-// Send the socket shutdown command
-void socket_shutdown( ip::tcp::socket::lowest_layer_type &_socket, boost::system::error_code &ec );
-
-// I dont understand why the above cannot be used?
-void socket_shutdown( boost::asio::ip::tcp::acceptor &_acceptor, boost::system::error_code &ec );
-
 // _host may be either a host name, or a IPv4 or IPv6 address
 void sockect_connect( ip::tcp::socket::lowest_layer_type &_socket, boost::asio::io_service &_io_service, const std::string &_hostname, int _port );
 
@@ -306,6 +294,25 @@ template<typename MutableBufferSequence> int socket_read_some_for( boost::asio::
 } // namespace asio
 } // namespace boost
 
+template <typename T> int get_socket(T* p, std::mutex& mutex)
+{
+   std::lock_guard<std::mutex> l(mutex);
+   if (p != nullptr)
+   {
+      return p->native_handle();
+   }
+   return 0;
+}
+
+template <typename T> int get_socket_lower(T* p, std::mutex& mutex)
+{
+   std::lock_guard<std::mutex> l(mutex);
+   if (p != nullptr)
+   {
+      return p->lowest_layer().native_handle();
+   }
+   return 0;
+}
 
 ///\brief Return address:port as 192.168.1.2:2345 for the remote end of the socket.
 std::string remote_address_port(boost::asio::ip::tcp::socket &_socket);

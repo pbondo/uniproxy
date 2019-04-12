@@ -68,7 +68,7 @@ public:
 
    size_t size() const
    {
-      std::lock_guard<std::mutex> lock(this->m_mutex);
+      std::lock_guard<std::mutex> lock(this->m_mutex_activate);
       return this->m_activate.size();
    }
 
@@ -76,7 +76,7 @@ protected:
 
    void cleanup();
 
-   mutable std::mutex m_mutex;
+   mutable std::mutex m_mutex_activate;
    std::vector<activate_t> m_activate;
    boost::asio::ip::tcp::socket *mp_socket = nullptr;
    boost::asio::ip::tcp::acceptor *mp_acceptor = nullptr;

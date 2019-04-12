@@ -31,7 +31,8 @@ ProviderClient::ProviderClient(bool _active, mylib::port_type _activate_port, co
    m_local_connected_index(0),
    m_thread_write([this]{this->interrupt_writer();}),
    mp_local_socket( nullptr ),
-   json(_json)
+   json(_json),
+   m_thread([this] { this->interrupt(); })
 {
    this->m_local_endpoints = _local_endpoints;
    int i;
@@ -45,7 +46,7 @@ ProviderClient::ProviderClient(bool _active, mylib::port_type _activate_port, co
 
 bool ProviderClient::is_local_connected() const
 {
-   stdt::lock_guard<stdt::mutex> l(this->m_mutex_base);
+//   stdt::lock_guard<stdt::mutex> l(this->m_mutex_base);
    return this->mp_local_socket != nullptr && is_connected(this->mp_local_socket->lowest_layer());
 }
 
@@ -89,26 +90,15 @@ void ProviderClient::interrupt_writer()
 // The interrupt function may happen in local or other (main) thread context.
 void ProviderClient::interrupt()
 {
-   try
+   if (int sock = get_socket(this->mp_local_socket, this->m_mutex_base); sock != 0)
    {
-      stdt::lock_guard<stdt::mutex> l(this->m_mutex_base);
-
-      if ( this->mp_local_socket != nullptr )
-      {
-         boost::system::error_code ec;
-         this->mp_local_socket->lowest_layer().shutdown( boost::asio::socket_base::shutdown_both, ec );
-      }
-      if ( this->mp_remote_socket != nullptr )
-      {
-         boost::system::error_code ec;
-         this->mp_remote_socket->lowest_layer().shutdown( boost::asio::socket_base::shutdown_both, ec );
-      }
+      shutdown(sock, SD_BOTH);
    }
-   catch( std::exception &exc )
+   if (int sock = get_socket_lower(this->mp_remote_socket, this->m_mutex_base); sock != 0)
    {
-      this->dolog( exc.what() );
+      shutdown(sock, SD_BOTH);
    }
-   DOUT(info() << __FUNCTION__ << ":" << __LINE__ );
+   DOUT(info() << __FUNCTION__ << ":" << __LINE__ << " Interrupt complete");
 }
 
 

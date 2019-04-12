@@ -14,11 +14,11 @@ include_directories(. src/ libs/)
 
 IF (WIN32)
 
-	ADD_DEFINITIONS( -D_WIN32_WINNT=0x0501 /wd4250 /wd4018  /wd4267 /wd4996)
+	ADD_DEFINITIONS( -D_WIN32_WINNT=0x0501 /wd4250 /wd4018  /wd4267 /wd4996 /std:c++17 /permissive- -D_HAS_AUTO_PTR_ETC /MP2)
 	include_directories (${uniproxy_SOURCE_DIR} ${LANG}/w64-vc${VC}/include ${LANG}/cppcms-1.2.0/include ${LANG}/boost/1_67_0  ${LANG}/openssl-1.1.0e/include/)
 	LINK_DIRECTORIES( "${LANG}/w64-vc${VC}/lib" "${LANG}/openssl-1.1.0e/lib/" ${LANG}/boost/1_67_0/lib64-msvc-${VC}.1/ ${LANG}/cppcms-1.2.0/lib/release)
 	# Use multi cores
-	SET(VISUAL_STUDIO_MP_FLAG "/MP")
+	#SET(VISUAL_STUDIO_MP_FLAG "/MP")
 
 ELSE (WIN32)
 

@@ -31,7 +31,6 @@ BaseClient::BaseClient(bool _active, mylib::port_type _local_port, mylib::port_t
    m_activate_port(_activate_port),
    m_max_connections(_max_connections),
    m_thread_activate([]{}),
-   m_thread( [this]{ this->interrupt(); } ),
    m_plugin(_plugin)
 {
    this->m_proxy_endpoints = _proxy_endpoints;
@@ -56,7 +55,10 @@ std::string BaseClient::info() const
 
 void BaseClient::dolog( const std::string &_line )
 {
-   this->m_log = _line;
+   {
+      std::lock_guard<std::mutex> l(this->m_mutex_base);
+      this->m_log = _line;
+   }
    log().add(_line);
 }
 
@@ -81,7 +83,6 @@ std::string BaseClient::remote_hostname() const
 
 bool BaseClient::is_remote_connected(int index) const
 {
-   std::lock_guard<std::mutex> l(this->m_mutex_base);
    return this->mp_remote_socket != nullptr
       && this->mp_remote_socket->lowest_layer().is_open()
       && is_connected(this->mp_remote_socket->lowest_layer())
@@ -213,6 +214,8 @@ bool BaseClient::certificate_exists(const std::string& certname) const
 
 cppcms::json::value BaseClient::save_json_status()
 {
+   std::lock_guard<std::mutex> l(this->m_mutex_base);
+
    cppcms::json::object obj;
    obj["id"] = this->m_id;
    obj["active"] = this->m_active;

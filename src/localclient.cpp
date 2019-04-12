@@ -56,7 +56,8 @@ LocalHost::LocalHost(bool _active, mylib::port_type _local_port, mylib::port_typ
    mp_acceptor( nullptr ),
    m_pdeadline( nullptr ),
    m_read_timeout(_read_timeout),
-   m_auto_reconnect(auto_reconnect)
+   m_auto_reconnect(auto_reconnect),
+   m_thread([this] { this->interrupt(); })
 {
    this->m_local_connected = false; 
 }
@@ -65,7 +66,6 @@ LocalHost::LocalHost(bool _active, mylib::port_type _local_port, mylib::port_typ
 bool LocalHost::is_local_connected() const
 {
    bool result = false;
-   std::lock_guard<std::mutex> l(this->m_mutex_base);
    for ( auto iter = this->m_local_sockets.begin(); iter != this->m_local_sockets.end(); iter++ )
    {
       if ( (*iter)->socket().is_open() && this->m_local_connected )
@@ -80,7 +80,6 @@ bool LocalHost::is_local_connected() const
 int LocalHost::local_user_count() const
 {
    int result = 0;
-   std::lock_guard<std::mutex> l(this->m_mutex_base);
    for ( auto iter = this->m_local_sockets.begin(); iter != this->m_local_sockets.end(); iter++ )
    {
       if ( (*iter)->socket().is_open() && this->m_local_connected )
@@ -95,7 +94,6 @@ int LocalHost::local_user_count() const
 std::vector<std::string> LocalHost::local_hostnames() const
 {
    std::vector<std::string> result;
-   std::lock_guard<std::mutex> l(this->m_mutex_base);
    for ( auto iter = this->m_local_sockets.begin(); iter != this->m_local_sockets.end(); iter++ )
    {
       boost::asio::ip::tcp::socket &socket((*iter)->socket());
@@ -130,11 +128,12 @@ void LocalHost::cleanup()
 {
    try
    {
-      std::lock_guard<std::mutex> l(this->m_mutex_base);
       while ( this->m_local_sockets.size() > 0 )
       {
          boost::system::error_code ec;
          TRY_CATCH( this->m_local_sockets.front()->socket().close(ec) );
+
+         std::lock_guard<std::mutex> l(this->m_mutex_base);
          this->m_local_sockets.erase( this->m_local_sockets.begin() ); // Since we use shared_ptr it should autodelete.
       }
       this->mp_acceptor = NULL;
@@ -152,31 +151,26 @@ void LocalHost::interrupt()
    try
    {
       DOUT(info() << "Enter");
+      if (int sock = get_socket(this->mp_acceptor, this->m_mutex_base); sock != 0)
+      {
+         shutdown(sock, SD_BOTH);
+      }
+      std::vector<int> socks;
       {
          std::lock_guard<std::mutex> l(this->m_mutex_base);
-         if ( this->mp_acceptor != nullptr )
+         for (const auto& l : this->m_local_sockets)
          {
-            boost::system::error_code ec;
-            TRY_CATCH( (*this->mp_acceptor).cancel(ec) );
-            TRY_CATCH( boost::asio::socket_shutdown( *this->mp_acceptor,ec ) );
+            socks.push_back(l->socket().native_handle());
          }
       }
+      for (auto s : socks)
       {
-         std::lock_guard<std::mutex> l(this->m_mutex_base);
+         shutdown(s, SD_BOTH);
+      }
 
-         for ( int index = 0; index < this->m_local_sockets.size(); index++ )
-         {
-            boost::system::error_code ec;
-            TRY_CATCH( this->m_local_sockets[index]->socket().shutdown( boost::asio::socket_base::shutdown_both, ec ) );
-         }
-      }
+      if (int sock = get_socket_lower(this->mp_remote_socket, this->m_mutex_base); sock != 0)
       {
-         std::lock_guard<std::mutex> l(this->m_mutex_base);
-         if ( this->mp_remote_socket != nullptr )
-         {
-            boost::system::error_code ec;
-            TRY_CATCH( (*this->mp_remote_socket).lowest_layer().shutdown( boost::asio::socket_base::shutdown_both, ec ) );
-         }
+         shutdown(sock, SD_BOTH);
       }
       DOUT(info() << "Completed");
    }
@@ -189,7 +183,6 @@ void LocalHost::interrupt()
 
 void LocalHost::remove_socket( boost::asio::ip::tcp::socket &_socket )
 {
-   std::lock_guard<std::mutex> l(this->m_mutex_base);
    for ( auto iter = this->m_local_sockets.begin(); iter != this->m_local_sockets.end(); iter++ )
    {
       if ( (*iter)->socket() == _socket )
@@ -197,6 +190,8 @@ void LocalHost::remove_socket( boost::asio::ip::tcp::socket &_socket )
          boost::system::error_code ec;
          TRY_CATCH( _socket.shutdown(boost::asio::socket_base::shutdown_both,ec) );
          TRY_CATCH( _socket.close(ec) );
+
+         std::lock_guard<std::mutex> l(this->m_mutex_base);
          this->m_local_sockets.erase(iter);
          break;
       }
@@ -261,7 +256,6 @@ void LocalHost::handle_remote_read(const boost::system::error_code& error,size_t
    if (!error)
    {
       this->m_count_in.add( bytes_transferred );
-      std::lock_guard<std::mutex> l(this->m_mutex_base);
       this->m_remote_data[bytes_transferred] = 0;
       this->m_last_incoming_msg = this->m_remote_data;
       this->m_last_incoming_stamp = boost::get_system_time();
@@ -351,7 +345,6 @@ void LocalHost::check_deadline()
 {
    bool call_interrupt = false;
    {
-      std::lock_guard<std::mutex> l(this->m_mutex_base);
       if (this->m_pdeadline == nullptr || this->m_pdeadline->expires_at() <= deadline_timer::traits_type::now())
       {
          DERR(":" << this->port() << " Timeout read from remote socket pdeadline: " << (this->m_pdeadline != nullptr) << " io " << (this->mp_io_service != nullptr));
@@ -400,7 +393,6 @@ void LocalHost::handle_handshake(const boost::system::error_code& error)
    {
       this->dolog(info() + "Succesfull SSL handshake to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()));
       {
-         std::lock_guard<std::mutex> l(this->m_mutex_base);
          if (this->m_pdeadline != nullptr)
          {
             this->m_pdeadline->expires_from_now(this->m_read_timeout);

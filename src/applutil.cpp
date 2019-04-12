@@ -264,19 +264,6 @@ void socket_set_keepalive_to( ip::tcp::socket::lowest_layer_type &_socket, std::
 }
 
 
-void socket_shutdown( ip::tcp::socket::lowest_layer_type &_socket, boost::system::error_code &ec )
-{
-   _socket.shutdown(ip::tcp::socket::shutdown_both,ec);
-}
-
-
-void socket_shutdown( boost::asio::ip::tcp::acceptor &_acceptor, boost::system::error_code &ec )
-{
-   shutdown( _acceptor.native_handle(), ip::tcp::socket::shutdown_both );
-   ec = make_error_code(boost::system::errc::success);
-}
-
-
 void sockect_connect( ip::tcp::socket::lowest_layer_type &_socket, boost::asio::io_service &_io_service, const std::string &_host, int _port )
 {
    // The following section uses a DNS resolver which should be valid for both IPv4 and IPv6

@@ -55,8 +55,6 @@ public:
       return this->m_id;
    }
 
-   friend std::ostream &operator << (std::ostream &os, const BaseClient &client);
-
    mylib::port_type port() const { return this->m_local_port; }
 
    mylib::port_type activate_port() const { return this->m_activate_port; }
@@ -91,7 +89,6 @@ protected:
    int m_id;
    int m_proxy_index;
    bool m_active;
-   ssl_socket *mp_remote_socket;
    data_flow m_count_in, m_count_out;
    
 
@@ -101,19 +98,21 @@ protected:
    int m_max_connections;
    boost::posix_time::ptime m_activate_stamp;
 
-   std::string m_log;
    mylib::thread m_thread_activate;
-   mylib::thread m_thread;
    PluginHandler &m_plugin;
-
-   mutable std::mutex m_mutex_base;
 
    enum { max_length = 1024 };
    char m_local_data[max_length+1];
    char m_remote_data[max_length+1];
 
+   // The following stuff must be protected by a mutex.
+   mutable std::mutex m_mutex_base;
+
+   std::string m_log;
+   ssl_socket *mp_remote_socket;
+
 };
 
-std::ostream &operator << (std::ostream &os, const BaseClient &client);
+//std::ostream &operator << (std::ostream &os, const BaseClient &client);
 
 #endif
