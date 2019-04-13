@@ -599,9 +599,9 @@ static int execute_process( const std::string& _command, const std::string& _par
 }; // class
 
 
-template <class T> std::ostream & operator << (std::ostream &os, const std::vector<T> & t)
+template <class T> std::ostream& operator << (std::ostream& os, const std::vector<T>& t)
 {
-   for ( int i = 0; i < t.size(); i++ )
+   for (int i = 0; i < t.size(); i++)
    {
       if ( i )
       {

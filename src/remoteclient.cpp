@@ -466,18 +466,18 @@ void RemoteProxyClient::remote_threadproc()
 }
 
 
-RemoteProxyHost::RemoteProxyHost( unsigned short _local_port, const std::vector<RemoteEndpoint> &_remote_ep, const std::vector<LocalEndpoint> &_local_ep, PluginHandler &_plugin )
+RemoteProxyHost::RemoteProxyHost(mylib::port_type local_port, const std::vector<RemoteEndpoint>& remote_ep, const std::vector<LocalEndpoint>& local_ep, PluginHandler& plugin)
 :  m_io_service(),
    m_context(boost::asio::ssl::context::tlsv12),
    m_acceptor(m_io_service),
-   m_plugin( _plugin ),
-   m_local_port(_local_port),
-   m_thread( [&](){this->interrupt(); } )
+   m_plugin(plugin),
+   m_local_port(local_port),
+   m_thread([&](){this->interrupt();})
 {
    this->m_active = true;
    this->m_id = ++static_remote_count;
-   this->m_remote_ep = _remote_ep;
-   this->m_local_ep = _local_ep;
+   this->m_remote_ep = remote_ep;
+   this->m_local_ep = local_ep;
 
    this->m_context.set_options(boost::asio::ssl::context::default_workarounds| boost::asio::ssl::context::tlsv12);//| boost::asio::ssl::context::single_dh_use);
    this->m_context.set_password_callback(boost::bind(&RemoteProxyHost::get_password, this));

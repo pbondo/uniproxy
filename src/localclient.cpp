@@ -65,24 +65,16 @@ LocalHost::LocalHost(bool _active, mylib::port_type _local_port, mylib::port_typ
 
 bool LocalHost::is_local_connected() const
 {
-   bool result = false;
-   for ( auto iter = this->m_local_sockets.begin(); iter != this->m_local_sockets.end(); iter++ )
-   {
-      if ( (*iter)->socket().is_open() && this->m_local_connected )
-      {
-         result = true;
-      }
-   }
-   return result;
+   return this->local_user_count() > 0;
 }
 
 
 int LocalHost::local_user_count() const
 {
    int result = 0;
-   for ( auto iter = this->m_local_sockets.begin(); iter != this->m_local_sockets.end(); iter++ )
+   for (auto& sock : this->m_local_sockets)
    {
-      if ( (*iter)->socket().is_open() && this->m_local_connected )
+      if (sock->socket().is_open() && this->m_local_connected)
       {
          result++;
       }
@@ -94,9 +86,9 @@ int LocalHost::local_user_count() const
 std::vector<std::string> LocalHost::local_hostnames() const
 {
    std::vector<std::string> result;
-   for ( auto iter = this->m_local_sockets.begin(); iter != this->m_local_sockets.end(); iter++ )
+   for (auto& sock : this->m_local_sockets)
    {
-      boost::asio::ip::tcp::socket &socket((*iter)->socket());
+      boost::asio::ip::tcp::socket &socket(sock->socket());
       boost::system::error_code ec;
       std::string sz = socket.remote_endpoint(ec).address().to_string(); // This one should not throw exceptions
       result.push_back(sz);
@@ -282,12 +274,13 @@ void LocalHost::handle_remote_write(int id, const boost::system::error_code& err
 {
    if (!error)
    {
-      for (int i = 0; i < this->m_local_sockets.size(); i++)
+      for (auto& sock : this->m_local_sockets)
       {
-         LocalHostSocket *ls = this->m_local_sockets[i].get();
-         if (ls->id == id)
+         if (sock->id == id)
          {
-            ls->socket().async_read_some( boost::asio::buffer( this->m_local_data, max_length), boost::bind(&LocalHostSocket::handle_local_read, ls, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+            sock->socket().async_read_some(boost::asio::buffer(this->m_local_data, max_length),
+               boost::bind(&LocalHostSocket::handle_local_read, sock,
+               boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
             break;
          }
       }
@@ -461,7 +454,7 @@ void LocalHost::go_out(boost::asio::io_service &io_service)
 
 void LocalHost::threadproc()
 {
-   for ( ; this->m_thread.check_run() ; )
+   while (this->m_thread.check_run())
    {
       // On start and after each lost connection we end up here.
       try

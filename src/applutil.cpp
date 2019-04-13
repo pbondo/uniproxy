@@ -431,16 +431,16 @@ bool load_certificates_string( const std::string &_certificate_string, std::vect
 }
 
 
-bool save_certificates_file( const std::string &_filename, const std::vector<certificate_type> &_certs )
+bool save_certificates_file(const std::string& filename, const std::vector<certificate_type>& certs)
 {
    bool result = false;
    FILE *file;
-   file = fopen( _filename.c_str(), "w" );
-   if ( file != NULL )
+   file = fopen(filename.c_str(), "w");
+   if (file != nullptr)
    {
-      for ( int index = 0; index < _certs.size(); index++ )
+      for (auto cert : certs)
       {
-         PEM_write_X509(file, _certs[index].get());
+         PEM_write_X509(file, cert.get());
       }
       result = true;
       fclose( file );

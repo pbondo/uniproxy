@@ -42,15 +42,13 @@ void proxy_global::lock()
 {
    DOUT("Now starting all connections");
    std::lock_guard<std::mutex> l(this->m_mutex_list);
-   for ( auto iter = this->remotehosts.begin(); iter != this->remotehosts.end(); iter++ )
+   for (auto& p : this->remotehosts)
    {
-      remotehost_ptr p = *iter;
-      DOUT("Starting remotehost at: " << p->port() );
+      DOUT("Starting remotehost at: " << p->port());
       p->start();
    }
-   for ( auto iter = this->localclients.begin(); iter != this->localclients.end(); iter++ )
+   for (auto& p : this->localclients)
    {
-      baseclient_ptr p = *iter;
       if (p->is_active())
       {
          DOUT("Starting localhost at: " << p->local_portname());
@@ -75,17 +73,16 @@ void proxy_global::stopall()
    {
       std::lock_guard<std::mutex> l(this->m_mutex_list);
       DOUT("sockethandler.StopAll()");
-      for ( auto iter = this->remotehosts.begin(); iter != this->remotehosts.end(); iter++ )
+      for (auto& p : this->remotehosts)
       {
          DOUT("remotehost.Stop() b");
-         remotehost_ptr p = *iter;
          RemoteProxyHost* p2 = p.get();
          p2->stop();
       }
-      for ( auto iter = this->localclients.begin(); iter != this->localclients.end(); iter++ )
+      for (auto& lc : this->localclients)
       {
          DOUT("localhost.Stop()");
-         (*iter)->stop();
+         lc->stop();
       }
       this->remotehosts.clear();
       this->localclients.clear();

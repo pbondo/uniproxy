@@ -201,9 +201,8 @@ bool BaseClient::set_active(const std::string& param, int id, bool active)
 
 bool BaseClient::certificate_exists(const std::string& certname) const
 {
-   for (int index = 0; index < this->m_proxy_endpoints.size(); index++)
+   for (auto& r : this->m_proxy_endpoints)
    {
-      auto &r = this->m_proxy_endpoints[index];
       if (r.m_name == certname)
       {
          return true;

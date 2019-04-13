@@ -244,9 +244,9 @@ void ProviderClient::threadproc_reader()
          this->m_thread.sleep( timeout );
 
          bool found = false;
-         for ( int index = 0; index < this->m_proxy_endpoints.size(); index++ )
+         for (auto& ep : this->m_proxy_endpoints)
          {
-            if (global.certificate_available(this->m_proxy_endpoints[index].m_name))
+            if (global.certificate_available(ep.m_name))
             {
                found = true;
             }
@@ -286,7 +286,7 @@ void ProviderClient::threadproc_reader()
          if (this->m_use_buffer)
          {
             this->m_thread_write.start([this]{this->threadproc_writer();});
-            for ( ; this->m_thread.check_run(); )
+            while (this->m_thread.check_run())
             {
                int length;
                length = local_socket.read_some( boost::asio::buffer( this->m_local_data, max_length-1 ) );
@@ -323,7 +323,7 @@ void ProviderClient::threadproc_reader()
             
             this->connect_remote(io_service, remote_socket);
 
-            for ( ; this->m_thread.check_run(); )
+            while (this->m_thread.check_run())
             {
                int length;
                length = local_socket.read_some( boost::asio::buffer( this->m_local_data, max_length-1 ) );
