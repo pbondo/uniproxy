@@ -556,7 +556,10 @@ void RemoteProxyHost::stop_by_name(const std::string& certname)
 
 void RemoteProxyHost::dolog( const std::string &_line )
 {
-   this->m_log = _line;
+   {
+      std::lock_guard<std::mutex> l(this->m_mutex_log);
+      this->m_log = _line;
+   }
    log().add( " Host port: " + mylib::to_string( this->m_local_port ) + ": " + _line );
 }
 
@@ -718,3 +721,104 @@ void RemoteProxyHost::handle_accept(RemoteProxyClient* new_session, const boost:
    }
 }
 
+bool RemoteProxyHost::remove_any(const std::vector<RemoteEndpoint>& removed)
+{
+   stdt::lock_guard<stdt::mutex> l(this->m_mutex);
+   for (auto it = this->m_clients.begin(); it != this->m_clients.end();)
+   {
+      if (std::find_if(removed.begin(), removed.end(), [&](const RemoteEndpoint &ep) { return (*it)->m_endpoint == ep; }) != removed.end())
+      {
+         DOUT("On port: " << this->port() << " Stop client with name: " << (*it)->m_endpoint.m_name);
+         (*it)->stop();
+         it = this->m_clients.erase(it);
+      }
+      else
+      {
+         it++;
+      }
+   }
+   return true;
+}
+
+cppcms::json::value RemoteProxyHost::save_json_status() const
+{
+   std::lock_guard<std::mutex> l(this->m_mutex);
+   cppcms::json::object obj_host;
+   obj_host["id"] = this->m_id;
+   obj_host["port"] = this->port();
+   obj_host["type"] = this->m_plugin.m_type;
+   obj_host["active"] = this->m_active;
+
+   // Loop through each remote proxy
+   for (int index2 = 0; index2 < this->m_remote_ep.size(); index2++)
+   {
+      cppcms::json::object obj;
+      obj["name"] = this->m_remote_ep[index2].m_name;
+      if (global.certificate_available(this->m_remote_ep[index2].m_name))
+      {
+         obj["cert"] = true;
+      }
+      obj["hostname"] = this->m_remote_ep[index2].m_hostname;
+
+      boost::posix_time::ptime timeout;
+      if (global.m_activate_host.is_in_list(this->m_remote_ep[index2].m_name, timeout))
+      {
+         auto div = timeout - boost::get_system_time();
+         obj["activate"] = div.total_seconds();
+      }
+      for (auto iter3 = this->m_clients.begin(); iter3 != this->m_clients.end(); iter3++)
+      {
+         RemoteProxyClient &client(*(*iter3));
+         if (client.m_endpoint == this->m_remote_ep[index2])
+         {
+            bool is_local_connected = client.is_local_connected();
+            obj["connected_local"] = is_local_connected;
+            if (is_local_connected) // Not thread safe
+            {
+               // NB!! Here we provide an IP address, but it should be a hostname.
+               obj["local_hostname"] = client.local_endpoint().address().to_string();
+               obj["local_port"] = client.local_endpoint().port();
+            }
+            bool is_remote_connected = client.is_remote_connected();
+            obj["connected_remote"] = is_remote_connected;
+            if (is_remote_connected) // Not thread safe
+            {
+               obj["remote_hostname"] = client.remote_endpoint().address().to_string(); // NB!! This one is dangerous
+               obj["count_in"] = client.m_count_in.get();
+               obj["count_out"] = client.m_count_out.get();
+            }
+            break;
+         }
+      }
+      obj_host["remotes"][index2] = obj;
+   }
+   return obj_host;
+}
+
+
+cppcms::json::value RemoteProxyHost::save_json_config() const
+{
+   std::lock_guard<std::mutex> l(this->m_mutex);
+   cppcms::json::object obj_host;
+   obj_host["id"] = this->m_id;
+   obj_host["port"] = this->port();
+   obj_host["type"] = this->m_plugin.m_type;
+   obj_host["active"] = this->m_active;
+   for (int index2 = 0; index2 < this->m_local_ep.size(); index2++)
+   {
+      cppcms::json::object obj;
+      obj["hostname"] = this->m_local_ep[index2].m_hostname;
+      obj["port"] = this->m_local_ep[index2].m_port;
+      obj_host["locals"][index2] = obj;
+   }
+   for (int index2 = 0; index2 < this->m_remote_ep.size(); index2++)
+   {
+      cppcms::json::object obj;
+      obj["name"] = this->m_remote_ep[index2].m_name;
+      obj["hostname"] = this->m_remote_ep[index2].m_hostname;
+      obj["username"] = this->m_remote_ep[index2].m_username;
+      obj["password"] = this->m_remote_ep[index2].m_password;
+      obj_host["remotes"][index2] = obj;
+   }
+   return obj_host;
+}

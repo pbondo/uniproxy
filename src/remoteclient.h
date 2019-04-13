@@ -95,43 +95,53 @@ public:
 
    RemoteProxyHost( mylib::port_type _local_port, const std::vector<RemoteEndpoint> &_remote_ep, const std::vector<LocalEndpoint> &_local_ep, PluginHandler &_plugin );
 
-   void add_remotes(const std::vector<RemoteEndpoint> &_remote_ep);
-   void remove_remotes(const std::vector<RemoteEndpoint> &_remote_ep);
-   void stop_by_name(const std::string& certname);
-
-   void handle_accept( RemoteProxyClient* new_session, const boost::system::error_code& error);
+   void lock();
+   void unlock();
 
    void start();
    void stop();
 
+   bool remove_any(const std::vector<RemoteEndpoint>& removed);
+
+   mylib::port_type port() const { return this->m_local_port; }
+   int test_local_connection(const std::string& name);
+
+
+   int id() const { return this->m_id;}
+
+   void add_remotes(const std::vector<RemoteEndpoint> &_remote_ep);
+   void remove_remotes(const std::vector<RemoteEndpoint> &_remote_ep);
+   void stop_by_name(const std::string& certname);
+
+   cppcms::json::value save_json_status() const;
+   cppcms::json::value save_json_config() const;
+
+   void dolog(const std::string &_line);
+
+protected:
+
+   void handle_accept( RemoteProxyClient* new_session, const boost::system::error_code& error);
+
    std::string get_password() const;
 
-   int test_local_connection(const std::string& name);
 
    void interrupt();
    void threadproc();
 
-   void dolog( const std::string &_line );
 
    int m_id;
    boost::asio::io_service m_io_service;
    boost::asio::ssl::context m_context;
    boost::asio::ip::tcp::acceptor m_acceptor;
 
-   stdt::mutex m_mutex;
-   std::vector<RemoteProxyClient*> m_clients; // NB!! This should be some shared_ptr or so ??
-   std::vector<RemoteEndpoint> m_remote_ep;
-   std::vector<LocalEndpoint> m_local_ep;
-   PluginHandler &m_plugin;
-
-   bool m_active;
-
-   mylib::port_type port() const { return this->m_local_port; }
-
-   void lock();
-   void unlock();
-
    std::string dinfo() const;
+
+public: // NB!! These should be private
+
+   PluginHandler &m_plugin;
+   bool m_active;
+   std::vector<RemoteEndpoint> m_remote_ep; // static list loaded at start
+   std::vector<LocalEndpoint> m_local_ep;
 
 protected:
 
@@ -139,6 +149,12 @@ protected:
 
    mylib::thread m_thread;
 
+
+   // The following sections shall be protected by a gate
+   mutable stdt::mutex m_mutex;
+   std::vector<RemoteProxyClient*> m_clients; // NB!! This should be some shared_ptr or so ??
+
+   mutable stdt::mutex m_mutex_log;
    std::string m_log;
 
 };
