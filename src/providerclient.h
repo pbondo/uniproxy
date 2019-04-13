@@ -72,9 +72,12 @@ protected:
    int m_local_connected_index;
 
    mylib::thread m_thread_write;
-   boost::asio::ip::tcp::socket *mp_local_socket;
    const cppcms::json::value json;
    mylib::thread m_thread;
+
+   // The following stuff must be protected by the base gate
+   boost::asio::ip::tcp::socket *mp_local_socket;
+
 };
 
 bool is_provider(const BaseClient &client);

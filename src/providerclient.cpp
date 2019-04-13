@@ -46,7 +46,6 @@ ProviderClient::ProviderClient(bool _active, mylib::port_type _activate_port, co
 
 bool ProviderClient::is_local_connected() const
 {
-//   stdt::lock_guard<stdt::mutex> l(this->m_mutex_base);
    return this->mp_local_socket != nullptr && is_connected(this->mp_local_socket->lowest_layer());
 }
 

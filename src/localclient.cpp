@@ -136,7 +136,7 @@ void LocalHost::cleanup()
          std::lock_guard<std::mutex> l(this->m_mutex_base);
          this->m_local_sockets.erase( this->m_local_sockets.begin() ); // Since we use shared_ptr it should autodelete.
       }
-      this->mp_acceptor = NULL;
+      this->mp_acceptor = nullptr;
    }
    catch( std::exception &exc )
    {
@@ -167,7 +167,6 @@ void LocalHost::interrupt()
       {
          shutdown(s, SD_BOTH);
       }
-
       if (int sock = get_socket_lower(this->mp_remote_socket, this->m_mutex_base); sock != 0)
       {
          shutdown(sock, SD_BOTH);

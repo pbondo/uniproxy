@@ -113,6 +113,4 @@ protected:
 
 };
 
-//std::ostream &operator << (std::ostream &os, const BaseClient &client);
-
 #endif
