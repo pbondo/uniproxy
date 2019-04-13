@@ -167,7 +167,7 @@ public:
    void clean_session();
 
    // (common) Names from the certificates loaded from the imported certs.pem file.
-   stdt::mutex m_mutex_certificates;
+   std::mutex m_mutex_certificates;
    std::vector<std::string> m_cert_names;
    bool load_certificate_names( const std::string & _filename );
 
@@ -192,7 +192,7 @@ public:
 
 protected:
 
-   stdt::mutex m_session_data_mutex;
+   std::mutex m_session_data_mutex;
    std::vector< std::shared_ptr<session_data>> m_sessions;
 };
 

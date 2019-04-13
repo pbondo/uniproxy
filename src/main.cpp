@@ -495,7 +495,7 @@ int main(int argc,char ** argv)
          }
          boost::filesystem::create_directory(global.m_log_path);
 
-         stdt::lock_guard<proxy_global> lock(global);
+         std::lock_guard<proxy_global> lock(global);
 
          DOUT( "Loaded config: " << global.save_json_config( true ) );
          // Create settings object data
@@ -504,7 +504,7 @@ int main(int argc,char ** argv)
          cppcms::service srv(settings_object);
 
          client_certificate_exchange cert_exch;
-         stdt::lock_guard<client_certificate_exchange> certificate_exchange_lock(cert_exch);
+         std::lock_guard<client_certificate_exchange> certificate_exchange_lock(cert_exch);
          auto ups = global.get_uniproxies();
          if (!ups.empty())
          {

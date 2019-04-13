@@ -41,7 +41,7 @@ proxy_global::proxy_global()
 void proxy_global::lock()
 {
    DOUT("Now starting all connections");
-   stdt::lock_guard<stdt::mutex> l(this->m_mutex_list);
+   std::lock_guard<std::mutex> l(this->m_mutex_list);
    for ( auto iter = this->remotehosts.begin(); iter != this->remotehosts.end(); iter++ )
    {
       remotehost_ptr p = *iter;
@@ -73,7 +73,7 @@ void proxy_global::stopall()
 {
    this->m_activate_host.stop(false);
    {
-      stdt::lock_guard<stdt::mutex> l(this->m_mutex_list);
+      std::lock_guard<std::mutex> l(this->m_mutex_list);
       DOUT("sockethandler.StopAll()");
       for ( auto iter = this->remotehosts.begin(); iter != this->remotehosts.end(); iter++ )
       {
@@ -353,7 +353,7 @@ bool proxy_global::is_same(const RemoteProxyHost &host, cppcms::json::value &obj
 // obj represents the new setup. So anything running that doesn't match the new object must be stopped and removed.
 void proxy_global::unpopulate_json( cppcms::json::value obj )
 {
-   stdt::lock_guard<stdt::mutex> l(this->m_mutex_list);
+   std::lock_guard<std::mutex> l(this->m_mutex_list);
 
    for ( auto iter = this->localclients.begin(); iter != this->localclients.end(); )
    {
@@ -430,7 +430,7 @@ void proxy_global::unpopulate_json( cppcms::json::value obj )
 // NB!! This should not be called while threads are active.
 void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
 {
-   stdt::lock_guard<stdt::mutex> l(this->m_mutex_list);
+   std::lock_guard<std::mutex> l(this->m_mutex_list);
    if ( (_json_acl & clients) > 0 && obj["clients"].type() == cppcms::json::is_array )
    {
       DOUT(__FUNCTION__ << " populating clients");
@@ -670,7 +670,7 @@ bool proxy_global::is_new_configuration(cppcms::json::value &newobj) const
 
 std::string proxy_global::save_json_status( bool readable )
 {
-   stdt::lock_guard<stdt::mutex> l(this->m_mutex_list);
+   std::lock_guard<std::mutex> l(this->m_mutex_list);
    cppcms::json::value glob;
 
    // ---- THE CLIENT PART ----
@@ -818,7 +818,7 @@ bool proxy_global::load_configuration()
 // NB!! Currently for debugging only.
 std::string proxy_global::save_json_config( bool readable )
 {
-   stdt::lock_guard<stdt::mutex> l(this->m_mutex_list);
+   std::lock_guard<std::mutex> l(this->m_mutex_list);
    cppcms::json::value glob;
    // The client part
    for ( int index = 0; index < this->localclients.size(); index++ )
@@ -855,7 +855,7 @@ std::string proxy_global::save_json_config( bool readable )
 
 session_data &proxy_global::get_session_data( cppcms::session_interface &_session )
 {
-   stdt::lock_guard<stdt::mutex> l(this->m_session_data_mutex);
+   std::lock_guard<std::mutex> l(this->m_session_data_mutex);
    int id;
    if ( _session.is_set( "id" ) )
    {
@@ -884,14 +884,14 @@ session_data &proxy_global::get_session_data( cppcms::session_interface &_sessio
 
 void proxy_global::clean_session()
 {
-   stdt::lock_guard<stdt::mutex> l(this->m_session_data_mutex);
+   std::lock_guard<std::mutex> l(this->m_session_data_mutex);
 
 }
 
 
 bool proxy_global::load_certificate_names( const std::string & _filename )
 {
-   stdt::lock_guard<stdt::mutex> lock(this->m_mutex_certificates);
+   std::lock_guard<std::mutex> lock(this->m_mutex_certificates);
    std::string names;
    bool result = false;
    std::vector< certificate_type > certs;
@@ -991,7 +991,7 @@ bool proxy_global::SetupCertificatesClient(boost::asio::ip::tcp::socket &_remote
 
 bool proxy_global::certificate_available( const std::string &_cert_name)
 {
-   stdt::lock_guard<stdt::mutex> lock(this->m_mutex_certificates);
+   std::lock_guard<std::mutex> lock(this->m_mutex_certificates);
    return std::find(this->m_cert_names.begin(), this->m_cert_names.end(), _cert_name ) != this->m_cert_names.end();
 }
 

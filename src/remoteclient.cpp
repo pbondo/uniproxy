@@ -205,7 +205,7 @@ void RemoteProxyClient::local_threadproc()
             if (ec.value() != 0 || length == 0)
             {
                DOUT(this->dinfo() << "Local read socket Failed reading data " << ec.category().name() << " val: " << (int)ec.value() << " msg: " << ec.category().message(ec.value()) << " length: " << length);
-               DOUT(this->dinfo() << "Last outgoing message: " << this->m_last_outgoing_stamp << ":" << this->m_last_outgoing_msg);
+               // This will show as a blob in journald. DOUT(this->dinfo() << "Last outgoing message: " << this->m_last_outgoing_stamp << ":" << this->m_last_outgoing_msg);
                break;
             }
             this->m_local_read_buffer[length] = 0;
@@ -232,11 +232,9 @@ void RemoteProxyClient::local_threadproc()
    }
    DOUT(this->dinfo() << "Thread stopping");
    this->interrupt();
+   if (int sock = get_socket_lower(&this->m_remote_socket, this->m_mutex); sock != 0)
    {
-      std::lock_guard<std::mutex> lock(this->m_mutex);
-      boost::system::error_code ec;
-      this->m_remote_socket.shutdown(ec);
-      this->m_remote_socket.lowest_layer().close(ec);
+      shutdown(sock, SD_BOTH);
    }
    DOUT(this->dinfo() << "Thread stopped");
 }
@@ -651,7 +649,7 @@ void RemoteProxyHost::stop()
 {
    DOUT(this->dinfo() << "Stopping port: " << this->port());
    this->m_thread.stop();
-   std::lock_guard<stdt::mutex> l(this->m_mutex);
+   std::lock_guard<std::mutex> l(this->m_mutex);
    // Clean up the current client list and remove any non active clients.
    for (auto item : this->m_clients)
    {
@@ -677,7 +675,7 @@ void RemoteProxyHost::handle_accept(RemoteProxyClient* new_session, const boost:
       DOUT(this->dinfo() << " error state " << error);
       if (!error)
       {
-         stdt::lock_guard<stdt::mutex> l(this->m_mutex);
+         std::lock_guard<std::mutex> l(this->m_mutex);
          // Clean up the current client list and remove any non active clients.
          for ( auto iter2 = this->m_clients.begin(); iter2 != this->m_clients.end(); )
          {
@@ -723,7 +721,7 @@ void RemoteProxyHost::handle_accept(RemoteProxyClient* new_session, const boost:
 
 bool RemoteProxyHost::remove_any(const std::vector<RemoteEndpoint>& removed)
 {
-   stdt::lock_guard<stdt::mutex> l(this->m_mutex);
+   std::lock_guard<std::mutex> l(this->m_mutex);
    for (auto it = this->m_clients.begin(); it != this->m_clients.end();)
    {
       if (std::find_if(removed.begin(), removed.end(), [&](const RemoteEndpoint &ep) { return (*it)->m_endpoint == ep; }) != removed.end())

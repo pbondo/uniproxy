@@ -151,10 +151,10 @@ protected:
 
 
    // The following sections shall be protected by a gate
-   mutable stdt::mutex m_mutex;
+   mutable std::mutex m_mutex;
    std::vector<RemoteProxyClient*> m_clients; // NB!! This should be some shared_ptr or so ??
 
-   mutable stdt::mutex m_mutex_log;
+   mutable std::mutex m_mutex_log;
    std::string m_log;
 
 };

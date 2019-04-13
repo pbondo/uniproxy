@@ -258,7 +258,7 @@ void ProviderClient::threadproc_reader()
 
          boost::asio::io_service io_service;
 
-         stdt::lock_guard<ProviderClient> l(*this);
+         std::lock_guard<ProviderClient> l(*this);
 
          boost::asio::io_service::work session_work(io_service);
 

@@ -122,20 +122,20 @@ template <class T> class protect_pointer
 {
 public:
 
-   protect_pointer( T * &_p, T&_ref, stdt::mutex &_mutex ) : m_p(_p), m_mutex( _mutex )
+   protect_pointer( T * &_p, T&_ref, std::mutex &_mutex ) : m_p(_p), m_mutex( _mutex )
    {
-      stdt::lock_guard<stdt::mutex> l(this->m_mutex);
+      std::lock_guard<std::mutex> l(this->m_mutex);
       this->m_p = &_ref;
    }
 
    ~protect_pointer()
    {
-      stdt::lock_guard<stdt::mutex> l(this->m_mutex);
+      std::lock_guard<std::mutex> l(this->m_mutex);
       this->m_p = nullptr;
    }
 
    T * &m_p;
-   stdt::mutex &m_mutex;
+   std::mutex &m_mutex;
 };
 
 static inline std::string strip(const std::string& _s, const std::string& space = " \t")
@@ -189,7 +189,7 @@ public:
       ASSERTE( !this->m_thread.joinable(), uniproxy::error::thread_already_running, "" );
       this->m_stop = false;
       this->m_thread_function = _thread_function;
-      stdt::thread t1( [&]{ try { this->m_thread_function(); } catch ( ... ) { } } );
+      std::thread t1( [&]{ try { this->m_thread_function(); } catch ( ... ) { } } );
       this->m_thread = std::move(t1);
    }
 
@@ -231,21 +231,21 @@ public:
       this->check_run();
    }
 
-   static bool is_thread_running(stdt::thread &th);
+   static bool is_thread_running(std::thread &th);
 
    bool is_running()
    {
       return is_thread_running(this->m_thread);
    }
 
-   stdt::thread  &operator() ()
+   std::thread  &operator() ()
    {
       return this->m_thread;
    }
 
    std::atomic<bool> m_stop;
    std::function<void()> m_interrupt_function;
-   stdt::thread m_thread;
+   std::thread m_thread;
 
    std::function<void()> m_thread_function;
 };
@@ -388,7 +388,7 @@ protected:
 
    std::vector<std::pair<int,std::string>> m_log;
 
-   mutable stdt::mutex m_mutex;
+   mutable std::mutex m_mutex;
    std::string m_name;
    std::atomic<int> m_write_index;
 

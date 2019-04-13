@@ -143,7 +143,7 @@ void msleep(int millisec)
 }
 
 
-bool thread::is_thread_running(stdt::thread &th)
+bool thread::is_thread_running(std::thread &th)
 {
    // With pthread we are ensured the thread handle is not reused while the thread is joinable.
    // According to the Internet :-)
@@ -533,7 +533,7 @@ proxy_log::proxy_log(const std::string&_name)
 
 std::string proxy_log::peek() const
 {
-   stdt::lock_guard<stdt::mutex> l(this->m_mutex);
+   std::lock_guard<std::mutex> l(this->m_mutex);
    std::string sz;
    if ( this->m_log.size() > 0)
    {
@@ -545,7 +545,7 @@ std::string proxy_log::peek() const
 
 std::string proxy_log::get(int index) const
 {
-   stdt::lock_guard<stdt::mutex> l(this->m_mutex);
+   std::lock_guard<std::mutex> l(this->m_mutex);
    std::string sz;
    auto iter = std::find_if(this->m_log.begin(),this->m_log.end(), [&](const std::pair<int,std::string> &_){return _.first == index;});
    if (iter != this->m_log.end()) return iter->second;
@@ -569,7 +569,7 @@ void proxy_log::add( const std::string &_value )
 {
    if (_value.empty()) return; // Don't bother with empty log lines.
    DOUT("Log: " << this->m_name << ": " << _value );
-   stdt::lock_guard<stdt::mutex> l(this->m_mutex);
+   std::lock_guard<std::mutex> l(this->m_mutex);
    if (this->m_write_index == 0)
    {
       boost::system::error_code ec;
@@ -601,7 +601,7 @@ void proxy_log::add( const std::string &_value )
 
 void proxy_log::clear()
 {
-   stdt::lock_guard<stdt::mutex> l(this->m_mutex);
+   std::lock_guard<std::mutex> l(this->m_mutex);
 }
 
 
