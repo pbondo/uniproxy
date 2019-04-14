@@ -52,9 +52,6 @@ boost::asio::ip::tcp::socket &LocalHostSocket::socket()
 LocalHost::LocalHost(bool _active, mylib::port_type _local_port, mylib::port_type _activate_port, const std::vector<RemoteEndpoint> &_proxy_endpoints,
    const int _max_connections, PluginHandler &_plugin, const boost::posix_time::time_duration &_read_timeout, bool auto_reconnect)
    : BaseClient(_active, _local_port, _activate_port, _proxy_endpoints, _max_connections, _plugin),
-   mp_io_service( nullptr ),
-   mp_acceptor( nullptr ),
-   m_pdeadline( nullptr ),
    m_read_timeout(_read_timeout),
    m_auto_reconnect(auto_reconnect),
    m_thread([this] { this->interrupt(); })
@@ -145,7 +142,7 @@ void LocalHost::interrupt()
       DOUT(info() << "Enter");
       if (int sock = get_socket(this->mp_acceptor, this->m_mutex_base); sock != 0)
       {
-         shutdown(sock, SD_BOTH);
+         shutdown(sock, boost::asio::socket_base::shutdown_both);
       }
       std::vector<int> socks;
       {
@@ -157,11 +154,11 @@ void LocalHost::interrupt()
       }
       for (auto s : socks)
       {
-         shutdown(s, SD_BOTH);
+         shutdown(s, boost::asio::socket_base::shutdown_both);
       }
       if (int sock = get_socket_lower(this->mp_remote_socket, this->m_mutex_base); sock != 0)
       {
-         shutdown(sock, SD_BOTH);
+         shutdown(sock, boost::asio::socket_base::shutdown_both);
       }
       DOUT(info() << "Completed");
    }

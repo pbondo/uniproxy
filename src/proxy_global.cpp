@@ -820,7 +820,6 @@ std::string proxy_global::save_json_config( bool readable )
    // The client part
    for ( int index = 0; index < this->localclients.size(); index++ )
    {
-      BaseClient &host( *this->localclients[index] );
       cppcms::json::value obj = this->localclients[index]->save_json_config();
       glob["clients"][index] = obj;
    }
@@ -1137,11 +1136,11 @@ void activate_host::interrupt()
    if (int sock = get_socket(this->mp_acceptor, this->m_mutex_activate); sock != 0)
    {
       // Do we need a cancel??
-      shutdown(sock, SD_BOTH);
+      shutdown(sock, boost::asio::socket_base::shutdown_both);
    }
    if (int sock = get_socket(this->mp_socket, this->m_mutex_activate); sock != 0)
    {
-      shutdown(sock, SD_BOTH);
+      shutdown(sock, boost::asio::socket_base::shutdown_both);
    }
 }
 

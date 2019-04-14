@@ -234,7 +234,7 @@ void RemoteProxyClient::local_threadproc()
    this->interrupt();
    if (int sock = get_socket_lower(&this->m_remote_socket, this->m_mutex); sock != 0)
    {
-      shutdown(sock, SD_BOTH);
+      shutdown(sock, boost::asio::socket_base::shutdown_both);
    }
    DOUT(this->dinfo() << "Thread stopped");
 }
@@ -597,7 +597,7 @@ void RemoteProxyHost::unlock()
 {
    boost::system::error_code ec;
    this->m_acceptor.cancel(ec);
-   shutdown(this->m_acceptor.native_handle(), SD_BOTH);
+   shutdown(this->m_acceptor.native_handle(), boost::asio::socket_base::shutdown_both);
    this->m_acceptor.close(ec);
 }
 

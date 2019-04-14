@@ -86,9 +86,9 @@ protected:
 
    std::vector<RemoteEndpoint> m_proxy_endpoints; // The list of remote proxies to connect to in a round robin fashion.
 
-   int m_id;
-   int m_proxy_index;
-   bool m_active;
+   int m_id = 0;
+   int m_proxy_index = 0;
+   bool m_active = false;
    data_flow m_count_in, m_count_out;
    
 
@@ -109,7 +109,7 @@ protected:
    mutable std::mutex m_mutex_base;
 
    std::string m_log;
-   ssl_socket *mp_remote_socket;
+   ssl_socket *mp_remote_socket = nullptr;
 
 };
 

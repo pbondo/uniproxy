@@ -23,9 +23,7 @@
 static int static_local_id = 0;
 
 BaseClient::BaseClient(bool _active, mylib::port_type _local_port, mylib::port_type _activate_port, const std::vector<RemoteEndpoint> &_proxy_endpoints, const int _max_connections, PluginHandler &_plugin)
-:  m_proxy_index(0),
-   m_active(_active),
-   mp_remote_socket( nullptr ),
+:  m_active(_active),
    m_count_in(true), m_count_out(true),
    m_local_port(_local_port),
    m_activate_port(_activate_port),

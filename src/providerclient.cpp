@@ -28,9 +28,7 @@ using boost::asio::ip::tcp;
 ProviderClient::ProviderClient(bool _active, mylib::port_type _activate_port, const std::vector<LocalEndpoint> &_local_endpoints, 
    const std::vector<RemoteEndpoint> &_proxy_endpoints, PluginHandler &_plugin, const cppcms::json::value &_json)
    : BaseClient(_active, 0, _activate_port, _proxy_endpoints, 1, _plugin),
-   m_local_connected_index(0),
    m_thread_write([this]{this->interrupt_writer();}),
-   mp_local_socket( nullptr ),
    json(_json),
    m_thread([this] { this->interrupt(); })
 {
@@ -91,11 +89,11 @@ void ProviderClient::interrupt()
 {
    if (int sock = get_socket(this->mp_local_socket, this->m_mutex_base); sock != 0)
    {
-      shutdown(sock, SD_BOTH);
+      shutdown(sock, boost::asio::socket_base::shutdown_both);
    }
    if (int sock = get_socket_lower(this->mp_remote_socket, this->m_mutex_base); sock != 0)
    {
-      shutdown(sock, SD_BOTH);
+      shutdown(sock, boost::asio::socket_base::shutdown_both);
    }
    DOUT(info() << __FUNCTION__ << ":" << __LINE__ << " Interrupt complete");
 }

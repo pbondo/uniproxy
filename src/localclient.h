@@ -91,18 +91,18 @@ protected:
 
 
    // These are used for RAII handling. They do not own anything and should not be assigned by new.
-   boost::asio::io_service *mp_io_service;
-   boost::asio::deadline_timer *m_pdeadline;
+   boost::asio::io_service *mp_io_service = nullptr;
+   boost::asio::deadline_timer *m_pdeadline = nullptr;
    boost::posix_time::time_duration m_read_timeout;
    int m_write_count;
 
-   bool m_local_connected;
+   bool m_local_connected = false;
    bool m_auto_reconnect = false; // If set the client UP will attempt to reconnect to server automatically.
    mylib::thread m_thread;
 
    // The following section is protected by the base gate.
    std::vector<std::shared_ptr<LocalHostSocket> > m_local_sockets; // Elements are inserted here, once they have been accepted.
-   boost::asio::ip::tcp::acceptor *mp_acceptor;
+   boost::asio::ip::tcp::acceptor *mp_acceptor = nullptr;
 
    friend class LocalHostSocket;
 };

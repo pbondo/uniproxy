@@ -69,14 +69,14 @@ protected:
    bool m_use_buffer = false;
 
    std::vector<LocalEndpoint> m_local_endpoints; // The list of local data providers to connect to in a round robin fashion.
-   int m_local_connected_index;
+   int m_local_connected_index = 0;
 
    mylib::thread m_thread_write;
    const cppcms::json::value json;
    mylib::thread m_thread;
 
    // The following stuff must be protected by the base gate
-   boost::asio::ip::tcp::socket *mp_local_socket;
+   boost::asio::ip::tcp::socket *mp_local_socket = nullptr;
 
 };
 
