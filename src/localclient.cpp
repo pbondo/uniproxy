@@ -20,7 +20,7 @@
 
 #include <boost/bind.hpp>
 #include "proxy_global.h"
-
+#include <random>
 
 using boost::asio::ip::tcp;
 using boost::asio::deadline_timer;
@@ -252,6 +252,10 @@ void LocalHost::handle_remote_read(const boost::system::error_code& error,size_t
          global.m_in_data_log_file << "[" << mylib::to_string(boost::get_system_time()) << "]" << this->m_remote_data;
       }
       this->m_write_count = this->m_local_sockets.size();
+      if (this->m_pdeadline != nullptr)
+      {
+         this->m_pdeadline->expires_from_now(this->m_read_timeout);
+      }
       for ( int index = 0; index < this->m_write_count; index++ )
       {
          boost::asio::ip::tcp::socket *psocket = &this->m_local_sockets[index]->socket();
@@ -261,7 +265,7 @@ void LocalHost::handle_remote_read(const boost::system::error_code& error,size_t
    else
    {
       DOUT(info() << "Error: " << error << ": " << error.message() << " bytes transferred: " << bytes_transferred);
-      DOUT(info() << "Last incoming msg: " << this->m_last_incoming_stamp << ":" << this->m_last_incoming_msg);
+      DOUT(info() << "Last incoming msg: " << this->m_last_incoming_stamp << " size:" << this->m_last_incoming_msg.size());
       throw boost::system::system_error( error );
    }
 }
@@ -494,7 +498,10 @@ void LocalHost::threadproc()
             this->m_proxy_index = 0;
             if (!this->m_proxy_endpoints.empty()) // Pick a new random access value.
             {
-               this->m_proxy_index = std::rand() % this->m_proxy_endpoints.size();
+               std::random_device rd;  //Will be used to obtain a seed for the random number engine
+               std::mt19937 gen(rd());
+               std::uniform_int_distribution<> dis(0, this->m_proxy_endpoints.size()-1);
+               this->m_proxy_index = dis(gen);
             }
             this->go_out(io_service);
             this->m_thread.sleep(5000);
