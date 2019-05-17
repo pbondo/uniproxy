@@ -218,6 +218,7 @@ void LocalHost::handle_local_read( LocalHostSocket &_hostsocket, const boost::sy
 void LocalHost::handle_local_write( boost::asio::ip::tcp::socket *_socket, const boost::system::error_code& error)
 {
    this->m_write_count--;
+   ASSERTE(this->m_pdeadline != nullptr, boost::system::errc::timed_out, "deadline timer out of scope");
    if (!error)
    {
    }
@@ -241,6 +242,7 @@ void LocalHost::handle_local_write( boost::asio::ip::tcp::socket *_socket, const
 
 void LocalHost::handle_remote_read(const boost::system::error_code& error,size_t bytes_transferred)
 {
+   ASSERTE(this->m_pdeadline != nullptr, boost::system::errc::timed_out, "deadline timer out of scope");
    if (!error)
    {
       this->m_count_in.add( bytes_transferred );
@@ -252,10 +254,7 @@ void LocalHost::handle_remote_read(const boost::system::error_code& error,size_t
          global.m_in_data_log_file << "[" << mylib::to_string(boost::get_system_time()) << "]" << this->m_remote_data;
       }
       this->m_write_count = this->m_local_sockets.size();
-      if (this->m_pdeadline != nullptr)
-      {
-         this->m_pdeadline->expires_from_now(this->m_read_timeout);
-      }
+      this->m_pdeadline->expires_from_now(this->m_read_timeout);
       for ( int index = 0; index < this->m_write_count; index++ )
       {
          boost::asio::ip::tcp::socket *psocket = &this->m_local_sockets[index]->socket();
@@ -264,7 +263,7 @@ void LocalHost::handle_remote_read(const boost::system::error_code& error,size_t
    }
    else
    {
-      DOUT(info() << "Error: " << error << ": " << error.message() << " bytes transferred: " << bytes_transferred);
+      DERR(info() << "Error: " << error << ": " << error.message() << " bytes transferred: " << bytes_transferred);
       DOUT(info() << "Last incoming msg: " << this->m_last_incoming_stamp << " size:" << this->m_last_incoming_msg.size());
       throw boost::system::system_error( error );
    }
@@ -334,62 +333,48 @@ void LocalHost::handle_accept( boost::asio::ip::tcp::socket *_socket, const boos
 
 // Read from the remote socket did timeout.
 // Oddly this is also called whenever a succesfull read was performed.
-void LocalHost::check_deadline()
+void LocalHost::check_deadline(const boost::system::error_code& error)
 {
-   bool call_interrupt = false;
+   ASSERTE(this->m_pdeadline != nullptr, boost::system::errc::timed_out, "deadline timer out of scope");
+   if (error == boost::asio::error::operation_aborted) // This will happen on every read / write that will reset the timer.
    {
-      if (this->m_pdeadline == nullptr || this->m_pdeadline->expires_at() <= deadline_timer::traits_type::now())
+      this->m_pdeadline->async_wait(boost::bind(&LocalHost::check_deadline, this, boost::asio::placeholders::error));
+      return;
+   }
+   bool expired = deadline_timer::traits_type::now() >= this->m_pdeadline->expires_at();
+   DOUT(":" << this->port() << " Timeout error code: " << error << " expired? " << expired << " now: " << deadline_timer::traits_type::now() << " expire: " << this->m_pdeadline->expires_at());
+   if (expired)
+   {
+      DERR(":" << this->port() << " Timeout read from remote socket io: " << (this->mp_io_service != nullptr));
+      boost::system::error_code ec;
+      // NB!! this->remote_socket().shutdown(ec); // It has been seen hanging (more than once) in this upper layer shutdown.
+      this->remote_socket().lowest_layer().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+      this->remote_socket().lowest_layer().close(ec);
+
+      this->m_pdeadline->expires_at(boost::posix_time::pos_infin);
+      if (!this->m_auto_reconnect)
       {
-         DERR(":" << this->port() << " Timeout read from remote socket pdeadline: " << (this->m_pdeadline != nullptr) << " io " << (this->mp_io_service != nullptr));
-         boost::system::error_code ec;
-         this->remote_socket().shutdown(ec);
-         this->remote_socket().lowest_layer().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
-         this->remote_socket().lowest_layer().close(ec);
-
-         if (this->m_pdeadline != nullptr)
+         if (this->mp_io_service != nullptr)
          {
-            this->m_pdeadline->expires_at(boost::posix_time::pos_infin);
+            this->mp_io_service->stop();
          }
-         if (!this->m_auto_reconnect)
-         {
-            if (this->mp_io_service != nullptr)
-            {
-               this->mp_io_service->stop();
-            }
-            // This call should stop all local connections.
-            call_interrupt = true;
-         }
-      }
-      // Put the actor back to sleep.
-      if (this->m_pdeadline != nullptr)
-      {  // This is called for every transmission.
-         this->m_pdeadline->async_wait(boost::bind(&LocalHost::check_deadline, this));
-      }
-   }
-   if (this->m_pdeadline == nullptr)
-   {
-      DOUT("deadline is null!");
-   }
-   if (call_interrupt)
-   {  // Must happen outside the mutex
-      this->interrupt();
+         this->interrupt();
 
-      boost::system::error_code ec = make_error_code(boost::system::errc::timed_out);
-      throw boost::system::system_error(ec);
+         boost::system::error_code ec = make_error_code(boost::system::errc::timed_out);
+         throw boost::system::system_error(ec);
+      }
    }
 }
 
 
 void LocalHost::handle_handshake(const boost::system::error_code& error)
 {
+   ASSERTE(this->m_pdeadline != nullptr, boost::system::errc::timed_out, "deadline timer out of scope");
    if (!error)
    {
       this->dolog(info() + "Succesfull SSL handshake to remote host: " + this->remote_hostname() + ":" + mylib::to_string(this->remote_port()));
       {
-         if (this->m_pdeadline != nullptr)
-         {
-            this->m_pdeadline->expires_from_now(this->m_read_timeout);
-         }
+         this->m_pdeadline->expires_from_now(this->m_read_timeout);
       }
       this->remote_socket().async_read_some(boost::asio::buffer( m_remote_data, max_length), boost::bind(&LocalHost::handle_remote_read, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
    }
@@ -425,7 +410,7 @@ void LocalHost::go_out(boost::asio::io_service &io_service)
 
       boost::asio::socket_set_keepalive_to(rem_socket.lowest_layer(), std::chrono::seconds(20));
       DOUT(info() << "Prepare timeout at: " << this->m_read_timeout)
-      deadline.async_wait(boost::bind(&LocalHost::check_deadline, this));
+      deadline.async_wait(boost::bind(&LocalHost::check_deadline, this, boost::asio::placeholders::error));
       deadline.expires_from_now(boost::posix_time::seconds(20));
       boost::system::error_code ec;
 #if 1

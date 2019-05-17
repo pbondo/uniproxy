@@ -406,6 +406,7 @@ void proxy_app::setup_config( cppcms::json::value &settings_object )
    settings_object["session"]["server"]["dir"] = coockie_path + "/uniproxy_" + boost::posix_time::to_iso_string(boost::get_system_time().time_of_day() ).substr(0,6);
    settings_object["session"]["client"]["encryptor"] = "hmac";
    settings_object["session"]["client"]["key"] = "29b6e071ad5870228c6a2115d88d3b2e";
+//NB!!   settings_object["service"]["worker_threads"] = 4; // Default = 5 * #CPU
    DOUT( "Webserver configuration: " << settings_object );
 }
 

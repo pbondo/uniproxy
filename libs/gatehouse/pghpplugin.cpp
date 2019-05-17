@@ -106,19 +106,19 @@ bool PGHPFilter::SendLogonRequest( boost::asio::ip::tcp::socket &local_socket, R
 // Notice we are in a "safe" thread so we can wait for reply here.
 bool PGHPFilter::connect_handler( boost::asio::ip::tcp::socket &local_socket, RemoteEndpoint &_remote_ep )
 {
+	std::string info = " certificate name: " + _remote_ep.m_name + " user: " + _remote_ep.m_username + " ";
 	if ( ! this->SendLogonRequest( local_socket, _remote_ep ) )
 	{
-		throw std::system_error( make_error_code( uniproxy::error::logon_failed ), "logon request" );
+		throw std::system_error(make_error_code(uniproxy::error::logon_failed), info + "logon request");
 	}
-
-	for ( ;; )
+	for (int msg_count = 0; msg_count < 5; msg_count++) // There may be a few messages being mixed up.
 	{
 		char buffer[201];
 		int length = 0;
 		length = boost::asio::socket_read_some_for( local_socket, boost::asio::buffer( buffer, 200), boost::posix_time::seconds(10) );
 		if ( length == 0 )
 		{
-			throw std::system_error( make_error_code( uniproxy::error::logon_no_response ) );
+			throw std::system_error(make_error_code(uniproxy::error::logon_no_response), info);
 		}
 		buffer[length] = 0;
 		DOUT("Read: " << length << "-" << buffer << "-");
@@ -151,7 +151,6 @@ bool PGHPFilter::connect_handler( boost::asio::ip::tcp::socket &local_socket, Re
 								TclAISMessageLogonReply reply;
 								reply.Decode( mail );
 								DOUT("Got reply: " << reply.GetLogonReply() );
-                        std::string info = " certificate name: " + _remote_ep.m_name + " user: " + _remote_ep.m_username + " ";
 								switch( reply.GetLogonReply() )
 								{
 								case LOGON_REPLY_OK:
@@ -189,6 +188,7 @@ bool PGHPFilter::connect_handler( boost::asio::ip::tcp::socket &local_socket, Re
 			}
 		}
 	}
+	throw std::system_error(make_error_code(uniproxy::error::logon_failed), info + "Unknown or missing logon response");
 	return false;
 }
 

@@ -82,7 +82,7 @@ protected:
 
    std::vector<std::string> local_hostnames() const;
 
-   void check_deadline();
+   void check_deadline(const boost::system::error_code& error);
 
 protected:
 
