@@ -84,7 +84,7 @@ ELSE()
 
 	add_executable( ${PROJECT_NAME} ${CPP_SOURCE})
 
-	target_link_libraries(${PROJECT_NAME} gatehouse boost_filesystem.a boost_system.a boost_chrono.a boost_regex.a boost_date_time.a boost_iostreams.a cppcms.a booster.a pthread pcre.a icuuc.a icui18n.a icudata.a icuuc.a gcrypt.a gpg-error.a dl z.a ssl.a crypto.a rt.a systemd c)
+	target_link_libraries(${PROJECT_NAME} gatehouse boost_filesystem.a boost_system.a boost_chrono.a boost_regex.a boost_date_time.a boost_iostreams.a cppcms.a booster.a pcre.a icuuc.a icui18n.a icudata.a icuuc.a gcrypt.a gpg-error.a dl z.a ssl.a crypto.a rt.a c pthread systemd)
 
 	INSTALL(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/)
 

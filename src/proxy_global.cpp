@@ -804,8 +804,9 @@ bool proxy_global::load_configuration()
       }
       this->load_certificate_names( my_certs_name );
    }
-   catch( std::exception exc )
+   catch( std::exception &exc )
    {
+      DOUT(__FUNCTION__ << " exception: " << exc.what() );
       return false;
    }
    return true;
