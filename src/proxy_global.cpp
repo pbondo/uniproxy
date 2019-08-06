@@ -701,7 +701,7 @@ bool proxy_global::execute_openssl()
 #ifdef _WIN32
    params = " -config openssl.cnf ";
 #endif
-   int res = process::execute_process( "openssl", " req " + params + "-x509 -nodes -days 10000 -subj /C=DK/ST=Denmark/L=GateHouse/CN=" + this->m_name + " -newkey rsa:2048 -keyout my_private_key.pem -out my_public_cert.pem "
+   int res = process::execute_process( "openssl", " req " + params + "-x509 -nodes -days 100000 -subj /C=DK/ST=Denmark/L=GateHouse/CN=" + this->m_name + " -newkey rsa:2048 -keyout my_private_key.pem -out my_public_cert.pem "
    , [&](const std::string &_out) { DOUT(_out); }
    , [&](const std::string &_err) { DERR(_err); }
    );
