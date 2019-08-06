@@ -20,6 +20,7 @@
 #include "cppcms_util.h"
 #include <cppcms/view.h>
 #include "httpclient.h"
+#include <boost/filesystem.hpp>
 
 // From release.cpp
 extern const char * version;
@@ -1267,3 +1268,10 @@ void activate_host::cleanup()
    }
 }
 
+void load_verify_file(boost::asio::ssl::context& ctx, const std::string& filename)
+{
+   if (boost::filesystem::exists(filename) && boost::filesystem::file_size(filename) > 0)
+   {
+      ctx.load_verify_file(filename);
+   }
+}

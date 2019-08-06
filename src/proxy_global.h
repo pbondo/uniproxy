@@ -198,4 +198,6 @@ protected:
 
 extern proxy_global global;
 
+void load_verify_file(boost::asio::ssl::context& ctx, const std::string& filename);
+
 #endif

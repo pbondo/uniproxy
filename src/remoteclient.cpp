@@ -489,8 +489,7 @@ RemoteProxyHost::RemoteProxyHost(mylib::port_type local_port, const std::vector<
    // According to google this may be the cause (indeed it was on the test setup). The 4 should at least be >= 2. The define above is also from google. But that is not good enough.
    SSL_CTX_set_verify_depth( this->m_context.native_handle(), 4 ); 
 #endif
-
-   this->m_context.load_verify_file( my_certs_name );
+   load_verify_file(this->m_context, my_certs_name);
    this->m_context.use_certificate_chain_file(my_public_cert_name);
    this->m_context.use_private_key_file(my_private_key_name, boost::asio::ssl::context::pem);
 }
@@ -693,13 +692,13 @@ void RemoteProxyHost::handle_accept(RemoteProxyClient* new_session, const boost:
             }
          }
          DOUT(this->dinfo());
-         this->m_context.load_verify_file( my_certs_name );
+         load_verify_file(this->m_context, my_certs_name);
          this->m_clients.push_back( new_session );
          new_session->start( this->m_local_ep );
 
          mylib::msleep(1000);
          DOUT(this->dinfo() << "Trying to reload verify file");
-         this->m_context.load_verify_file( my_certs_name );
+         load_verify_file(this->m_context, my_certs_name);
          // This call is not multithread safe. load_certificate_names( my_certs_name );
 
          // We create the next one, which is then waiting for a connection.
