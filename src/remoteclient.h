@@ -70,7 +70,7 @@ public:
 
 protected:
 
-   void interrupt();
+   void interrupt(bool synced);
 
    unsigned char *m_remote_read_buffer;
    unsigned char *m_local_read_buffer;

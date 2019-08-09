@@ -54,8 +54,8 @@ It will initiate 2 threads:
  */
 RemoteProxyClient::RemoteProxyClient(boost::asio::io_service& io_service, boost::asio::ssl::context& context, RemoteProxyHost &_host )
 :  m_local_socket(io_service), m_remote_socket(io_service, context), 
-   m_remote_thread( [&]{ this->interrupt(); } ),
-   m_local_thread( [&]{ this->interrupt(); } ),
+   m_remote_thread( [&]{ this->interrupt(false); } ),
+   m_local_thread( [&]{ this->interrupt(false); } ),
    m_io_service(io_service),
    m_host(_host)
 {
@@ -163,17 +163,23 @@ void RemoteProxyClient::stop()
 }
 
 
-void RemoteProxyClient::interrupt()
+void RemoteProxyClient::interrupt(bool synced)
 {
    boost::system::error_code ec;
-   DOUT(this->dinfo());
+   DOUT(this->dinfo() << " synced: " << synced << " local: " << this->m_local_connected << " remote: " << this->m_remote_connected);
    if (int sock = get_socket(&this->m_local_socket, this->m_mutex); sock != 0)
    {
-      shutdown(sock, boost::asio::socket_base::shutdown_both);
+      int rc = shutdown(sock, boost::asio::socket_base::shutdown_both);
+      DOUT("shutdown local socket: " << sock << " rc: " << rc)
    }
-   if (int sock = get_socket_lower(&this->m_remote_socket, this->m_mutex); sock != 0)
+   if (!synced)
    {
-      shutdown(sock, boost::asio::socket_base::shutdown_both);
+      std::lock_guard<std::mutex> l(this->m_mutex);
+      if (this->m_remote_connected)
+      {
+         DOUT("async_shutdown remote socket " << this->m_remote_socket.lowest_layer().is_open());
+         this->m_remote_socket.async_shutdown([](const boost::system::error_code& ec){DOUT("shtdwn: " << ec);});
+      }
    }
    this->m_local_connected = this->m_remote_connected = false;
 }
@@ -230,11 +236,7 @@ void RemoteProxyClient::local_threadproc()
       this->dolog(dinfo() + exc.what());
    }
    DOUT(this->dinfo() << "Thread stopping");
-   this->interrupt();
-   if (int sock = get_socket_lower(&this->m_remote_socket, this->m_mutex); sock != 0)
-   {
-      shutdown(sock, boost::asio::socket_base::shutdown_both);
-   }
+   this->interrupt(true);
    DOUT(this->dinfo() << "Thread stopped");
 }
 
@@ -455,11 +457,14 @@ void RemoteProxyClient::remote_threadproc()
       this->dolog(this->dinfo() + exc.what());
    }
    DOUT(this->dinfo() << "Thread stopping");
-   this->interrupt();
+   this->interrupt(true);
    {
+      // NB!! Notice we cannot use the mutex here because the shutdown operation may linger.
       boost::system::error_code ec;
+      DOUT("synced shutdown remote socket enter");
       this->m_remote_socket.shutdown(ec);
       this->m_remote_socket.lowest_layer().close(ec);
+      DOUT("synced shutdown remote socket done " << ec);
    }
    DOUT(this->dinfo() << "Thread stopped");
 }
