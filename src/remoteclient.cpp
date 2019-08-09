@@ -167,14 +167,13 @@ void RemoteProxyClient::interrupt()
 {
    boost::system::error_code ec;
    DOUT(this->dinfo());
-   if ( this->m_local_socket.is_open() )
+   if (int sock = get_socket(&this->m_local_socket, this->m_mutex); sock != 0)
    {
-      TRY_CATCH( this->m_local_socket.shutdown( boost::asio::socket_base::shutdown_both, ec ) );
-      TRY_CATCH( this->m_local_socket.close(ec) );
+      shutdown(sock, boost::asio::socket_base::shutdown_both);
    }
-   if ( this->m_remote_socket.lowest_layer().is_open() )
+   if (int sock = get_socket_lower(&this->m_remote_socket, this->m_mutex); sock != 0)
    {
-      this->m_remote_socket.lowest_layer().cancel(ec);
+      shutdown(sock, boost::asio::socket_base::shutdown_both);
    }
    this->m_local_connected = this->m_remote_connected = false;
 }
