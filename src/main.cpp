@@ -498,7 +498,8 @@ int main(int argc,char ** argv)
 
          std::lock_guard<proxy_global> lock(global);
 
-         DOUT( "Loaded config: " << global.save_json_config( true ) );
+         auto s = global.save_json_config(true);
+         DOUT( "Loaded config: " << s);
          // Create settings object data
          cppcms::json::value settings_object;
          proxy_app::setup_config( settings_object );
