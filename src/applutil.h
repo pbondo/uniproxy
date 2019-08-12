@@ -342,9 +342,11 @@ public:
    
    size_t get();
 
-   void cleanup( int64_t _stamp );
-
    void clear();
+
+private:
+
+   void cleanup( int64_t _stamp );
 
    #define data_flow_size 60
    
