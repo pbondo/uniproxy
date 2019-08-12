@@ -629,6 +629,7 @@ int64_t data_flow::timestamp() const
 
 data_flow::data_flow( bool _debug )
 {
+   std::lock_guard<std::mutex> l(this->m_mutex);
    this->m_debug = _debug;
    for (int index = 0; index < data_flow_size; index++)
    {
@@ -640,6 +641,7 @@ data_flow::data_flow( bool _debug )
 
 void data_flow::clear()
 {
+   std::lock_guard<std::mutex> l(this->m_mutex);
    for (int index = 0; index < data_flow_size; index++)
    {
       this->m_buffer[index] = 0;
@@ -649,6 +651,7 @@ void data_flow::clear()
 
 void data_flow::cleanup( int64_t _stamp )
 {
+   std::lock_guard<std::mutex> l(this->m_mutex);
    if ( _stamp >= this->m_stamp + data_flow_size )
    {
       for (int index = 0; index < data_flow_size; index++)
@@ -671,6 +674,7 @@ void data_flow::cleanup( int64_t _stamp )
 
 void data_flow::add( size_t _count )
 {
+   std::lock_guard<std::mutex> l(this->m_mutex);
    int64_t stamp = this->timestamp();
    this->cleanup(stamp);
    this->m_buffer[ stamp % data_flow_size ] += _count;
@@ -680,6 +684,7 @@ void data_flow::add( size_t _count )
 
 size_t data_flow::get()
 {
+   std::lock_guard<std::mutex> l(this->m_mutex);
    int64_t stamp = this->timestamp();
    this->cleanup(stamp);
    size_t value = 0;

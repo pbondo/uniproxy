@@ -356,6 +356,9 @@ public:
    int64_t m_stamp;
 
    bool m_debug;
+
+   mutable std::mutex m_mutex;
+
 };
 
 
