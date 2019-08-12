@@ -152,6 +152,7 @@ void TclAISMessageInternalBase::BuildInt(std::vector<uint8_t> &clData, uint8_t i
    while((((iRes & iMask) == 0) || ((iRes & iMask) == iMask)) && iSize > 1)
    {
       iSize--;
+      iRes &= ~iMask;
       iRes <<= 8;
    }
 
@@ -163,6 +164,7 @@ void TclAISMessageInternalBase::BuildInt(std::vector<uint8_t> &clData, uint8_t i
    while(iSize--)
    {
       clData.push_back( (uint8_t)((iRes & iMask) >> (8 * (sizeof(int32_t) - 1))));
+      iRes &= ~iMask;
       iRes <<= 8;
    }
 }
