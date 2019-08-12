@@ -651,7 +651,6 @@ void data_flow::clear()
 
 void data_flow::cleanup( int64_t _stamp )
 {
-   std::lock_guard<std::mutex> l(this->m_mutex);
    if ( _stamp >= this->m_stamp + data_flow_size )
    {
       for (int index = 0; index < data_flow_size; index++)
