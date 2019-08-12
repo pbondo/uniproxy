@@ -33,6 +33,7 @@ public:
          const std::vector<LocalEndpoint> &_local_endpoints, // Local data provider
          const std::vector<RemoteEndpoint> &_proxy_endpoints, // Remote proxy
          PluginHandler &_plugin, const cppcms::json::value &_json);
+   virtual ~ProviderClient(){}
 
 protected:
 
