@@ -730,6 +730,10 @@ bool proxy_global::load_configuration()
          {
             boost::system::error_code ec1,ec2;
             boost::asio::ssl::context ctx(boost::asio::ssl::context_base::tlsv12);
+            /* Default to SECLEVEL=1 to allow connecting to legacy
+            * networks since Debian OpenSSL is set to minimum TLSv1.2 and SECLEVEL=2. */
+            char const *ciphers = "DEFAULT@SECLEVEL=1";
+            SSL_CTX_set_cipher_list(ctx.native_handle(), ciphers);
             ctx.use_private_key_file(my_private_key_name,boost::asio::ssl::context_base::file_format::pem,ec1);
             ctx.use_certificate_file(my_public_cert_name,boost::asio::ssl::context_base::file_format::pem,ec2);
             load_private = !ec1 && !ec2;

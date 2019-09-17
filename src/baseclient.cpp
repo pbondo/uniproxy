@@ -90,6 +90,11 @@ std::string BaseClient::get_password() const
 
 void BaseClient::ssl_prepare(boost::asio::ssl::context &ssl_context) const
 {
+   /* Default to SECLEVEL=1 to allow connecting to legacy
+   * networks since Debian OpenSSL is set to minimum TLSv1.2 and SECLEVEL=2. */
+   char const *ciphers = "DEFAULT@SECLEVEL=1";
+   SSL_CTX_set_cipher_list(ssl_context.native_handle(), ciphers);
+
    ssl_context.set_password_callback(boost::bind(&BaseClient::get_password,this));
    ssl_context.set_verify_mode(boost::asio::ssl::context::verify_peer|boost::asio::ssl::context::verify_fail_if_no_peer_cert);
    ssl_context.load_verify_file(my_certs_name);
