@@ -24,11 +24,14 @@
 #include "localclient.h"
 #include "providerclient.h"
 #include <cppcms/application.h>
-
+#include <string>
+#include <boost/lexical_cast.hpp>
 
 typedef std::shared_ptr<BaseClient> baseclient_ptr;
 typedef std::shared_ptr<RemoteProxyHost> remotehost_ptr;
 
+std::string GetEnvironmentVariableOrDefault(const std::string& variable_name, 
+                                            const std::string& default_value);
 
 class client_certificate_exchange : public mylib::thread
 {
@@ -133,7 +136,7 @@ public:
    std::vector<baseclient_ptr> localclients;
    std::vector<LocalEndpoint> uniproxies;
 
-   mylib::port_type m_web_port = 8085;
+   mylib::port_type m_web_port = boost::lexical_cast<int>(GetEnvironmentVariableOrDefault("LISTEN_PORT", "8085"));
    std::string m_ip4_mask;
    bool m_debug;
    cppcms::json::value m_new_setup; // Stop and start services to match this.

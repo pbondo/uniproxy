@@ -36,6 +36,7 @@
 #include <boost/regex.hpp>
 
 #include <fstream>
+#include <string>
 
 #include <webserver/content.h>
 #include <boost/process.hpp>
@@ -57,8 +58,6 @@ cppcms::service *signal::m_psrv = NULL;
 // I didn't want to bother having a file for a single line of code. The following line does not really belong here.
 std::vector<PluginHandler*> *PluginHandler::m_plugins = NULL;
 class cppcms::form c;
-
-
 
 
 ////////////////////////////////////////////
@@ -520,8 +519,11 @@ void session_data::update_timestamp()
 
 //-----------------------------------
 
-const char help_text[] = "Usage: uniproxy [-l/--working-dir=<working directory>]\nLog on with webbrowser http://localhost:8085/\n";
-
+const std::string default_port = GetEnvironmentVariableOrDefault("LISTEN_PORT", "8085");
+const std::string help_text_1 =  "Usage: uniproxy [-l/--working-dir=<working directory>]\nLog on with webbrowser http://localhost:";
+const std::string help_text_2 = "/\n";
+const std::string help_text_str = help_text_1+default_port+help_text_2;
+const char* help_text = const_cast<char*>(help_text_str.c_str());
 
 
 int main(int argc,char ** argv)

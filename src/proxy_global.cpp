@@ -20,6 +20,8 @@
 #include "cppcms_util.h"
 #include <cppcms/view.h>
 #include "httpclient.h"
+#include <string>
+#include <boost/lexical_cast.hpp>
 
 // From release.cpp
 extern const char * version;
@@ -34,6 +36,12 @@ proxy_global::proxy_global()
    this->m_debug = false;
 }
 
+std::string GetEnvironmentVariableOrDefault(const std::string& variable_name, 
+                                            const std::string& default_value)
+{
+    const char* value = getenv(variable_name.c_str());
+    return value ? value : default_value;
+}
 
 //-----------------------------------
 
@@ -502,7 +510,7 @@ void proxy_global::populate_json( cppcms::json::value &obj, int _json_acl )
          for (auto &item : proxies.array())
          {
             LocalEndpoint ep;
-            ep.m_port = 8085;
+            ep.m_port = boost::lexical_cast<int>(GetEnvironmentVariableOrDefault("LISTEN_PORT", "8085"));
             if (ep.load(item)) // NB!! Should be assert??
             {
                if (std::find_if(this->uniproxies.begin(), this->uniproxies.end(), [&](const LocalEndpoint &_ep){ return _ep == ep; }) == this->uniproxies.end())
