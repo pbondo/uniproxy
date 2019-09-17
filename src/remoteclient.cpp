@@ -479,6 +479,11 @@ RemoteProxyHost::RemoteProxyHost( unsigned short _local_port, const std::vector<
    SSL_CTX_set_verify_depth( this->m_context.native_handle(), 4 ); 
 #endif
 
+   /* Default to SECLEVEL=1 to allow connecting to legacy
+   * networks since Debian OpenSSL is set to minimum TLSv1.2 and SECLEVEL=2. */
+   char const *ciphers = "DEFAULT@SECLEVEL=1";
+   SSL_CTX_set_cipher_list(this->m_context.native_handle(), ciphers);
+
    this->m_context.load_verify_file( my_certs_name );
    this->m_context.use_certificate_chain_file(my_public_cert_name);
    this->m_context.use_private_key_file(my_private_key_name, boost::asio::ssl::context::pem);

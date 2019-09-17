@@ -382,6 +382,10 @@ void LocalHost::go_out(boost::asio::io_service &io_service)
       boost::asio::deadline_timer deadline(io_service);
       mylib::protect_pointer<boost::asio::deadline_timer> p_deadline( this->m_pdeadline, deadline, this->m_mutex );
       boost::asio::ssl::context ssl_context(boost::asio::ssl::context::tlsv12);
+      /* Default to SECLEVEL=1 to allow connecting to legacy
+      * networks since Debian OpenSSL is set to minimum TLSv1.2 and SECLEVEL=2. */
+      char const *ciphers = "DEFAULT@SECLEVEL=1";
+      SSL_CTX_set_cipher_list(ssl_context.native_handle(), ciphers);
       ssl_context.set_password_callback(boost::bind(&LocalHost::get_password,this));
       ssl_context.set_verify_mode(boost::asio::ssl::context::verify_peer|boost::asio::ssl::context::verify_fail_if_no_peer_cert);
       ssl_context.load_verify_file(my_certs_name);
